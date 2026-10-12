@@ -14,6 +14,10 @@ A browser survivor-like game with a deckbuilding twist. Open `index.html` in any
 - New items come from first clears and the **gacha**.
 - Loadouts can be saved to 6 slots.
 
+## Sound
+
+All sound effects and music are synthesized in the browser with the Web Audio API (no audio files). Each stage has its own generated song, and boss fights switch to a more intense version. Volumes for master, music and sound effects are in Settings (title screen, the gear button, or the pause menu) and are saved in the browser.
+
 ## Adding content
 
 All content lives in the data tables at the top of the script in `index.html`:

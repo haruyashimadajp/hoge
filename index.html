@@ -72,6 +72,13 @@ input[type=text]{width:100%;background:var(--ink2);border:1px solid var(--line2)
 .tabs button{background:none;border:0;padding:9px 12px;border-radius:9px;color:var(--mute);font-family:var(--display);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:13px;white-space:nowrap}
 .tabs button:hover{color:var(--text)}
 .tabs button.on{color:var(--text);background:var(--panel2);box-shadow:inset 0 -2px 0 var(--hot)}
+.iconbtn{width:38px;height:38px;flex:none;border-radius:10px;border:1px solid var(--line2);background:var(--panel2);display:grid;place-items:center;font-size:18px;color:var(--mute)}
+.iconbtn:hover{color:var(--text);border-color:var(--cyan)}
+.set{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;margin:14px 0}
+.set label{font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
+.set label .ico{color:var(--hot2);font-size:17px}
+.set output{font-family:var(--display);font-weight:700;font-variant-numeric:tabular-nums;color:var(--mute);min-width:3ch;text-align:right}
+.set input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--hot);height:22px}
 .wallet{margin-left:auto;font-family:var(--display);font-weight:700;color:var(--gold);font-size:19px;white-space:nowrap;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:6px}
 @media (max-width:680px){.bar{flex-wrap:wrap;gap:6px 10px}.tabs{order:3;width:100%}}
 
@@ -785,6 +792,10 @@ const ICONS = {
   flame: 'M12 2.5c.8 3.6 5.5 5.6 5.5 11a5.5 5.5 0 0 1-11 0c0-2.8 1.6-4.4 2.6-6 .5 1.7 1.4 2.8 2.6 3.2-.4-2.7-.4-5.4.3-8.2z',
   crown: 'M3.5 18.5h17M4 16L3 7l5 4 4-6 4 6 5-4-1 9z',
   layers: 'M12 3l9 5-9 5-9-5zM3 12.5l9 5 9-5M3 16.5l9 5 9-5',
+  gear: C(12, 12, 3.2) + 'M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1',
+  sound: 'M4 9h4l5-4v14l-5-4H4zM16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11',
+  mute: 'M4 9h4l5-4v14l-5-4H4zM16 9.5l5 5M21 9.5l-5 5',
+  music: 'M9 18V5l11-2v13' + C(6.5, 18, 2.5) + C(17.5, 16, 2.5),
   thorns: 'M12 2.5l1.8 4.7 4.9-1.8-1.8 4.9 4.6 1.7-4.6 1.7 1.8 4.9-4.9-1.8L12 21.5l-1.8-4.7-4.9 1.8 1.8-4.9L2.5 12l4.6-1.7-1.8-4.9 4.9 1.8z' + C(12, 12, 3),
   plating: 'M4 5.5h16v6.5c0 4.8-3.6 8-8 9.5-4.4-1.5-8-4.7-8-9.5zM4 11h16M12 5.5V21',
   retaliate: C(12, 12, 3) + 'M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M19 19l-3-3M19 5l-3 3M5 19l3-3',
@@ -835,7 +846,7 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
    ===================================================================== */
 const SAVE_KEY = 'loadout-survivors-v1';
 function defaultSave(){
-  return {coins:200, unlocked:STARTER.slice(), chars:['mage'], cleared:{}, best:{}, decks:Array(DECK_SLOTS).fill(null), combos:[], seenGuide:false};
+  return {coins:200, unlocked:STARTER.slice(), chars:['mage'], cleared:{}, best:{}, decks:Array(DECK_SLOTS).fill(null), combos:[], seenGuide:false, vol:{master:.8, music:.6, sfx:.8, mute:false}};
 }
 function loadSave(){
   try{
@@ -1963,6 +1974,222 @@ function stageThumb(st){
 }
 
 /* =====================================================================
+   AUDIO — every sound is synthesized with Web Audio, so nothing has to
+   be downloaded. Three buses: music and sfx feed the master volume.
+   Browsers only allow sound after the first click or key press.
+   ===================================================================== */
+const AUDIO = {ctx:null, master:null, music:null, sfx:null, noise:null};
+const SFXLAST = {};
+function audioInit(){
+  if(AUDIO.ctx){ if(AUDIO.ctx.state === 'suspended' && !document.hidden) AUDIO.ctx.resume().catch(() => {}); return; }
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if(!AC) return;
+  try{
+    const a = new AC();
+    AUDIO.ctx = a;
+    const comp = a.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4; comp.connect(a.destination);
+    AUDIO.master = a.createGain(); AUDIO.master.connect(comp);
+    AUDIO.music = a.createGain(); AUDIO.music.connect(AUDIO.master);
+    AUDIO.sfx = a.createGain(); AUDIO.sfx.connect(AUDIO.master);
+    const buf = a.createBuffer(1, a.sampleRate, a.sampleRate), d = buf.getChannelData(0);
+    for(let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    AUDIO.noise = buf;
+    applyVolumes();
+    if(a.state === 'suspended') a.resume().catch(() => {});
+    MUSIC.next = 0;
+  }catch(e){ AUDIO.ctx = null; }
+}
+addEventListener('pointerdown', audioInit, true);
+addEventListener('keydown', audioInit, true);
+document.addEventListener('visibilitychange', () => {
+  if(!AUDIO.ctx) return;
+  if(document.hidden) AUDIO.ctx.suspend().catch(() => {}); else AUDIO.ctx.resume().catch(() => {});
+});
+function applyVolumes(){
+  if(!AUDIO.ctx) return;
+  const v = save.vol, t = AUDIO.ctx.currentTime;
+  AUDIO.master.gain.setTargetAtTime(v.mute ? 0 : v.master, t, .03);
+  AUDIO.music.gain.setTargetAtTime(v.music * .5 * (MUSIC.ducked ? .35 : 1), t, .08);
+  AUDIO.sfx.gain.setTargetAtTime(v.sfx, t, .03);
+}
+function envGain(t, attack, peak, dur, dest){
+  const g = AUDIO.ctx.createGain();
+  g.gain.setValueAtTime(.0001, t);
+  g.gain.exponentialRampToValueAtTime(Math.max(.0002, peak), t + attack);
+  g.gain.exponentialRampToValueAtTime(.0001, t + attack + dur);
+  g.connect(dest);
+  return g;
+}
+// o: type, vol, to (end frequency), at (delay), dest, attack, lp (lowpass cutoff), t (absolute start time)
+function tone(f, dur, o){
+  o = o || {};
+  const a = AUDIO.ctx, t = o.t !== undefined ? o.t : a.currentTime + (o.at || 0);
+  const osc = a.createOscillator();
+  osc.type = o.type || 'sine';
+  osc.frequency.setValueAtTime(f, t);
+  if(o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + dur);
+  const g = envGain(t, o.attack || .005, o.vol || .1, dur, o.dest || AUDIO.sfx);
+  if(o.lp){ const fl = a.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = o.lp; osc.connect(fl); fl.connect(g); }
+  else osc.connect(g);
+  osc.start(t); osc.stop(t + (o.attack || .005) + dur + .05);
+}
+// o: filter, f, fto, q, vol, at, dest, attack, t
+function noise(dur, o){
+  o = o || {};
+  const a = AUDIO.ctx, t = o.t !== undefined ? o.t : a.currentTime + (o.at || 0);
+  const src = a.createBufferSource(); src.buffer = AUDIO.noise;
+  const fl = a.createBiquadFilter(); fl.type = o.filter || 'lowpass'; fl.Q.value = o.q || 1;
+  fl.frequency.setValueAtTime(o.f || 2000, t);
+  if(o.fto) fl.frequency.exponentialRampToValueAtTime(o.fto, t + dur);
+  const g = envGain(t, o.attack || .003, o.vol || .1, dur, o.dest || AUDIO.sfx);
+  src.connect(fl); fl.connect(g);
+  src.start(t, Math.random() * .5); src.stop(t + dur + .05);
+}
+const arp = (notes, step, o) => notes.forEach((f, i) => tone(f, o.len || .14, Object.assign({}, o, {at:i * step})));
+
+// gap = shortest time between two plays of the same sound, so big fights stay readable
+const SFX = {
+  shoot:   {gap:.05, play(){ tone(1100, .05, {type:'square', vol:.03, to:700}); }},
+  drone:   {gap:.07, play(){ tone(1500, .04, {type:'square', vol:.018, to:1000}); }},
+  slash:   {gap:.05, play(){ noise(.12, {filter:'bandpass', f:3000, fto:800, q:1.2, vol:.12}); }},
+  hit:     {gap:.035, play(){ noise(.03, {filter:'highpass', f:2500, vol:.045}); }},
+  crit:    {gap:.06, play(){ tone(1600, .06, {type:'triangle', vol:.05, to:2400}); noise(.04, {filter:'highpass', f:4000, vol:.05}); }},
+  kill:    {gap:.03, play(){ tone(420, .09, {type:'sine', vol:.06, to:110}); }},
+  gem:     {gap:.02, play(p){ tone(1200 * p, .06, {type:'sine', vol:.04, to:1700 * p}); }},
+  fire:    {gap:.1, play(){ noise(.18, {filter:'lowpass', f:1200, fto:300, vol:.08}); }},
+  boom:    {gap:.06, play(){ noise(.35, {filter:'lowpass', f:900, fto:80, vol:.2}); tone(120, .25, {type:'sine', vol:.14, to:40}); }},
+  bigboom: {gap:.2, play(){ noise(.8, {filter:'lowpass', f:1400, fto:60, vol:.32}); tone(90, .7, {type:'sine', vol:.24, to:30}); }},
+  frost:   {gap:.1, play(){ noise(.35, {filter:'highpass', f:5000, vol:.06}); tone(1800, .25, {type:'sine', vol:.035, to:2600}); }},
+  zap:     {gap:.06, play(){ noise(.12, {filter:'bandpass', f:2500, q:3, vol:.13}); tone(220, .1, {type:'sawtooth', vol:.045, to:90}); }},
+  whoosh:  {gap:.1, play(){ noise(.25, {filter:'bandpass', f:600, fto:2200, q:2, vol:.07}); }},
+  hurt:    {gap:.15, play(){ tone(200, .18, {type:'sawtooth', vol:.11, to:60, lp:1200}); noise(.1, {filter:'lowpass', f:800, vol:.12}); }},
+  block:   {gap:.1, play(){ tone(900, .15, {type:'triangle', vol:.09, to:1400}); tone(1350, .15, {type:'triangle', vol:.05, to:2000}); }},
+  levelup: {gap:.2, play(){ arp([523, 659, 784, 1046], .07, {type:'triangle', vol:.08}); }},
+  treasure:{gap:.2, play(){ arp([784, 988, 1175, 1568, 1976], .06, {type:'triangle', vol:.07, len:.18}); }},
+  select:  {gap:.05, play(){ tone(660, .08, {type:'triangle', vol:.08, to:990}); }},
+  reroll:  {gap:.1, play(){ tone(500, .12, {type:'square', vol:.035, to:900}); }},
+  heal:    {gap:.2, play(){ arp([660, 880, 1320], .05, {type:'sine', vol:.08, len:.16}); }},
+  magnet:  {gap:.2, play(){ tone(300, .4, {type:'sine', vol:.07, to:1500}); }},
+  revive:  {gap:.5, play(){ arp([392, 523, 659, 784, 1046], .08, {type:'triangle', vol:.09, len:.25}); }},
+  warning: {gap:1, play(){ for(let i = 0; i < 3; i++){ tone(440, .22, {type:'square', vol:.06, at:i * .5, lp:2000}); tone(330, .22, {type:'square', vol:.06, at:i * .5 + .25, lp:2000}); } }},
+  elite:   {gap:1, play(){ tone(392, .2, {type:'triangle', vol:.08}); tone(587, .3, {type:'triangle', vol:.08, at:.15}); }},
+  swarm:   {gap:1, play(){ noise(.6, {filter:'bandpass', f:300, fto:1200, q:2, vol:.11}); }},
+  eshot:   {gap:.08, play(){ tone(500, .07, {type:'triangle', vol:.025, to:300}); }},
+  lob:     {gap:.15, play(){ tone(300, .3, {type:'sine', vol:.045, to:600}); }},
+  thud:    {gap:.08, play(){ tone(110, .2, {type:'sine', vol:.13, to:45}); noise(.15, {filter:'lowpass', f:500, vol:.09}); }},
+  charge:  {gap:.2, play(){ tone(200, .8, {type:'sawtooth', vol:.03, to:900, lp:1800}); }},
+  laser:   {gap:.15, play(){ tone(140, .5, {type:'sawtooth', vol:.06, to:120, lp:2400}); noise(.4, {filter:'bandpass', f:1800, q:4, vol:.05}); }},
+  dash:    {gap:.15, play(){ noise(.2, {filter:'bandpass', f:1200, fto:400, q:2, vol:.07}); }},
+  blink:   {gap:.15, play(){ tone(1400, .12, {type:'sine', vol:.045, to:300}); }},
+  clear:   {gap:1, play(){ arp([523, 659, 784, 1046, 1318], .12, {type:'triangle', vol:.09, len:.35}); tone(262, 1.2, {type:'triangle', vol:.06, at:.5}); }},
+  defeat:  {gap:1, play(){ arp([392, 330, 262, 196], .22, {type:'triangle', vol:.08, len:.4}); }},
+  start:   {gap:.3, play(){ tone(330, .1, {type:'triangle', vol:.08}); tone(660, .3, {type:'triangle', vol:.08, at:.08, to:990}); }},
+  click:   {gap:.03, play(){ tone(1000, .03, {type:'square', vol:.025}); }},
+  tick:    {gap:.03, play(){ tone(880, .05, {type:'triangle', vol:.06, to:1320}); }},
+  untick:  {gap:.03, play(){ tone(700, .05, {type:'triangle', vol:.05, to:450}); }},
+  combo:   {gap:.3, play(){ arp([784, 1046, 1318, 1568], .05, {type:'sine', vol:.07, len:.2}); }},
+  gacha:   {gap:.3, play(){ tone(200, .6, {type:'sawtooth', vol:.04, to:1600, lp:3000}); }},
+  epic:    {gap:.3, play(){ arp([1046, 1318, 1568, 2093], .07, {type:'triangle', vol:.08, len:.3, at:.55}); }},
+};
+function sfx(name, p){
+  const a = AUDIO.ctx;
+  if(!a || a.state !== 'running' || save.vol.mute || save.vol.sfx <= 0 || save.vol.master <= 0) return;
+  const d = SFX[name]; if(!d) return;
+  const now = a.currentTime;
+  if(now - (SFXLAST[name] || -9) < d.gap) return;
+  SFXLAST[name] = now;
+  try{ d.play(p || 1); }catch(e){}
+}
+
+/* ---------- music: a small step sequencer playing generated songs ---------- */
+const SCALES = {
+  major:[0,2,4,5,7,9,11], minor:[0,2,3,5,7,8,10], dorian:[0,2,3,5,7,9,10], phrygian:[0,1,3,5,7,8,10],
+  lydian:[0,2,4,6,7,9,11], harmonic:[0,2,3,5,7,8,11], phrygdom:[0,1,4,5,7,8,10],
+};
+// bass: which 16th steps play the bass note; drums 0 none, 1 light, 2 driving
+const BASS = {half:[0,8], pulse:[0,6,8,14], drive:[0,3,6,8,11,14], eighth:[0,2,4,6,8,10,12,14]};
+const SONGS = {
+  title:   {bpm:104, root:57, scale:'minor',    prog:[0,5,3,4], bass:'sawtooth', bp:'pulse',  lead:'triangle', arp:'square',   drums:1, pad:1, density:.35, seed:3},
+  hub:     {bpm:84,  root:60, scale:'dorian',   prog:[0,3,4,3], bass:'triangle', bp:'half',   lead:'sine',     arp:null,       drums:0, pad:1, density:.22, seed:5},
+  meadow:  {bpm:116, root:62, scale:'major',    prog:[0,4,5,3], bass:'triangle', bp:'pulse',  lead:'square',   arp:'triangle', drums:1, pad:0, density:.4,  seed:11},
+  cave:    {bpm:100, root:52, scale:'phrygian', prog:[0,1,0,6], bass:'sawtooth', bp:'half',   lead:'triangle', arp:'sine',     drums:1, pad:1, density:.3,  seed:23},
+  forest:  {bpm:92,  root:55, scale:'dorian',   prog:[0,6,3,4], bass:'triangle', bp:'pulse',  lead:'sine',     arp:'triangle', drums:1, pad:1, density:.3,  seed:37},
+  fortress:{bpm:124, root:50, scale:'minor',    prog:[0,0,5,6], bass:'square',   bp:'drive',  lead:'square',   arp:'sawtooth', drums:2, pad:0, density:.35, seed:53},
+  abyss:   {bpm:132, root:48, scale:'harmonic', prog:[0,5,6,4], bass:'sawtooth', bp:'drive',  lead:'sawtooth', arp:'square',   drums:2, pad:0, density:.4,  seed:71},
+  ice:     {bpm:96,  root:64, scale:'lydian',   prog:[0,1,5,4], bass:'triangle', bp:'half',   lead:'sine',     arp:'sine',     drums:1, pad:1, density:.32, seed:83},
+  desert:  {bpm:108, root:57, scale:'phrygdom', prog:[0,1,0,6], bass:'sawtooth', bp:'pulse',  lead:'triangle', arp:'square',   drums:1, pad:0, density:.38, seed:97},
+  swamp:   {bpm:90,  root:50, scale:'minor',    prog:[0,3,0,4], bass:'sawtooth', bp:'pulse',  lead:'triangle', arp:'triangle', drums:1, pad:1, density:.28, seed:113},
+  cyber:   {bpm:136, root:57, scale:'minor',    prog:[0,5,2,6], bass:'sawtooth', bp:'eighth', lead:'square',   arp:'sawtooth', drums:2, pad:0, density:.42, seed:131},
+  void:    {bpm:78,  root:53, scale:'lydian',   prog:[0,4,1,5], bass:'sine',     bp:'half',   lead:'sine',     arp:'triangle', drums:0, pad:1, density:.2,  seed:149},
+};
+const MUSIC = {name:null, intensity:0, step:0, next:0, pattern:null, ducked:false};
+const midiF = m => 440 * Math.pow(2, (m - 69) / 12);
+function setMusic(name, intensity){
+  intensity = intensity || 0;
+  if(MUSIC.name === name && MUSIC.intensity === intensity) return;
+  const sameSong = MUSIC.name === name;
+  MUSIC.name = name; MUSIC.intensity = intensity;
+  if(!name) return;
+  if(!sameSong){
+    const song = SONGS[name], rnd = mulberry(song.seed * 7919);
+    MUSIC.pattern = Array.from({length:64}, (_, i) => {
+      const onBeat = i % 4 === 0 ? 1.6 : i % 2 === 0 ? 1 : .45;
+      return rnd() < song.density * onBeat ? [0, 2, 4, 1, 3, 5, -1, 7][Math.floor(rnd() * 8)] : null;
+    });
+    MUSIC.step = 0; MUSIC.next = 0;
+  }
+}
+function setDuck(on){ MUSIC.ducked = on; applyVolumes(); }
+function musicNote(f, dur, type, vol, t, lp){ tone(f, dur, {type, vol, t, dest:AUDIO.music, attack:.008, lp}); }
+function playStep(song, step, t, sp){
+  const I = MUSIC.intensity, bar = Math.floor(step / 16), s = step % 16, deg = song.prog[bar % song.prog.length], sc = SCALES[song.scale];
+  const note = (d, oct) => song.root + sc[((d % 7) + 7) % 7] + 12 * (Math.floor(d / 7) + oct);
+  if(BASS[I >= 2 ? 'drive' : song.bp].includes(s)) musicNote(midiF(note(deg, -1)), sp * 1.7, song.bass, .15, t, 700);
+  if(s === 0 && song.pad) for(const k of [0, 2, 4]) musicNote(midiF(note(deg + k, 0)), sp * 15, 'sine', .028, t);
+  const every = I >= 2 ? 1 : 2;
+  if(song.arp && s % every === 0){ const k = [0, 2, 4, 7][Math.floor(s / every) % 4]; musicNote(midiF(note(deg + k, 1)), sp * .8, song.arp, .03, t, 3000); }
+  const L = MUSIC.pattern[(bar % 4) * 16 + s];
+  if(L !== null) musicNote(midiF(note(deg + L, 1 + (I >= 2 ? 1 : 0))), sp * 1.6, song.lead, .045, t, 4000);
+  const drums = Math.max(song.drums, I >= 2 ? 2 : 0);
+  if(drums){
+    if(s % (drums >= 2 ? 4 : 8) === 0) tone(150, .14, {type:'sine', vol:.28, to:40, t, dest:AUDIO.music});
+    if(s === 4 || s === 12) noise(.12, {filter:'bandpass', f:1800, q:.8, vol:.09, t, dest:AUDIO.music});
+    if(drums >= 2 ? s % 2 === 1 : s % 4 === 2) noise(.03, {filter:'highpass', f:7000, vol:.035, t, dest:AUDIO.music});
+  }
+}
+function musicTick(){
+  const a = AUDIO.ctx;
+  if(!a || a.state !== 'running' || !MUSIC.name || save.vol.mute || save.vol.music <= 0) return;
+  const song = SONGS[MUSIC.name], sp = 60 / song.bpm / 4;
+  if(MUSIC.next < a.currentTime) MUSIC.next = a.currentTime + .05;
+  while(MUSIC.next < a.currentTime + .2){
+    try{ playStep(song, MUSIC.step, MUSIC.next, sp); }catch(e){}
+    MUSIC.step++; MUSIC.next += sp;
+  }
+}
+setInterval(musicTick, 40);
+
+/* ---------- settings ---------- */
+const VOLS = [['master', 'Master volume', 'sound'], ['music', 'Music', 'music'], ['sfx', 'Sound effects', 'bolt']];
+function volumeHtml(){
+  return VOLS.map(([k, label, ic]) => `<div class="set"><label for="vol-${k}">${ico(ic)} ${label}</label><output id="out-${k}">${Math.round(save.vol[k] * 100)}</output>
+    <input type="range" id="vol-${k}" data-vol="${k}" min="0" max="100" step="1" value="${Math.round(save.vol[k] * 100)}"></div>`).join('')
+    + `<button class="btn" data-act="mute" id="muteBtn">${ico(save.vol.mute ? 'mute' : 'sound')} ${save.vol.mute ? 'Unmute all' : 'Mute all'}</button>`;
+}
+function openSettings(){
+  mbox.className = 'mbox';
+  mbox.innerHTML = `<h2>Settings</h2><p class="mnote">Sound starts after your first click or key press. Settings are saved in this browser.</p>
+    ${volumeHtml()}<div class="mfoot"><button class="btn hot" data-act="close">Done</button></div>`;
+  modal.hidden = false;
+}
+function onVolumeInput(el){
+  const k = el.dataset.vol;
+  save.vol[k] = (+el.value) / 100;
+  const out = $('#out-' + k); if(out) out.textContent = el.value;
+  applyVolumes();
+}
+
+/* =====================================================================
    HUB UI
    ===================================================================== */
 const hub = $('#hub'), modal = $('#modal'), mbox = $('#mbox'), titleEl = $('#title');
@@ -2217,7 +2444,8 @@ function renderHub(){
   $('#topbar').innerHTML = `<button class="logo" data-act="title" aria-label="Back to title"><span class="l1">LOADOUT</span><span class="l2">SURVIVORS</span></button>
     <nav class="tabs">${[['stages','Stages'],['loadout','Loadout'],['gacha','Gacha'],['collection','Collection'],['guide','Guide']].map(([k, l]) =>
       `<button data-act="tab" data-id="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('')}</nav>
-    <div class="wallet">${ico('coin')} ${save.coins}</div>`;
+    <div class="wallet">${ico('coin')} ${save.coins}</div>
+    <button class="iconbtn" data-act="settings" aria-label="Settings">${ico('gear')}</button>`;
   let h = tab === 'stages' ? renderStages() : tab === 'loadout' ? renderLoadout() : tab === 'gacha' ? renderGacha() : tab === 'collection' ? renderCollection() : renderGuide();
   h += `<footer><span class="note">Progress is saved in this browser.</span>
     <button class="btn sm ghost" data-act="reset">${resetArmed ? 'Click again to erase ALL progress' : 'Reset save'}</button></footer>`;
@@ -2235,7 +2463,7 @@ function renderHub(){
 function discoverCombos(){
   for(const c of activeCombos(B.items)) if(!save.combos.includes(c.id)){
     save.combos.push(c.id); persist();
-    toast(`New combo found: ${c.name}!`, 'combo');
+    toast(`New combo found: ${c.name}!`, 'combo'); sfx('combo');
   }
 }
 
@@ -2254,6 +2482,8 @@ function gachaPull(n){
     lastPulls.push({id, isNew});
   }
   persist();
+  sfx('gacha');
+  if(lastPulls.some(r => ITEMS[r.id].rarity === 3)) sfx('epic');
 }
 
 hub.addEventListener('click', e => {
@@ -2261,8 +2491,10 @@ hub.addEventListener('click', e => {
   if(!t || t.disabled) return;
   const act = t.dataset.act, id = t.dataset.id;
   if(act !== 'reset') resetArmed = false;
+  if(act !== 'item' && act !== 'start' && act !== 'pull') sfx('click');
   switch(act){
     case 'title': showTitle(); return;
+    case 'settings': openSettings(); return;
     case 'tab': tab = id; hub.scrollTop = 0; break;
     case 'stage': {
       const before = B.items.slice();
@@ -2282,10 +2514,10 @@ hub.addEventListener('click', e => {
       const st = stageById(B.stage), it = ITEMS[id];
       if(st.forced.includes(id)){ toast(`${it.name} is forced by this stage.`, 'bad'); return; }
       if(st.banned.includes(id) || !isUnlocked(id)) return;
-      if(B.items.includes(id)) B.items = B.items.filter(x => x !== id);
+      if(B.items.includes(id)){ B.items = B.items.filter(x => x !== id); sfx('untick'); }
       else {
-        if(it.type === 'ability' && abilityCount(B.items) >= MAX_ABILITIES){ toast(`Ability slots are full (${MAX_ABILITIES}). Remove one first.`, 'bad'); return; }
-        B.items.push(id);
+        if(it.type === 'ability' && abilityCount(B.items) >= MAX_ABILITIES){ toast(`Ability slots are full (${MAX_ABILITIES}). Remove one first.`, 'bad'); sfx('untick'); return; }
+        B.items.push(id); sfx('tick');
       }
       discoverCombos();
       break;
@@ -2320,7 +2552,11 @@ function openDecks(){
 }
 function closeModal(){ modal.hidden = true; }
 
-modal.addEventListener('input', e => { if(e.target.id === 'deckName') B.deckName = e.target.value; });
+modal.addEventListener('input', e => {
+  if(e.target.id === 'deckName') B.deckName = e.target.value;
+  if(e.target.dataset.vol) onVolumeInput(e.target);
+});
+modal.addEventListener('change', e => { if(e.target.dataset.vol){ persist(); if(e.target.dataset.vol !== 'music') sfx('select'); } });
 modal.addEventListener('click', e => {
   const pick = e.target.closest('[data-pick]');
   if(pick){ pickOption(+pick.dataset.pick); return; }
@@ -2328,8 +2564,14 @@ modal.addEventListener('click', e => {
   if(!t){ if(e.target === modal && !G) closeModal(); return; }
   if(t.disabled) return;
   const i = +t.dataset.i;
+  if(t.dataset.act !== 'reroll') sfx('click');
   switch(t.dataset.act){
     case 'close': closeModal(); break;
+    case 'mute': {
+      save.vol.mute = !save.vol.mute; persist(); applyVolumes();
+      t.innerHTML = `${ico(save.vol.mute ? 'mute' : 'sound')} ${save.vol.mute ? 'Unmute all' : 'Mute all'}`;
+      break;
+    }
     case 'deckSave': {
       const name = B.deckName.trim() || save.decks[i]?.name || `Loadout ${i + 1}`;
       const st = stageById(B.stage);
@@ -2344,7 +2586,7 @@ modal.addEventListener('click', e => {
       applyStageRules(); discoverCombos(); closeModal(); renderHub(); toast(`Loaded “${d.name}”`); break;
     }
     case 'deckDel': save.decks[i] = null; persist(); openDecks(); break;
-    case 'reroll': if(G && G.state === 'levelup' && G.rerolls > 0){ G.rerolls--; openLevelUp(); } break;
+    case 'reroll': if(G && G.state === 'levelup' && G.rerolls > 0){ G.rerolls--; sfx('reroll'); openLevelUp(); } break;
     case 'resume': togglePause(); break;
     case 'quit': endRun(false); break;
     case 'back': backToHub(); break;
@@ -2367,6 +2609,7 @@ function renderTitle(){
       <button class="tl-btn" data-go="gacha">${ico('capsule')} Gacha</button>
       <button class="tl-btn" data-go="collection">${ico('grid')} Collection</button>
       <button class="tl-btn" data-go="guide">${ico('guide')} How to play</button>
+      <button class="tl-btn" data-go="settings">${ico('gear')} Settings</button>
     </nav>
     <div class="tl-stats"><span>${ico('trophy')} Stages <b>${cleared} / ${STAGES.length}</b></span><span>${ico('gem')} Items <b>${owned} / ${Object.keys(ITEMS).length}</b></span>
       <span>${ico('spark')} Combos <b>${save.combos.length} / ${COMBOS.length}</b></span><span>${ico('coin', 'gold')} <b>${save.coins}</b></span></div>
@@ -2374,9 +2617,13 @@ function renderTitle(){
   updateTitleStage();
 }
 function updateTitleStage(){ const el = $('#tlStage'); if(el){ const st = STAGES[DEMO.si]; el.textContent = st.name; el.style.color = st.accent; } }
-function showTitle(){ hub.hidden = true; modal.hidden = true; titleEl.hidden = false; renderTitle(); }
-function goHub(t){ tab = t; titleEl.hidden = true; hub.hidden = false; hub.scrollTop = 0; renderHub(); }
-titleEl.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if(b) goHub(b.dataset.go); });
+function showTitle(){ hub.hidden = true; modal.hidden = true; titleEl.hidden = false; renderTitle(); setMusic('title'); }
+function goHub(t){ tab = t; titleEl.hidden = true; hub.hidden = false; hub.scrollTop = 0; renderHub(); setMusic('hub'); }
+titleEl.addEventListener('click', e => {
+  const b = e.target.closest('[data-go]'); if(!b) return;
+  audioInit(); sfx('click');
+  if(b.dataset.go === 'settings') openSettings(); else goHub(b.dataset.go);
+});
 
 const DEMO = {t:0, si:0, next:11, fade:0, enemies:[], parts:[], fx:[], shots:[], p:{x:0, y:0, fx:1, fy:0, r:12}, orbA:0, acc:0, novaT:2.2, shotT:.4};
 function demoCam(){
@@ -2489,7 +2736,7 @@ addEventListener('keydown', e => {
   if((e.code === 'Escape' || e.code === 'KeyP') && (G.state === 'play' || G.state === 'paused')) togglePause();
   if(G.state === 'levelup'){
     if(/^Digit[1-4]$/.test(e.code)) pickOption(+e.code.slice(5) - 1);
-    if(e.code === 'KeyR' && G.rerolls > 0){ G.rerolls--; openLevelUp(); }
+    if(e.code === 'KeyR' && G.rerolls > 0){ G.rerolls--; sfx('reroll'); openLevelUp(); }
   }
 });
 addEventListener('keyup', e => { if(KEYMAP[e.code]) keys[KEYMAP[e.code]] = false; });
@@ -2570,6 +2817,7 @@ function startRun(stage, charId, items){
   if(G.ab.shield) G.p.shield = true;
   hub.hidden = true; titleEl.hidden = true;
   $('#hud').hidden = false;
+  sfx('start'); setMusic(stage.art, 0); setDuck(false);
   $('#bossbar').hidden = true;
   $('#chain').hidden = true;
   modal.hidden = true;
@@ -2654,6 +2902,7 @@ function spawnBoss(){
   $('#bossName').textContent = sk.name;
   $('#bossbar').hidden = false;
   showBanner('WARNING', 'warn', `${sk.name} has arrived. Defeat it to clear the stage`);
+  sfx('warning'); setMusic(st.art, 2);
   G.shake = 0.4;
 }
 
@@ -2688,13 +2937,15 @@ function hitEnemy(e, base, src){
   if(s.exec && !e.boss && e.hp > 0 && e.hp < e.maxHp * s.exec){ e.hp = 0; addText(e.x, e.y - e.r - 14, 'EXECUTE', 2); }
   G.dmgBy[src] = (G.dmgBy[src] || 0) + d;
   addText(e.x + rand(-8, 8), e.y - e.r, Math.round(d), crit ? 1 : undefined);
+  sfx(crit ? 'crit' : 'hit');
   if(G.parts.length < 500) burst(e.x, e.y, crit ? '#ffd84a' : '#ffffff', crit ? 4 : 1, 140, 0.8);
   if(e.hp <= 0) killEnemy(e);
 }
 function killEnemy(e){
   e.dead = true;
   burst(e.x, e.y, e.color, e.elite ? 30 : e.boss ? 60 : 9, e.elite || e.boss ? 300 : 170, e.elite || e.boss ? 1.6 : 1);
-  if(e.boss){ onBossDead(e); return; }
+  if(e.boss){ sfx('bigboom'); onBossDead(e); return; }
+  sfx(e.elite ? 'boom' : 'kill');
   G.kills++;
   G.chain++; G.chainT = 2.2;
   if(G.chain > G.maxChain) G.maxChain = G.chain;
@@ -2721,15 +2972,15 @@ function collectPickup(pk){
   const p = G.p;
   G.fx.push({type:'ring', x:pk.x, y:pk.y, r:6, maxR:70, life:0.35, max:0.35, color:PICKUPS[pk.kind]});
   switch(pk.kind){
-    case 'heart': { const h = p.maxHp * 0.3; p.hp = Math.min(p.maxHp, p.hp + h); addText(p.x, p.y - 30, '+' + Math.round(h) + ' HP', 2); break; }
-    case 'magnet': for(const g of G.gems) g.mag = true; addText(p.x, p.y - 30, 'MAGNET', 2); break;
+    case 'heart': { sfx('heal'); const h = p.maxHp * 0.3; p.hp = Math.min(p.maxHp, p.hp + h); addText(p.x, p.y - 30, '+' + Math.round(h) + ' HP', 2); break; }
+    case 'magnet': sfx('magnet'); for(const g of G.gems) g.mag = true; addText(p.x, p.y - 30, 'MAGNET', 2); break;
     case 'bomb': {
       const hw = W / 2 / ZOOM, hh = H / 2 / ZOOM, dmg = 60 * (1 + G.t / 100);
       for(const e of G.enemies) if(!e.dead && !e.hidden && Math.abs(e.x - p.x) < hw && Math.abs(e.y - p.y) < hh) hitEnemy(e, dmg, 'bomb');
       G.fx.push({type:'ring', x:p.x, y:p.y, r:20, maxR:Math.max(hw, hh), life:0.6, max:0.6, color:'#ff8a3d', fill:true});
-      G.shake = 0.45; G.flash = 0.2; break;
+      G.shake = 0.45; G.flash = 0.2; sfx('bigboom'); break;
     }
-    case 'chest': G.pendingTreasure++; if(G.state === 'play' && !G.won) openLevelUp(); break;
+    case 'chest': G.pendingTreasure++; sfx('treasure'); if(G.state === 'play' && !G.won) openLevelUp(); break;
   }
 }
 function onBossDead(b){
@@ -2744,7 +2995,7 @@ function hurtPlayer(dmg){
   const p = G.p;
   if(p.inv > 0 || G.won || dmg <= 0) return;
   if(p.shield){
-    p.shield = false; p.shieldT = shieldRecharge(); p.inv = 0.5;
+    p.shield = false; p.shieldT = shieldRecharge(); p.inv = 0.5; sfx('block');
     const R = 90 * G.s.area;
     G.fx.push({type:'ring', x:p.x, y:p.y, r:10, maxR:R, life:0.35, max:0.35, color:'#38e1ff', fill:true});
     const sh = abS('shield').shock;
@@ -2752,7 +3003,7 @@ function hurtPlayer(dmg){
     return;
   }
   const d = Math.max(1, dmg * G.s.dmgTaken - G.s.armor);
-  p.hp -= d; p.inv = G.s.invT; G.shake = 0.22;
+  p.hp -= d; p.inv = G.s.invT; G.shake = 0.22; sfx('hurt');
   burst(p.x, p.y, '#ff4f7b', 6, 180);
   if(G.s.retaliate){
     const R = 110 * G.s.area;
@@ -2762,7 +3013,7 @@ function hurtPlayer(dmg){
   if(p.hp <= 0 && G.s.revive && !G.revived){
     G.revived = true; p.hp = Math.max(1, p.maxHp * G.s.revive); p.inv = 2; G.flash = .4;
     G.fx.push({type:'ring', x:p.x, y:p.y, r:10, maxR:200, life:.6, max:.6, color:'#3dffa8', fill:true});
-    showBanner('SECOND WIND', 'elite', 'You got back up');
+    showBanner('SECOND WIND', 'elite', 'You got back up'); sfx('revive');
     return;
   }
   if(p.hp <= 0){ p.hp = 0; burst(p.x, p.y, CHARACTERS[G.char].color, 50, 320, 1.8); endRun(false); }
@@ -2791,10 +3042,11 @@ function shoot(kind, x, y, ang, speed, o){
    ===================================================================== */
 function ebullet(x, y, a, sp, dmg, color, o){
   G.ebullets.push(Object.assign({x, y, vx:Math.cos(a) * sp, vy:Math.sin(a) * sp, r:6, life:5, dmg, color:color || '#ff4fa0'}, o));
+  sfx('eshot');
 }
 function addCircle(x, y, r, warn, dmg, color, pool){ G.hazards.push({kind:'circle', x, y, r, warn, max:warn, dmg, color, pool}); }
 function addPool(x, y, r, life, dps, color){ G.hazards.push({kind:'pool', x, y, r, life, max:life, dps, color, tick:0}); }
-function addBeam(o){ G.hazards.push(Object.assign({kind:'beam', warnMax:o.warn, rot:0}, o)); }
+function addBeam(o){ G.hazards.push(Object.assign({kind:'beam', warnMax:o.warn, rot:0}, o)); sfx('charge'); }
 function segDist(px, py, x0, y0, x1, y1){
   const vx = x1 - x0, vy = y1 - y0, l2 = vx * vx + vy * vy || 1;
   const k = Math.max(0, Math.min(1, ((px - x0) * vx + (py - y0) * vy) / l2));
@@ -2808,7 +3060,7 @@ function updateHazards(dt){
       if(hz.warn <= 0){
         hz.done = true;
         if(Math.hypot(p.x - hz.x, p.y - hz.y) < hz.r + p.r) hurtPlayer(hz.dmg);
-        G.fx.push({type:'ring', x:hz.x, y:hz.y, r:hz.r * .3, maxR:hz.r * 1.1, life:.3, max:.3, color:hz.color, fill:true});
+        G.fx.push({type:'ring', x:hz.x, y:hz.y, r:hz.r * .3, maxR:hz.r * 1.1, life:.3, max:.3, color:hz.color, fill:true}); sfx('thud');
         burst(hz.x, hz.y, hz.color, 8, 160);
         if(hz.pool) addPool(hz.x, hz.y, hz.r * .85, hz.pool.life, hz.pool.dps, hz.color);
       }
@@ -2818,7 +3070,7 @@ function updateHazards(dt){
       if(hz.life <= 0) hz.done = true;
     } else if(hz.kind === 'beam'){
       if(hz.owner && !hz.owner.dead){ hz.x = hz.owner.x; hz.y = hz.owner.y; }
-      if(hz.warn > 0) hz.warn -= dt;
+      if(hz.warn > 0){ hz.warn -= dt; if(hz.warn <= 0) sfx('laser'); }
       else {
         hz.active -= dt; hz.a += hz.rot * dt;
         const x1 = hz.x + Math.cos(hz.a) * hz.len, y1 = hz.y + Math.sin(hz.a) * hz.len;
@@ -2837,7 +3089,7 @@ function aiStep(e, ai, dt, d, dx, dy, sp){
   if(e.stunT > 0){ e.stunT -= dt; return true; }
   switch(ai.type){
     case 'dash': {
-      if(e.st === 'wind'){ e.stT -= dt; if(e.stT <= 0){ e.st = 'dash'; e.stT = ai.dur; } return true; }
+      if(e.st === 'wind'){ e.stT -= dt; if(e.stT <= 0){ e.st = 'dash'; e.stT = ai.dur; sfx('dash'); } return true; }
       if(e.st === 'dash'){
         e.x += Math.cos(e.da) * ai.speed * dt; e.y += Math.sin(e.da) * ai.speed * dt; e.stT -= dt;
         if(ai.trail && G.t - (e.trT || -9) > .06){ e.trT = G.t; addPool(e.x, e.y, ai.trail.r, ai.trail.life, ai.trail.dps, ai.trail.color); }
@@ -2863,7 +3115,7 @@ function aiStep(e, ai, dt, d, dx, dy, sp){
         e.aT = ai.cd;
         const tx = p.x + p.vx * .6, ty = p.y + p.vy * .6;
         addCircle(tx, ty, ai.r, ai.warn, ai.dmg, ai.color, ai.pool);
-        G.fx.push({type:'lob', x0:e.x, y0:e.y, x:tx, y:ty, life:ai.warn, max:ai.warn, color:ai.color});
+        G.fx.push({type:'lob', x0:e.x, y0:e.y, x:tx, y:ty, life:ai.warn, max:ai.warn, color:ai.color}); sfx('lob');
       }
       return ai.keep > 0 && d < ai.keep;
     }
@@ -2890,7 +3142,7 @@ function aiStep(e, ai, dt, d, dx, dy, sp){
           if(Math.hypot(p.x - e.x, p.y - e.y) < ai.r + p.r) hurtPlayer(ai.dmg);
           G.fx.push({type:'ring', x:e.x, y:e.y, r:10, maxR:ai.r, life:.4, max:.4, color:ai.color, fill:true});
           if(ai.pool) addPool(e.x, e.y, ai.r * .75, ai.pool.life, ai.pool.dps, ai.color);
-          e.hp = 0; killEnemy(e);
+          sfx('boom'); e.hp = 0; killEnemy(e);
         }
         return true;
       }
@@ -2912,7 +3164,7 @@ function aiStep(e, ai, dt, d, dx, dy, sp){
         burst(e.x, e.y, SKINS[e.skin].glow, 10, 160);
         const a = Math.random() * TAU; e.x = p.x + Math.cos(a) * ai.dist; e.y = p.y + Math.sin(a) * ai.dist;
         G.fx.push({type:'ring', x:e.x, y:e.y, r:4, maxR:40, life:.3, max:.3, color:SKINS[e.skin].glow});
-        e.stunT = .45;
+        e.stunT = .45; sfx('blink');
         if(ai.shots){ const a0 = Math.atan2(p.y - e.y, p.x - e.x); for(let i = 0; i < ai.shots; i++) ebullet(e.x, e.y, a0 + (i - (ai.shots - 1) / 2) * .28, ai.bs, ai.dmg, ai.color); }
         return true;
       }
@@ -3056,6 +3308,7 @@ function fireWeapon(){
       const a = base + (i - (st.count - 1) / 2) * 0.14;
       shoot('bolt', p.x, p.y, a, 470, {src:'weapon', dmg:st.dmg, pierce:st.pierce, color:'#7fd8ff', r:5});
     }
+    sfx('shoot');
     return st.cd * cdm();
   }
   const R = st.range * s.area;
@@ -3072,6 +3325,7 @@ function fireWeapon(){
     }
     G.fx.push({type:'arc', x:p.x, y:p.y, r:R, dir, life:0.2, max:0.2, color:'#ffc46b'});
   }
+  sfx('slash');
   return st.cd * cdm();
 }
 
@@ -3085,6 +3339,7 @@ function useAbility(id){
         const a = Math.atan2(t.y - p.y, t.x - p.x) + (i ? (i % 2 ? 0.4 : -0.4) : 0);
         shoot('fire', p.x, p.y, a, 340, {src:'fireball', dmg:st.dmg, r:8, life:1.4, aoe:st.aoe * s.area, color:'#ff8a3d'});
       }
+      sfx('fire');
       return st.cd * cdm();
     }
     case 'frost': {
@@ -3092,7 +3347,7 @@ function useAbility(id){
       query(p.x, p.y, R + 45, tmpA);
       for(const e of tmpA) if(Math.hypot(e.x - p.x, e.y - p.y) < R + e.r){ e.slow = slow; hitEnemy(e, st.dmg, 'frost'); }
       G.fx.push({type:'ring', x:p.x, y:p.y, r:20, maxR:R, life:0.4, max:0.4, color:'#8fe3ff', fill:true});
-      G.fx.push({type:'frost', x:p.x, y:p.y, r:R, life:0.5, max:0.5, color:'#c9f4ff'});
+      G.fx.push({type:'frost', x:p.x, y:p.y, r:R, life:0.5, max:0.5, color:'#c9f4ff'}); sfx('frost');
       return st.cd * cdm();
     }
     case 'drone': {
@@ -3104,6 +3359,7 @@ function useAbility(id){
         shot = true;
         shoot('bolt', dx, dy, Math.atan2(t.y - dy, t.x - dx), 430, {src:'drone', dmg:st.dmg, r:4, color:'#6dffc4'});
       }
+      if(shot) sfx('drone');
       return shot ? st.cd * cdm() : 0.2;
     }
     case 'lightning': {
@@ -3127,7 +3383,7 @@ function useAbility(id){
           }
         }
       }
-      G.shake = Math.max(G.shake, 0.06);
+      G.shake = Math.max(G.shake, 0.06); sfx('zap');
       return st.cd * cdm();
     }
     case 'boomerang': {
@@ -3135,6 +3391,7 @@ function useAbility(id){
       for(let i = 0; i < st.n; i++){
         shoot('boom', p.x, p.y, base + (i - (st.n - 1) / 2) * 0.5, 420 * far, {src:'boomerang', dmg:st.dmg, r:12, life:4, hits:new Map(), color:'#ffe08a'});
       }
+      sfx('whoosh');
       return st.cd * cdm();
     }
   }
@@ -3147,7 +3404,7 @@ function explode(pr){
   query(pr.x, pr.y, pr.aoe + 45, tmpB);
   for(const e of tmpB) if(Math.hypot(e.x - pr.x, e.y - pr.y) < pr.aoe + e.r) hitEnemy(e, pr.dmg, 'fireball');
   G.fx.push({type:'ring', x:pr.x, y:pr.y, r:10, maxR:pr.aoe, life:0.35, max:0.35, color:'#ff8a3d', fill:true});
-  burst(pr.x, pr.y, '#ffb23d', 12, 220);
+  burst(pr.x, pr.y, '#ffb23d', 12, 220); sfx('boom');
 }
 
 /* =====================================================================
@@ -3191,12 +3448,12 @@ function update(dt){
         const a = i / n * TAU;
         if(g.enemies.length < MAX_ENEMIES + 40) spawnEnemy(type, p.x + Math.cos(a) * 440, p.y + Math.sin(a) * 440);
       }
-      showBanner('SWARM', 'warn', 'You are surrounded');
+      showBanner('SWARM', 'warn', 'You are surrounded'); sfx('swarm');
     }
     if(g.t >= g.nextElite && !g.boss){
       g.nextElite += 55;
       spawnEnemy(pickType(), undefined, undefined, true);
-      showBanner('ELITE', 'elite', 'Defeat the golden enemy for a treasure chest');
+      showBanner('ELITE', 'elite', 'Defeat the golden enemy for a treasure chest'); sfx('elite');
     }
   }
 
@@ -3342,7 +3599,12 @@ function update(dt){
       gm.mag = true;
       const sp = (460 + (g.won ? 500 : 0)) * dt;
       gm.x += dx / d * Math.min(d, sp); gm.y += dy / d * Math.min(d, sp);
-      if(d < p.r + 8){ gm.taken = true; addXp(gm.v); }
+      if(d < p.r + 8){
+        gm.taken = true;
+        g.gemC = g.t - (g.gemT || -9) < .35 ? Math.min(30, (g.gemC || 0) + 1) : 0; g.gemT = g.t;
+        sfx('gem', 1 + g.gemC * .025);
+        addXp(gm.v);
+      }
     }
   }
   g.gems = g.gems.filter(gm => !gm.taken);
@@ -3372,7 +3634,7 @@ function addXp(v){
   while(G.xp >= G.xpNeed){
     G.xp -= G.xpNeed; G.level++; G.xpNeed = needXp(G.level); G.pendingLevels++;
   }
-  if((G.pendingLevels > 0 || G.pendingTreasure > 0) && G.state === 'play' && !G.won) openLevelUp();
+  if((G.pendingLevels > 0 || G.pendingTreasure > 0) && G.state === 'play' && !G.won){ sfx('levelup'); openLevelUp(); }
 }
 
 const FMT = {
@@ -3464,7 +3726,7 @@ function openLevelUp(){
 function pickOption(i){
   if(!G || G.state !== 'levelup') return;
   const o = G.curOpts[i]; if(!o) return;
-  o.apply();
+  o.apply(); sfx('select');
   if(G.pendingTreasure > 0) G.pendingTreasure--; else G.pendingLevels--;
   renderIcons();
   const col = {weapon:'#38e1ff', ability:'#ffb23d', pos:'#3dffa8', neg:'#ff4f7b', item:'#ffd84a'}[o.cls] || '#ffffff';
@@ -3488,11 +3750,14 @@ function togglePause(){
     mbox.innerHTML = `<h2>Paused</h2><p class="mnote">${G.stage.name} · ${fmtTime(G.t)} · Level ${G.level} · ${G.kills} kills</p>
       <div class="lbl">Your build</div><div class="tchips">${rows.map(r => `<span class="tc static">${r}</span>`).join('')}</div>
       ${G.combos.size ? '<div class="lbl" style="margin-top:12px">Combos</div>' + [...G.combos].map(id => { const c = COMBOS.find(x => x.id === id); return `<div class="cmb"><b>${ico('spark')} ${c.name}</b>${c.desc}</div>`; }).join('') : ''}
+      <details class="pset"><summary class="lbl" style="margin-top:14px;cursor:pointer">Sound</summary>${volumeHtml()}</details>
       <div class="mfoot"><button class="btn ghost" data-act="quit">Give up</button><button class="btn hot" data-act="resume">${ico('play')} Resume</button></div>`;
     modal.hidden = false;
+    setDuck(true);
   } else if(G.state === 'paused'){
     G.state = 'play';
     modal.hidden = true;
+    setDuck(false);
   }
 }
 document.addEventListener('visibilitychange', () => { if(document.hidden && G && G.state === 'play') togglePause(); });
@@ -3507,6 +3772,7 @@ function endRun(win){
   if(G.state === 'over') return;
   G.state = 'over';
   $('#bossbar').hidden = true;
+  setMusic(null); setDuck(false); sfx(win ? 'clear' : 'defeat');
   const st = G.stage, idx = STAGES.indexOf(st);
   const lines = [];
   lines.push([`Kills (${G.kills})`, Math.floor(G.kills / 5)]);
@@ -3830,6 +4096,7 @@ function frame(now){
 
 applyStageRules();
 renderTitle();
+setMusic('title');
 requestAnimationFrame(frame);
 </script>
 </body>
