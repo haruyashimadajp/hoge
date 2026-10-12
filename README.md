@@ -21,7 +21,7 @@ All content lives in the data tables at the top of the script in `index.html`:
 - `ITEMS`: abilities, positive traits and negative traits (cost, rarity, text)
 - `COMBOS`: item pairs with cost changes and effects
 - `STAGES`: budget, rules, forced/banned items, enemy mix, rewards
-- `ENEMIES` (behaviour stats) and `SKINS` (how each stage's enemies and bosses look)
+- `ENEMIES` (behaviour stats) and `SKINS` (how each stage's enemies and bosses look; from stage 6 a skin's `ai` gives the enemy its own attack, and a boss's `patterns` list its attack cycle)
 - `CHARACTERS`, `WEAPONS`
 - `ICONS`: line icons as SVG paths, used in the menus and on the canvas
 - Stage art lives in `TILES` (ground) and `PROPS` (scenery); enemy art in `DRAW`
