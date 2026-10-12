@@ -48,8 +48,8 @@ input[type=text]{width:100%;background:var(--ink2);border:1px solid var(--line2)
 .intro b{display:block;color:var(--text);font-family:var(--display);font-size:15px;margin-bottom:2px}
 @media (max-width:760px){.intro{grid-template-columns:1fr}}
 
-.stages{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:16px 0}
-.stg{--sc:var(--hot);position:relative;text-align:left;border:1px solid var(--line);border-radius:14px;padding:12px;min-height:100px;
+.stages{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin:16px 0}
+.stg{--sc:var(--hot);position:relative;text-align:left;border:1px solid var(--line);border-radius:16px;padding:14px;min-height:150px;
   background:linear-gradient(155deg,color-mix(in srgb,var(--sc) 24%,var(--panel)),var(--panel) 72%);display:flex;flex-direction:column;gap:3px;overflow:hidden;transition:transform .12s,border-color .12s,box-shadow .12s}
 .stg:hover:not(:disabled){transform:translateY(-2px)}
 .stg.on{border-color:var(--sc);box-shadow:0 0 0 1px var(--sc),0 10px 30px -12px var(--sc)}
@@ -57,13 +57,41 @@ input[type=text]{width:100%;background:var(--ink2);border:1px solid var(--line2)
 .stg .sn{font-family:var(--display);font-size:30px;font-weight:700;color:var(--sc);line-height:1}
 .stg .sname{font-family:var(--display);font-weight:700;font-size:15px}
 .stg .smeta{font-size:12px;color:var(--mute)}
+.stg .sdesc{font-size:13px;color:#c9cef0;margin-top:auto;padding-top:8px;line-height:1.35}
+.stg .sn{font-size:38px}
 .stg .sclr{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--pos);border:1px solid currentColor;border-radius:5px;padding:1px 5px}
-@media (max-width:900px){
-  .stages{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-inline:16px;margin:16px -16px;padding:0 16px 6px}
-  .stg{flex:0 0 158px;scroll-snap-align:start}
+@media (max-width:520px){
+  .stages{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .stg{min-height:128px;padding:12px}
+  .stg .sdesc{display:none}
 }
+.pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:18px}
+.pagehead h2{font-family:var(--display);font-size:24px;margin:0}
+.pagehead p{margin:2px 0 0;color:var(--mute);font-size:14px}
+.target{--sc:var(--hot);display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0;padding:12px 14px;border-radius:14px;border:1px solid color-mix(in srgb,var(--sc) 55%,var(--line));
+  background:linear-gradient(90deg,color-mix(in srgb,var(--sc) 16%,var(--panel)),var(--panel) 60%)}
+.target .tn{font-family:var(--display);font-size:28px;font-weight:700;color:var(--sc);line-height:1}
+.target .tt{min-width:0}
+.target .tt small{display:block;font-size:10.5px;letter-spacing:.14em;color:var(--dim);font-weight:700}
+.target .tt b{font-family:var(--display);font-size:17px}
+.target .chips{flex:1 1 200px;min-width:0}
+@media (max-width:600px){.target .chips{order:3;flex-basis:100%}.target .btn{margin-left:auto}}
+.preview{border:1px solid var(--line2);border-radius:18px;padding:14px;display:grid;gap:12px;background:linear-gradient(180deg,var(--panel2),var(--panel))}
+.pvrow{display:flex;align-items:center;gap:12px}
+.pvrow .ci{font-size:30px}
+.pvrow b{display:block;font-size:15px}
+.pvrow small{color:var(--mute);font-size:12px}
+.pvpts{margin-left:auto;text-align:right;font-family:var(--display)}
+.pvpts b{font-size:26px;line-height:1}
+.pvpts.over b{color:var(--neg)}
+.pvpts small{display:block;font-family:var(--body)}
+.tc.static{cursor:default}
+.tc.ability{border-color:color-mix(in srgb,var(--abil) 55%,transparent)}
+.tc.ability em{color:var(--abil)}
+.btn.wide{width:100%;padding:11px;font-size:14px}
 
 .play{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:18px;align-items:start}
+.play.split{grid-template-columns:minmax(0,1fr) 380px}
 @media (max-width:900px){.play{grid-template-columns:minmax(0,1fr)}.rack{order:-1}}
 
 .brief{--sc:var(--hot);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:12px;
@@ -561,7 +589,7 @@ function validate(stage, charId, items){
    HUB UI
    ===================================================================== */
 const hub = $('#hub'), modal = $('#modal'), mbox = $('#mbox');
-let tab = 'play';
+let tab = 'stages';
 let lastPulls = [];
 let resetArmed = false;
 const B = {stage:'s1', char:'mage', items:[], filter:'all', deckName:''};
@@ -619,15 +647,12 @@ function stageCard(s, i){
     ${save.cleared[s.id] ? '<span class="sclr">CLEARED</span>' : ''}
     <span class="sn">${i + 1}</span>
     <span class="sname">${un ? s.name : '🔒 Locked'}</span>
-    <span class="smeta">${un ? `Budget ${s.budget} pts · ${fmtTime(s.dur)}` : `Clear ${STAGES[i - 1].name}`}</span></button>`;
+    <span class="smeta">${un ? `Budget ${s.budget} pts · ${fmtTime(s.dur)}` : `Clear ${STAGES[i - 1].name}`}</span>
+    ${un ? `<span class="sdesc">${s.desc}</span>` : ''}</button>`;
 }
 
 function briefHtml(st){
-  const chips = [];
-  for(const id of st.forced) chips.push(`<span class="rchip forced">📌 ${ITEMS[id].icon} ${ITEMS[id].name} forced (still gives +${ITEMS[id].cost})</span>`);
-  for(const id of st.banned) chips.push(`<span class="rchip banned">🚫 ${ITEMS[id].icon} ${ITEMS[id].name} banned</span>`);
-  for(const r of st.rules) chips.push(`<span class="rchip">⚠ ${esc(r)}</span>`);
-  if(!chips.length) chips.push('<span class="rchip">No special rules</span>');
+  const chips = ruleChips(st) || '<span class="rchip">No special rules</span>';
   const rw = [];
   if(save.cleared[st.id]) rw.push('<span class="rchip done">✓ First-clear reward claimed</span>');
   else {
@@ -639,13 +664,13 @@ function briefHtml(st){
     <div><h2>${st.name}</h2><p>${st.desc}</p></div>
     <div class="bstats"><div><small>BUDGET</small><b>${st.budget} pts</b></div><div><small>SURVIVE</small><b>${fmtTime(st.dur)}</b></div><div><small>THEN</small><b>Boss</b></div>
       ${save.best[st.id] ? `<div><small>YOUR BEST</small><b style="font-size:15px;padding-top:6px">${esc(save.best[st.id])}</b></div>` : ''}</div>
-    <div><div class="lbl">Stage rules</div><div class="chips">${chips.join('')}</div></div>
+    <div><div class="lbl">Stage rules</div><div class="chips">${chips}</div>${st.forced.length ? '<div class="note" style="margin-top:6px">Forced negative traits still give you their points.</div>' : ''}</div>
     <div><div class="lbl">First clear reward</div><div class="chips">${rw.join('')}</div></div></div>`;
 }
 
 function poolHtml(st, combos){
   const types = B.filter === 'all' ? ['ability','pos','neg'] : [B.filter];
-  let h = `<div class="poolhead"><h3>Pick your items</h3><div class="seg">${[['all','All'],['ability','Abilities'],['pos','Positive'],['neg','Negative']]
+  let h = `<div class="poolhead" style="margin-top:4px"><h3>Pick your items</h3><div class="seg">${[['all','All'],['ability','Abilities'],['pos','Positive'],['neg','Negative']]
     .map(([k, l]) => `<button data-act="filter" data-id="${k}" class="${B.filter === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>`;
   for(const ty of types){
     const ids = Object.keys(ITEMS).filter(k => ITEMS[k].type === ty);
@@ -695,16 +720,50 @@ function rackHtml(st, combos){
   return h + '</aside>';
 }
 
-function renderPlay(){
-  const st = stageById(B.stage), combos = activeCombos(B.items);
+function ruleChips(st){
+  const chips = [];
+  for(const id of st.forced) chips.push(`<span class="rchip forced">📌 ${ITEMS[id].icon} ${ITEMS[id].name} forced</span>`);
+  for(const id of st.banned) chips.push(`<span class="rchip banned">🚫 ${ITEMS[id].icon} ${ITEMS[id].name} banned</span>`);
+  for(const r of st.rules) chips.push(`<span class="rchip">⚠ ${esc(r)}</span>`);
+  return chips.join('');
+}
+
+function previewHtml(st){
+  const ch = CHARACTERS[B.char], cost = loadoutCost(B.items), over = cost > st.budget, combos = activeCombos(B.items);
+  const order = {ability:0, pos:1, neg:2};
+  const items = B.items.slice().sort((a, b) => order[ITEMS[a].type] - order[ITEMS[b].type]);
+  return `<aside class="preview">
+    <div class="rk-head"><h3>Your loadout</h3><button class="btn sm" data-act="decks">💾 Saved loadouts</button></div>
+    <div class="pvrow"><span class="ci">${ch.icon}</span><span><b>${ch.name}</b><small>${ch.hp} HP · ${WEAPONS[ch.weapon].name}</small></span>
+      <span class="pvpts ${over ? 'over' : ''}"><b>${cost} / ${st.budget}</b><small>${over ? `Over by ${cost - st.budget} pts` : 'points used'}</small></span></div>
+    ${items.length ? `<div class="tchips">${items.map(id => { const it = ITEMS[id];
+      return `<span class="tc static ${it.type}">${it.icon} ${it.name} <em>${it.type === 'neg' ? '+' : '−'}${effCost(id, combos)}</em></span>`; }).join('')}</div>`
+      : '<div class="empty">Your loadout is empty. You can still start, but you will only have your weapon.</div>'}
+    ${combos.length ? combos.map(c => `<div class="cmb"><b>✦ ${c.name}</b>${c.desc}</div>`).join('') : ''}
+    <button class="btn wide" data-act="tab" data-id="loadout">✏️ Edit loadout</button></aside>`;
+}
+
+function renderStages(){
+  const st = stageById(B.stage);
   let h = '';
   if(!save.seenGuide) h += `<div class="intro">
-    <div><b>Build</b>Abilities and positive traits cost points. Negative traits give points back.</div>
-    <div><b>Fit the budget</b>Stay at or under the stage budget. Leftover points pay coins.</div>
-    <div><b>Survive</b>You only move. Attacks are automatic. Level up, then beat the boss.</div>
+    <div><b>1 · Pick a stage</b>Each stage has a point budget and its own rules.</div>
+    <div><b>2 · Build a loadout</b>Abilities and positive traits cost points. Negative traits give points back.</div>
+    <div><b>3 · Survive</b>You only move. Attacks are automatic. Level up, then beat the boss.</div>
     <button class="btn sm" data-act="hideIntro">Got it</button></div>`;
+  h += `<div class="pagehead"><div><h2>Choose a stage</h2><p>Clear a stage to unlock the next one.</p></div></div>`;
   h += `<div class="stages">${STAGES.map(stageCard).join('')}</div>`;
-  h += `<div class="play"><div>${briefHtml(st)}${poolHtml(st, combos)}</div>${rackHtml(st, combos)}</div>`;
+  h += `<div class="play split">${briefHtml(st)}${previewHtml(st)}</div>`;
+  return h;
+}
+
+function renderLoadout(){
+  const st = stageById(B.stage), combos = activeCombos(B.items), i = STAGES.indexOf(st);
+  let h = `<div class="target" style="--sc:${st.accent}"><span class="tn">${i + 1}</span>
+    <span class="tt"><small>BUILDING FOR</small><b>${st.name} · ${st.budget} pts</b></span>
+    <span class="chips">${ruleChips(st)}</span>
+    <button class="btn sm" data-act="tab" data-id="stages">Change stage</button></div>`;
+  h += `<div class="play"><div>${poolHtml(st, combos)}</div>${rackHtml(st, combos)}</div>`;
   return h;
 }
 
@@ -767,16 +826,16 @@ function renderGuide(){
 
 function renderHub(){
   $('#topbar').innerHTML = `<div class="logo"><span class="l1">LOADOUT</span><span class="l2">SURVIVORS</span></div>
-    <nav class="tabs">${[['play','Play'],['gacha','Gacha'],['collection','Collection'],['guide','How to play']].map(([k, l]) =>
+    <nav class="tabs">${[['stages','Stages'],['loadout','Loadout'],['gacha','Gacha'],['collection','Collection'],['guide','Guide']].map(([k, l]) =>
       `<button data-act="tab" data-id="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('')}</nav>
     <div class="wallet">🪙 ${save.coins}</div>`;
-  let h = tab === 'play' ? renderPlay() : tab === 'gacha' ? renderGacha() : tab === 'collection' ? renderCollection() : renderGuide();
+  let h = tab === 'stages' ? renderStages() : tab === 'loadout' ? renderLoadout() : tab === 'gacha' ? renderGacha() : tab === 'collection' ? renderCollection() : renderGuide();
   h += `<footer><span class="note">Progress is saved in this browser.</span>
     <button class="btn sm ghost" data-act="reset">${resetArmed ? 'Click again to erase ALL progress' : 'Reset save'}</button></footer>`;
   $('#main').innerHTML = h;
   const launch = $('#launch');
-  launch.hidden = tab !== 'play';
-  if(tab === 'play'){
+  launch.hidden = tab !== 'stages' && tab !== 'loadout';
+  if(!launch.hidden){
     const st = stageById(B.stage), errs = validate(st, B.char, B.items), cost = loadoutCost(B.items), ab = abilityCount(B.items);
     launch.innerHTML = `<div class="lstat"><span class="st ${errs.length ? 'bad' : 'good'}">${errs.length ? '⚠ ' + esc(errs[0]) : '✓ Ready to start'}</span>
       <small>${esc(st.name)} · ${cost} / ${st.budget} pts · ${ab} / ${MAX_ABILITIES} abilities</small></div>
@@ -815,7 +874,16 @@ hub.addEventListener('click', e => {
   if(act !== 'reset') resetArmed = false;
   switch(act){
     case 'tab': tab = id; hub.scrollTop = 0; break;
-    case 'stage': B.stage = id; applyStageRules(); break;
+    case 'stage': {
+      const before = B.items.slice();
+      B.stage = id; applyStageRules();
+      const removed = before.filter(x => !B.items.includes(x)), added = B.items.filter(x => !before.includes(x));
+      const msg = [];
+      if(removed.length) msg.push('Removed ' + removed.map(x => ITEMS[x].name).join(', ') + ' (banned here)');
+      if(added.length) msg.push('Added ' + added.map(x => ITEMS[x].name).join(', ') + ' (forced here)');
+      if(msg.length) toast(msg.join(' · '));
+      break;
+    }
     case 'char': B.char = id; break;
     case 'filter': B.filter = id; break;
     case 'hideIntro': save.seenGuide = true; persist(); break;
