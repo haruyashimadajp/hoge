@@ -403,6 +403,51 @@ footer{margin:26px 0 6px;display:flex;justify-content:space-between;flex-wrap:wr
 @keyframes ban{0%{opacity:0;transform:scale(1.4)}12%{opacity:1;transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:translateY(-12px)}}
 
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
+
+/* ---------- dungeon mode ---------- */
+#gl{position:fixed;inset:0;width:100%;height:100%;display:none;pointer-events:none}
+body.dg #gl{display:block}
+.clock.dgclock{font-size:24px;letter-spacing:.1em;color:#c8ff9a}
+#dgobj{position:absolute;left:50%;transform:translateX(-50%);top:calc(46px + env(safe-area-inset-top,0px));font-family:var(--display);font-weight:600;font-size:14px;letter-spacing:.05em;color:#e8ffd8;
+  text-shadow:0 1px 4px #000,0 0 12px rgba(0,0,0,.8);white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
+#dgcarry{position:absolute;left:12px;top:calc(64px + env(safe-area-inset-top,0px));display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:rgba(9,11,24,.72);
+  border:1px dashed rgba(255,216,74,.55);font-family:var(--display);font-size:14px;color:var(--gold)}
+#dgcarry .ico{font-size:15px}
+#dgcarry small{font-family:var(--body);font-size:11px;color:var(--mute);margin-left:4px}
+#rollBtn{pointer-events:auto;position:absolute;right:16px;bottom:calc(18px + env(safe-area-inset-bottom,0px));width:68px;height:68px;border-radius:50%;border:2px solid var(--line2);
+  background:conic-gradient(rgba(9,11,24,.88) var(--cd,0%),rgba(56,225,255,.2) 0);color:var(--text);display:grid;place-items:center;align-content:center;gap:2px;font-size:24px;touch-action:none}
+#rollBtn.ready{border-color:var(--cyan);box-shadow:0 0 18px -4px var(--cyan)}
+#rollBtn small{font-family:var(--display);font-size:9px;letter-spacing:.14em;color:var(--mute)}
+body.dg .chain{top:calc(232px + env(safe-area-inset-top,0px))}
+body.dg #icons{max-width:calc(100vw - 112px)}
+@media (max-width:560px){
+  #dgobj{top:calc(88px + env(safe-area-inset-top,0px));font-size:12.5px}
+  #dgcarry{top:calc(124px + env(safe-area-inset-top,0px));font-size:13px}
+  body.dg .chain{top:calc(248px + env(safe-area-inset-top,0px))}
+}
+.dgtheme{--sc:var(--hot);display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin-top:14px;padding:12px 16px;border-radius:14px;
+  border:1px solid color-mix(in srgb,var(--sc) 45%,transparent);background:linear-gradient(90deg,color-mix(in srgb,var(--sc) 14%,transparent),transparent)}
+.dgtheme .tn{font-family:var(--display);font-size:11px;letter-spacing:.2em;color:var(--sc);text-transform:uppercase}
+.dgtheme b{font-family:var(--display);font-size:20px}
+.dgtheme span:last-child{color:var(--mute);font-size:13px;flex-basis:100%}
+.dgfloors{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin:14px 0 16px}
+.dgf{--sc:var(--hot);position:relative;text-align:left;border:1px solid var(--line);border-radius:16px;padding:14px;min-height:150px;display:flex;flex-direction:column;gap:4px;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--sc) 16%,var(--panel)),var(--panel) 62%);transition:transform .12s}
+.dgf:hover:not(:disabled){transform:translateY(-2px)}
+.dgf.on{border-color:var(--sc);box-shadow:0 0 0 1px var(--sc),0 10px 30px -12px var(--sc)}
+.dgf:disabled{filter:grayscale(.85) brightness(.6)}
+.dgf .dn{font-family:var(--display);font-size:34px;font-weight:700;color:var(--sc);line-height:1}
+.dgf .dname{font-family:var(--display);font-weight:700;font-size:16px;margin-top:auto;display:flex;align-items:center;gap:6px}
+.dgf .dmeta{font-size:12px;color:#c3c8ea}
+.dgf .dft{font-size:11.5px;color:var(--cyan);display:flex;align-items:center;gap:4px}
+.dgf .sclr{position:absolute;top:12px;right:12px;font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--pos);border:1px solid currentColor;border-radius:5px;padding:1px 5px;background:rgba(9,11,24,.7)}
+.dgf.more{border-style:dashed;background:transparent;--sc:var(--dim);color:var(--mute)}
+.dgrules{margin:0;padding:0;list-style:none;display:grid;gap:7px;font-size:13px;color:#c3c8ea}
+.dgrules li{display:flex;gap:8px;align-items:flex-start;line-height:1.4}
+.dgrules .ico{color:var(--sc);margin-top:2px}
+.row.lost b{color:var(--neg)}
+.rchip.lostc{border-color:color-mix(in srgb,var(--neg) 55%,transparent);color:#ffc4d3;text-decoration:line-through}
+@media (max-width:520px){.dgfloors{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.dgf{min-height:130px;padding:12px}}
 </style>
 </head>
 <body>
@@ -421,6 +466,9 @@ footer{margin:26px 0 6px;display:flex;justify-content:space-between;flex-wrap:wr
   <div class="bossbar" id="bossbar" hidden><span id="bossName">Boss</span><div><i id="bossFill"></i></div></div>
   <div id="icons"></div>
   <div id="banner"></div>
+  <div id="dgobj" hidden></div>
+  <div id="dgcarry" hidden></div>
+  <button id="rollBtn" hidden aria-label="Dodge roll"></button>
 </div>
 
 <div id="title"></div>
@@ -846,7 +894,8 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
    ===================================================================== */
 const SAVE_KEY = 'loadout-survivors-v1';
 function defaultSave(){
-  return {coins:200, unlocked:STARTER.slice(), chars:['mage'], cleared:{}, best:{}, decks:Array(DECK_SLOTS).fill(null), combos:[], seenGuide:false, vol:{master:.8, music:.6, sfx:.8, mute:false}};
+  return {coins:200, unlocked:STARTER.slice(), chars:['mage'], cleared:{}, best:{}, decks:Array(DECK_SLOTS).fill(null), combos:[], seenGuide:false, vol:{master:.8, music:.6, sfx:.8, mute:false},
+    dg:{reached:1, cleared:{}, best:{}, themes:{}}};
 }
 function loadSave(){
   try{
@@ -855,6 +904,7 @@ function loadSave(){
       const s = Object.assign(defaultSave(), JSON.parse(raw));
       while(s.decks.length < DECK_SLOTS) s.decks.push(null);
       for(const id of STARTER) if(!s.unlocked.includes(id)) s.unlocked.push(id);
+      s.dg = Object.assign(defaultSave().dg, s.dg && typeof s.dg === 'object' ? s.dg : {});
       return s;
     }
   }catch(e){}
@@ -881,7 +931,7 @@ function loadoutCost(items){
 }
 function abilityCount(items){ return items.filter(id => ITEMS[id].type === 'ability').length; }
 function stageUnlocked(i){ return i === 0 || !!save.cleared[STAGES[i - 1].id]; }
-function stageById(id){ return STAGES.find(s => s.id === id); }
+function stageById(id){ return STAGES.find(s => s.id === id) || (id === DG_STAGE.id ? DG_STAGE : undefined); }
 function stageTypes(st){ const s = new Set(); for(const [, m] of st.mix) for(const k in m) s.add(k); return [...s]; }
 function validate(stage, charId, items){
   const errs = [];
@@ -2213,7 +2263,12 @@ function applyStageRules(){
 }
 function unlockSource(id){
   const st = STAGES.find(s => s.reward.items && s.reward.items.includes(id));
-  return st ? `Gacha, or first clear of ${st.name}` : 'Gacha';
+  const fl = DG_FLOORS.find(f => f.reward.items.includes(id)), rel = Object.values(DG_RELICS).find(r => r.items.includes(id));
+  const src = ['Gacha'];
+  if(st) src.push(`first clear of ${st.name}`);
+  if(fl) src.push(`first clear of dungeon floor ${fl.n}`);
+  if(rel) src.push(`${rel.name.toLowerCase().replace(/s$/, '')} drops in the dungeon`);
+  return src.join(', ');
 }
 
 function comboHint(id, sel){
@@ -2319,7 +2374,7 @@ function rackHtml(st, combos){
   h += `<div class="gauge"><div class="lbl">Points</div><div class="gnum ${over ? 'over' : ''}"><b>${cost}</b><span>/ ${st.budget} budget</span></div>
     <div class="gbar ${over ? 'over' : ''}"><i style="width:${pct}%"></i></div>
     <div class="gsub"><span>Spent <b>${spent}</b></span><span>Refunded <b>${refund}</b></span>
-    ${over ? `<span class="bad">Over by <b>${-left}</b></span>` : `<span>Left <b>${left}</b> → +${Math.min(10, left) * UNUSED_POINT_COINS} ${coinIco()} on clear</span>`}</div></div>`;
+    ${over ? `<span class="bad">Over by <b>${-left}</b></span>` : st.dungeon ? `<span>Left <b>${left}</b></span>` : `<span>Left <b>${left}</b> → +${Math.min(10, left) * UNUSED_POINT_COINS} ${coinIco()} on clear</span>`}</div></div>`;
   const abl = B.items.filter(id => ITEMS[id].type === 'ability');
   h += `<div><div class="lbl"><span>Abilities</span><span>${abl.length} / ${MAX_ABILITIES}</span></div><div class="slots">`;
   for(let i = 0; i < MAX_ABILITIES; i++){
@@ -2366,10 +2421,10 @@ function renderStages(){
 
 function renderLoadout(){
   const st = stageById(B.stage), combos = activeCombos(B.items), i = STAGES.indexOf(st);
-  let h = `<div class="target" style="--sc:${st.accent}"><span class="tn">${i + 1}</span>
-    <span class="tt"><small>BUILDING FOR</small><b>${st.name} · ${st.budget} pts</b></span>
+  let h = `<div class="target" style="--sc:${st.accent}"><span class="tn">${st.dungeon ? 'B' + (B.floor || 1) : i + 1}</span>
+    <span class="tt"><small>BUILDING FOR</small><b>${st.dungeon ? 'Dungeon · ' : ''}${st.name} · ${st.budget} pts</b></span>
     <span class="chips">${ruleChips(st)}</span>
-    <button class="btn sm" data-act="tab" data-id="stages">${ico('map')} Change stage</button></div>`;
+    ${st.dungeon ? `<button class="btn sm" data-act="tab" data-id="dungeon">${ico('stairs')} Change floor</button>` : `<button class="btn sm" data-act="tab" data-id="stages">${ico('map')} Change stage</button>`}</div>`;
   h += `<div class="play"><div>${poolHtml(st, combos)}</div>${rackHtml(st, combos)}</div>`;
   return h;
 }
@@ -2429,6 +2484,12 @@ function renderGuide(){
     <div class="step"><span class="n">4</span><b>Upgrade</b>Each level gives an upgrade. Weapon and abilities go up to Lv ${MAX_LV.ability}, positive traits to Lv ${MAX_LV.pos}. You can overcome a negative trait in ${MAX_LV.neg} steps.</div>
     <div class="step"><span class="n">5</span><b>Beat the boss</b>When the timer ends, the stage boss appears. Defeat it to clear the stage.</div>
     <div class="step"><span class="n">6</span><b>Unlock more</b>First clears give new items and stages. Spend coins on the gacha.</div></div></div>
+    <div class="sec"><h2>Dungeon</h2><p>A 3D mode. Same characters and loadouts, one budget for each theme.</p><div class="steps">
+    <div class="step"><b>${ico('stairs')} Hand-made floors</b>Explore each floor, find the boss chamber and beat the boss. Then an exit portal opens.</div>
+    <div class="step"><b>${ico('portal')} Secure your loot</b>Coins and relics only count once you step into a portal. If you die, you lose only what you were carrying.</div>
+    <div class="step"><b>${ico('roll')} Dodge roll</b><kbd>Space</kbd> or the roll button. Nothing can hit you mid-roll, and it breaks you out of webs.</div>
+    <div class="step"><b>${ico('warn')} Floor hazards</b>Webs slow you down, cracked floor falls away a moment after you step on it, and moss pools poison you.</div>
+    <div class="step"><b>${ico('gem')} Relics</b>Elites and bosses drop relics: locked items that match the enemy type. Revenants drop melee items, spiders poison and speed items, archers ranged items.</div></div></div>
     <div class="sec"><h2>During a run</h2><div class="steps">
     <div class="step"><b>${ico('spark')} Combos</b>Some item pairs change costs or effects. Cards show a hint when one is close.</div>
     <div class="step"><b>${ico('flame')} Chain</b>Kill quickly to build a chain. Every 10 kills in a chain gives +1% XP, up to +50%.</div>
@@ -2436,27 +2497,31 @@ function renderGuide(){
     <div class="step"><b>${ico('warn')} Enemy attacks</b>From stage 6, every enemy has its own attack. Red lines and circles show where an attack is about to land.</div>
     <div class="step"><b>${ico('chest')} Drops</b>Hearts heal, magnets pull in every gem, bombs hit everything on screen, chests give a free upgrade.</div></div></div>
     <div class="sec"><h2>Controls</h2><div class="steps">
-    <div class="step"><b>Keyboard</b><kbd>WASD</kbd> or arrow keys to move · <kbd>1</kbd>–<kbd>4</kbd> pick an upgrade · <kbd>R</kbd> reroll · <kbd>P</kbd> or <kbd>Esc</kbd> pause</div>
+    <div class="step"><b>Keyboard</b><kbd>WASD</kbd> or arrow keys to move · <kbd>1</kbd>–<kbd>4</kbd> pick an upgrade · <kbd>R</kbd> reroll · <kbd>P</kbd> or <kbd>Esc</kbd> pause · <kbd>Space</kbd> dodge roll (dungeon)</div>
     <div class="step"><b>Touch</b>Drag anywhere to move. Tap a card to pick an upgrade.</div></div></div>`;
 }
 
 function renderHub(){
+  // the Stages tab builds for a stage, the Dungeon tab for the dungeon theme
+  if(tab === 'dungeon' && !stageById(B.stage).dungeon){ B.lastStage = B.stage; B.stage = DG_STAGE.id; applyStageRules(); }
+  if(tab === 'stages' && stageById(B.stage).dungeon){ B.stage = B.lastStage || 's1'; applyStageRules(); }
   $('#topbar').innerHTML = `<button class="logo" data-act="title" aria-label="Back to title"><span class="l1">LOADOUT</span><span class="l2">SURVIVORS</span></button>
-    <nav class="tabs">${[['stages','Stages'],['loadout','Loadout'],['gacha','Gacha'],['collection','Collection'],['guide','Guide']].map(([k, l]) =>
+    <nav class="tabs">${[['stages','Stages'],['dungeon','Dungeon'],['loadout','Loadout'],['gacha','Gacha'],['collection','Collection'],['guide','Guide']].map(([k, l]) =>
       `<button data-act="tab" data-id="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('')}</nav>
     <div class="wallet">${ico('coin')} ${save.coins}</div>
     <button class="iconbtn" data-act="settings" aria-label="Settings">${ico('gear')}</button>`;
-  let h = tab === 'stages' ? renderStages() : tab === 'loadout' ? renderLoadout() : tab === 'gacha' ? renderGacha() : tab === 'collection' ? renderCollection() : renderGuide();
+  let h = tab === 'stages' ? renderStages() : tab === 'dungeon' ? renderDungeon() : tab === 'loadout' ? renderLoadout() : tab === 'gacha' ? renderGacha() : tab === 'collection' ? renderCollection() : renderGuide();
   h += `<footer><span class="note">Progress is saved in this browser.</span>
     <button class="btn sm ghost" data-act="reset">${resetArmed ? 'Click again to erase ALL progress' : 'Reset save'}</button></footer>`;
   $('#main').innerHTML = h;
   const launch = $('#launch');
-  launch.hidden = tab !== 'stages' && tab !== 'loadout';
+  launch.hidden = tab !== 'stages' && tab !== 'loadout' && tab !== 'dungeon';
   if(!launch.hidden){
     const st = stageById(B.stage), errs = validate(st, B.char, B.items), cost = loadoutCost(B.items), ab = abilityCount(B.items);
+    if(st.dungeon && !dgFloorUnlocked(B.floor || 1)) errs.unshift('That floor is locked');
     launch.innerHTML = `<div class="lstat"><span class="st ${errs.length ? 'bad' : 'good'}">${errs.length ? ico('warn') + ' ' + esc(errs[0]) : ico('check') + ' Ready to start'}</span>
-      <small>${esc(st.name)} · ${cost} / ${st.budget} pts · ${ab} / ${MAX_ABILITIES} abilities</small></div>
-      <button class="go" data-act="start" ${errs.length ? 'disabled' : ''}>START ${ico('play')}</button>`;
+      <small>${esc(st.dungeon ? `Dungeon floor ${B.floor || 1}` : st.name)} · ${cost} / ${st.budget} pts · ${ab} / ${MAX_ABILITIES} abilities</small></div>
+      <button class="go" data-act="start" ${errs.length ? 'disabled' : ''}>${st.dungeon ? 'ENTER' : 'START'} ${ico('play')}</button>`;
   }
 }
 
@@ -2507,6 +2572,7 @@ hub.addEventListener('click', e => {
       break;
     }
     case 'char': B.char = id; break;
+    case 'floor': B.floor = +id; break;
     case 'filter': B.filter = id; break;
     case 'hideIntro': save.seenGuide = true; persist(); break;
     case 'clear': B.items = stageById(B.stage).forced.slice(); break;
@@ -2526,6 +2592,7 @@ hub.addEventListener('click', e => {
     case 'start': {
       const st = stageById(B.stage);
       if(validate(st, B.char, B.items).length) return;
+      if(st.dungeon){ dgStartFromHub(); return; }
       startRun(st, B.char, B.items.slice()); return;
     }
     case 'pull': gachaPull(+t.dataset.n); break;
@@ -2590,6 +2657,8 @@ modal.addEventListener('click', e => {
     case 'resume': togglePause(); break;
     case 'quit': endRun(false); break;
     case 'back': backToHub(); break;
+    case 'dgNext': dgNext(); break;
+    case 'dgHome': if(G && G.dg && G.state === 'portal') endRun(true); break;
   }
 });
 
@@ -2605,6 +2674,7 @@ function renderTitle(){
     <p class="tl-tag">Spend points on power. Take handicaps to afford more. Then survive the swarm and beat the boss.</p>
     <nav class="tl-menu">
       <button class="tl-btn primary" data-go="stages">${ico('play')} Start<small>Enter</small></button>
+      <button class="tl-btn" data-go="dungeon">${ico('stairs')} Dungeon<small>3D</small></button>
       <button class="tl-btn" data-go="loadout">${ico('layers')} Loadout</button>
       <button class="tl-btn" data-go="gacha">${ico('capsule')} Gacha</button>
       <button class="tl-btn" data-go="collection">${ico('grid')} Collection</button>
@@ -2734,6 +2804,7 @@ addEventListener('keydown', e => {
     return;
   }
   if((e.code === 'Escape' || e.code === 'KeyP') && (G.state === 'play' || G.state === 'paused')) togglePause();
+  if(G.dg && (e.code === 'Space' || e.code === 'ShiftLeft' || e.code === 'ShiftRight')){ e.preventDefault(); if(G.state === 'play' && !e.repeat) dgRoll(); }
   if(G.state === 'levelup'){
     if(/^Digit[1-4]$/.test(e.code)) pickOption(+e.code.slice(5) - 1);
     if(e.code === 'KeyR' && G.rerolls > 0){ G.rerolls--; sfx('reroll'); openLevelUp(); }
@@ -2947,6 +3018,7 @@ function killEnemy(e){
   if(e.boss){ sfx('bigboom'); onBossDead(e); return; }
   sfx(e.elite ? 'boom' : 'kill');
   G.kills++;
+  if(G.dg) dgOnKill(e);
   G.chain++; G.chainT = 2.2;
   if(G.chain > G.maxChain) G.maxChain = G.chain;
   G.gems.push({x:e.x, y:e.y, v:e.xp * (1 + Math.min(G.t, G.stage.dur) / 150) * (e.elite ? 8 : 1), mag:false});
@@ -2981,9 +3053,11 @@ function collectPickup(pk){
       G.shake = 0.45; G.flash = 0.2; sfx('bigboom'); break;
     }
     case 'chest': G.pendingTreasure++; sfx('treasure'); if(G.state === 'play' && !G.won) openLevelUp(); break;
+    case 'relic': dgCollectRelic(pk); break;
   }
 }
 function onBossDead(b){
+  if(G.dg){ dgBossDead(b); return; }
   G.won = true; G.endT = 2.2; G.shake = 0.6; G.flash = 0.35;
   G.fx.push({type:'ring', x:b.x, y:b.y, r:0, maxR:700, life:1, max:1, color:'#ffd84a'});
   for(const e of G.enemies) if(!e.dead){ e.dead = true; burst(e.x, e.y, e.color, 5, 160); G.gems.push({x:e.x, y:e.y, v:e.xp, mag:true}); }
@@ -3023,6 +3097,7 @@ function cdm(){ return G.s.cdMul * (1 - G.frenzy / 100); }
 const orbitRad = () => abS('orbit').rad * G.s.area;
 
 function nearestEnemy(x, y, maxD){
+  if(G.dg) return dgNearest(x, y, maxD);
   let best = null, bd = maxD * maxD;
   for(const e of G.enemies){
     if(e.dead || e.hidden) continue;
@@ -3077,7 +3152,7 @@ function updateHazards(dt){
         if(segDist(p.x, p.y, hz.x, hz.y, x1, y1) < hz.w / 2 + p.r) hurtPlayer(hz.dmg);
         if(hz.active <= 0) hz.done = true;
       }
-    }
+    } else if(hz.kind === 'tele'){ hz.warn -= dt; if(hz.warn <= 0) hz.done = true; }
   }
   G.hazards = G.hazards.filter(hz => !hz.done);
 }
@@ -3103,9 +3178,10 @@ function aiStep(e, ai, dt, d, dx, dy, sp){
       return false;
     }
     case 'shoot': {
+      if(ai.los && G.dg && !dgLos(e.x, e.y, p.x, p.y)) return false;
       if(e.aT <= 0 && d < ai.range){
         e.aT = ai.cd; const a0 = Math.atan2(dy, dx);
-        for(let i = 0; i < ai.n; i++) ebullet(e.x, e.y, a0 + (i - (ai.n - 1) / 2) * ai.spread, ai.bs, ai.dmg, ai.color, ai.slow ? {slow:ai.slow} : null);
+        for(let i = 0; i < ai.n; i++) ebullet(e.x, e.y, a0 + (i - (ai.n - 1) / 2) * ai.spread, ai.bs, ai.dmg, ai.color, ai.slow ? {slow:ai.slow} : ai.arrow ? {arrow:true} : null);
       }
       if(d < ai.keep){ e.x -= dx / d * sp * .7 * dt; e.y -= dy / d * sp * .7 * dt; return true; }
       return d < ai.keep + 60;
@@ -3200,20 +3276,59 @@ function aiStep(e, ai, dt, d, dx, dy, sp){
 }
 
 function ring(b, n, sp, dmg, color){ const off = Math.random() * TAU; for(let i = 0; i < n; i++) ebullet(b.x, b.y, off + i / n * TAU, sp, dmg, color); }
-// bosses with `patterns` cycle through them; older bosses fire a bullet ring
+// Bosses cycle through their attack patterns. A boss with phases switches to a
+// harder pattern list as its HP drops. Old bosses without patterns fire a bullet ring.
+function bossPatterns(b, sk){
+  if(!sk.phases) return sk.patterns;
+  const r = b.hp / b.maxHp;
+  let idx = 0;
+  sk.phases.forEach((ph, i) => { if(r <= ph.at) idx = i; });
+  if(b.phase === undefined) b.phase = idx;
+  if(idx > b.phase){
+    b.phase = idx; b.act = null; b.atkT = 1.2;
+    showBanner(`PHASE ${idx + 1}`, 'warn', sk.phases[idx].msg || ''); sfx('warning'); G.shake = .45;
+    G.fx.push({type:'ring', x:b.x, y:b.y, r:10, maxR:280, life:.6, max:.6, color:sk.glow, fill:true});
+    burst(b.x, b.y, sk.glow, 30, 260, 1.4);
+  }
+  return sk.phases[b.phase].patterns;
+}
+function dgBlockedAt(x, y){ return !!(G.dg && dgWalkBlocked(G.dg.L, Math.floor(x / DT), Math.floor(y / DT))); }
+// a straight rush that stops (and stuns the boss) when it hits a wall
+function bossRush(b, A, dt, speed){
+  const ax = Math.cos(A.a), ay = Math.sin(A.a), nx = b.x + ax * speed * dt, ny = b.y + ay * speed * dt;
+  if(dgBlockedAt(nx + ax * 34, ny + ay * 34)){
+    A.crash = A.t; G.shake = .4; sfx('thud');
+    burst(b.x + ax * 34, b.y + ay * 34, '#b8ad96', 20, 220);
+    G.fx.push({type:'ring', x:b.x, y:b.y, r:10, maxR:130, life:.35, max:.35, color:SKINS[b.skin].glow, fill:true});
+    return;
+  }
+  b.x = nx; b.y = ny;
+}
+function bossSummon(b, type, skin, n, rad){
+  for(let i = 0; i < n; i++){
+    const a = i / n * TAU + Math.random(), x = b.x + Math.cos(a) * rad, y = b.y + Math.sin(a) * rad;
+    if(G.dg) dgSpawn(type, x, y, false, 0); else spawnEnemy('minion', x, y, false, skin, true);
+  }
+  G.fx.push({type:'ring', x:b.x, y:b.y, r:10, maxR:rad + 60, life:.4, max:.4, color:SKINS[b.skin].glow, fill:true});
+}
 function bossStep(b, dt){
-  const sk = SKINS[b.skin], p = G.p;
-  if(!sk.patterns){
+  const sk = SKINS[b.skin], p = G.p, pats = bossPatterns(b, sk);
+  if(!pats){
     G.bossShot -= dt;
     if(G.bossShot <= 0){ G.bossShot = 2.6; ring(b, 14, 170, 12, '#ff4fa0'); }
     return false;
   }
   if(!b.act){
     b.atkT -= dt;
-    if(b.atkT <= 0){ b.pi = (b.pi === undefined ? -1 : b.pi) + 1; b.act = {name:sk.patterns[b.pi % sk.patterns.length], t:0, k:0}; }
+    if(b.atkT <= 0){ b.pi = (b.pi === undefined ? -1 : b.pi) + 1; b.act = {name:pats[b.pi % pats.length], t:0, k:0}; }
+    if(sk.keep){      // archers back away to keep their distance
+      const dx = p.x - b.x, dy = p.y - b.y, d = Math.hypot(dx, dy) || 1;
+      if(d < sk.keep){ b.x -= dx / d * b.speed * .9 * dt; b.y -= dy / d * b.speed * .9 * dt; return true; }
+      return d < sk.keep + 140;
+    }
     return false;
   }
-  const A = b.act, aim = Math.atan2(p.y - b.y, p.x - b.x);
+  const A = b.act, aim = Math.atan2(p.y - b.y, p.x - b.x), dmg = sk.dmg || 14;
   A.t += dt;
   let hold = false, done = false;
   switch(A.name){
@@ -3258,9 +3373,80 @@ function bossStep(b, dt){
       if(!A.k){ A.k = 1; burst(b.x, b.y, sk.glow, 20, 220); const a = Math.random() * TAU; b.x = p.x + Math.cos(a) * 260; b.y = p.y + Math.sin(a) * 260; G.fx.push({type:'ring', x:b.x, y:b.y, r:10, maxR:90, life:.35, max:.35, color:sk.glow}); }
       if(A.k === 1 && A.t > .35){ A.k = 2; ring(b, 20, 180, 12, sk.glow); }
       if(A.t > .6) done = true; break;
+    // dungeon bosses
+    case 'charge':
+      hold = true;
+      if(!A.k){ A.k = 1; A.a = aim; G.hazards.push({kind:'tele', x:b.x, y:b.y, a:aim, len:560, w:b.r * 1.5, warn:.85, max:.85}); sfx('charge'); }
+      if(A.crash){ if(A.t - A.crash > .9) done = true; }
+      else if(A.t >= .85){ if(A.k === 1){ A.k = 2; sfx('dash'); } bossRush(b, A, dt, 700); if(A.t > 1.65) done = true; }
+      break;
+    case 'lunge':
+      hold = true;
+      if(!A.k){ A.k = 1; A.a = aim; G.hazards.push({kind:'tele', x:b.x, y:b.y, a:aim, len:330, w:b.r * 1.2, warn:.5, max:.5}); sfx('charge'); }
+      if(A.crash){ if(A.t - A.crash > .5) done = true; }
+      else if(A.t >= .5 && A.t < .95){ if(A.k === 1){ A.k = 2; sfx('dash'); } bossRush(b, A, dt, 760); }
+      else if(A.t >= .95) done = true;
+      break;
+    case 'stomp':
+      hold = true;
+      if(!A.k){ A.k = 1; addCircle(b.x, b.y, b.r + 110, .8, dmg, sk.glow); }
+      if(A.t > 1) done = true;
+      break;
+    case 'slam':
+      hold = true;
+      if(!A.k){ A.k = 1; addCircle(b.x, b.y, b.r + 150, 1.05, dmg * 1.2, sk.glow); }
+      if(A.t > 1.3) done = true;
+      break;
+    case 'quake':
+      if(!A.k){
+        A.k = 1;
+        for(let i = 0; i < 8; i++){ const a = aim + i / 8 * TAU; for(let j = 1; j <= 3; j++) addCircle(b.x + Math.cos(a) * (b.r + 30 + j * 85), b.y + Math.sin(a) * (b.r + 30 + j * 85), 50, .55 + j * .28, dmg * .8, sk.glow); }
+      }
+      hold = A.t < .6; if(A.t > .6) done = true;
+      break;
+    case 'boulders':
+      for(let i = 0; i < 5; i++){
+        const a = Math.random() * TAU, r = i ? rand(60, 180) : 0, tx = p.x + Math.cos(a) * r, ty = p.y + Math.sin(a) * r, w = 1.15 + i * .15;
+        addCircle(tx, ty, 64, w, dmg, '#c8b89a');
+        G.fx.push({type:'lob', x0:b.x, y0:b.y, x:tx, y:ty, life:w, max:w, color:'#e0d4b8'});
+      }
+      sfx('lob'); done = true;
+      break;
+    case 'web':
+      for(const o of [-.3, 0, .3]) ebullet(b.x, b.y, aim + o, 230, dmg * .35, '#f4f4f4', {root:.8, r:11});
+      done = true;
+      break;
+    case 'brood': bossSummon(b, 'minion', sk.minion, 3, 70); done = true; break;
+    case 'soldiers': bossSummon(b, 'soldier', sk.minion, 3, 90); sfx('elite'); done = true; break;
+    case 'volley':
+      while(A.k < 3 && A.t >= A.k * .35){ for(let i = -1.5; i <= 1.5; i++) ebullet(b.x, b.y, aim + i * .17, 320, dmg * .55, '#ffe2a0', {arrow:true}); A.k++; }
+      if(A.t > 1.1) done = true;
+      break;
+    case 'rain':
+      for(let i = 0; i < 7; i++){ const a = Math.random() * TAU, r = i ? rand(50, 210) : 0; addCircle(p.x + Math.cos(a) * r, p.y + Math.sin(a) * r, 54, 1.1 + i * .08, dmg * .7, '#ffcf6a'); }
+      done = true;
+      break;
+    case 'whip':
+      hold = true;
+      if(!A.k){ A.k = 1; addBeam({x:b.x, y:b.y, a:aim - 1.1, rot:2.2, len:400, w:32, warn:.6, active:1, dmg:dmg * .8, color:sk.glow, owner:b}); }
+      if(A.t > 1.7) done = true;
+      break;
+    case 'whip2':
+      hold = true;
+      if(!A.k){
+        A.k = 1;
+        addBeam({x:b.x, y:b.y, a:aim - 1.2, rot:2.4, len:420, w:32, warn:.6, active:1, dmg:dmg * .8, color:sk.glow, owner:b});
+        addBeam({x:b.x, y:b.y, a:aim + 1.2, rot:-2.4, len:420, w:32, warn:.6, active:1, dmg:dmg * .8, color:sk.glow, owner:b});
+      }
+      if(A.t > 1.7) done = true;
+      break;
+    case 'roots':
+      while(A.k < 3 && A.t >= A.k * .45){ addCircle(p.x + p.vx * .3, p.y + p.vy * .3, 66, .8, dmg * .7, '#7dff6a', {life:3, dps:6}); A.k++; }
+      if(A.t > 1.1) done = true;
+      break;
     default: done = true;
   }
-  if(done){ b.act = null; b.atkT = 1.4; }
+  if(done){ b.act = null; b.atkT = sk.phases ? (b.phase >= 2 ? .7 : 1.1) : 1.4; }
   return hold;
 }
 
@@ -3277,6 +3463,15 @@ function drawHazards(beams){
       addGlow(hz.color, hz.x, hz.y, hz.r * 1.4, .35 * k);
       ell(hz.x, hz.y, hz.r, hz.r * .8, 0, hexA(hz.color, .28 * k));
       dot(hz.x + Math.sin(t * 3 + hz.x) * hz.r * .4, hz.y + Math.cos(t * 2 + hz.y) * hz.r * .3, 2.5, hexA('#ffffff', .5 * k));
+    } else if(hz.kind === 'tele' && !beams){
+      // a charge is coming: a red lane from the boss
+      const k = 1 - hz.warn / hz.max, x1 = hz.x + Math.cos(hz.a) * hz.len, y1 = hz.y + Math.sin(hz.a) * hz.len;
+      ctx.lineCap = 'butt';
+      ctx.strokeStyle = hexA('#ff3d5a', .12 + .16 * k); ctx.lineWidth = hz.w; ctx.beginPath(); ctx.moveTo(hz.x, hz.y); ctx.lineTo(x1, y1); ctx.stroke();
+      ctx.strokeStyle = hexA('#ff3d5a', .75); ctx.lineWidth = 2.5; ctx.setLineDash([14, 10]);
+      ctx.beginPath(); ctx.moveTo(hz.x, hz.y); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
+      const ax = Math.cos(hz.a), ay = Math.sin(hz.a);
+      ctx.fillStyle = hexA('#ff3d5a', .6 + .3 * k); ctx.beginPath(); ctx.moveTo(x1 + ax * 26, y1 + ay * 26); ctx.lineTo(x1 - ay * 18, y1 + ax * 18); ctx.lineTo(x1 + ay * 18, y1 - ax * 18); ctx.closePath(); ctx.fill();
     } else if(hz.kind === 'beam' && beams){
       const x1 = hz.x + Math.cos(hz.a) * hz.len, y1 = hz.y + Math.sin(hz.a) * hz.len;
       ctx.lineCap = 'round';
@@ -3423,7 +3618,7 @@ function update(dt){
   const spd = p.speed * (p.slowT > 0 ? 0.6 : 1);
   if(p.slowT > 0) p.slowT -= dt;
   p.vx = ix * spd; p.vy = iy * spd;
-  p.x += p.vx * dt; p.y += p.vy * dt;
+  if(g.dg) dgMovePlayer(dt); else { p.x += p.vx * dt; p.y += p.vy * dt; }
   p.trailT -= dt;
   if(p.trailT <= 0){ p.trailT = 0.035; p.trail.push({x:p.x, y:p.y}); if(p.trail.length > 8) p.trail.shift(); }
 
@@ -3436,7 +3631,8 @@ function update(dt){
   if(g.flash > 0) g.flash -= dt;
   if(g.chainT > 0){ g.chainT -= dt; if(g.chainT <= 0) g.chain = 0; }
 
-  if(!g.won){
+  if(g.dg) dgTick(dt);
+  else if(!g.won){
     if(!g.boss && g.t >= st.dur) spawnBoss();
     const rate = Math.min(11, st.spawn * (1.2 + g.t / 35)) * (g.boss ? 0.35 : 1) * s.spawnMul;
     g.spawnAcc += rate * dt;
@@ -3461,16 +3657,17 @@ function update(dt){
     if(e.dead) continue;
     if(e.slow > 0) e.slow -= dt;
     if(e.flash > 0) e.flash -= dt;
+    if(e.rise > 0){ e.rise -= dt; continue; }     // dungeon enemies climb out of the floor first
     const dx = p.x - e.x, dy = p.y - e.y, d = Math.hypot(dx, dy) || 1;
     const sp = e.speed * (e.slow > 0 ? 0.5 : 1) * s.enemySpeed;
     let held = false;
     if(e.boss) held = bossStep(e, dt, d);
     else if(SKINS[e.skin].ai) held = aiStep(e, SKINS[e.skin].ai, dt, d, dx, dy, sp);
     if(e.dead) continue;
-    if(!held){ e.x += dx / d * sp * dt; e.y += dy / d * sp * dt; }
+    if(!held){ if(g.dg) dgChase(e, sp, dt, dx, dy, d); else { e.x += dx / d * sp * dt; e.y += dy / d * sp * dt; } }
     if(e.segs){ let px = e.x, py = e.y; for(const sg of e.segs){ const ddx = sg.x - px, ddy = sg.y - py, dd = Math.hypot(ddx, ddy) || 1, gap = e.r * .8; if(dd > gap){ sg.x = px + ddx / dd * gap; sg.y = py + ddy / dd * gap; } px = sg.x; py = sg.y; } }
-    if(e.boss && d > 650){ const a = Math.random() * TAU; e.x = p.x + Math.cos(a) * 420; e.y = p.y + Math.sin(a) * 420; }
-    if(d > 1400 && !e.boss){
+    if(!g.dg && e.boss && d > 650){ const a = Math.random() * TAU; e.x = p.x + Math.cos(a) * 420; e.y = p.y + Math.sin(a) * 420; }
+    if(d > 1400 && !e.boss && !g.dg){
       const a = Math.atan2(p.fy, p.fx) + rand(-0.8, 0.8), r = Math.hypot(W, H) / 2 / ZOOM + 60;
       e.x = p.x + Math.cos(a) * r; e.y = p.y + Math.sin(a) * r;
     }
@@ -3488,16 +3685,21 @@ function update(dt){
       }
     }
   }
+  if(g.dg) for(const e of g.enemies) if(!e.dead) dgCollide(e, e.r);
   query(p.x, p.y, 80, tmpA);
-  for(const e of tmpA) if(Math.hypot(e.x - p.x, e.y - p.y) < e.r + p.r){
+  for(const e of tmpA) if(!(e.rise > 0) && Math.hypot(e.x - p.x, e.y - p.y) < e.r + p.r){
+    const hp0 = p.hp;
     hurtPlayer(e.dmg);
+    if(g.dg && p.hp < hp0) dgContact(e);
     if(s.thorns && g.t - (e.thT || -9) > .5){ e.thT = g.t; hitEnemy(e, s.thorns, 'thorns'); }
   }
   if(g.state !== 'play') return;
 
   for(const b of g.ebullets){
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
-    if(Math.hypot(b.x - p.x, b.y - p.y) < b.r + p.r){ b.life = 0; if(b.slow) p.slowT = Math.max(p.slowT, b.slow); hurtPlayer(b.dmg); }
+    if(g.dg && dgShotBlocked(g.dg.L, b.x, b.y)){ b.life = 0; continue; }
+    if(g.dg && g.dg.roll.t > 0) continue;           // rolling: shots pass through you
+    if(Math.hypot(b.x - p.x, b.y - p.y) < b.r + p.r){ b.life = 0; if(b.slow) p.slowT = Math.max(p.slowT, b.slow); if(b.root) p.rootT = Math.max(p.rootT || 0, b.root); hurtPlayer(b.dmg); }
   }
   g.ebullets = g.ebullets.filter(b => b.life > 0);
   updateHazards(dt);
@@ -3569,6 +3771,7 @@ function update(dt){
         if(d < 18) pr.life = 0;
       }
     } else { pr.x += pr.vx * dt; pr.y += pr.vy * dt; }
+    if(g.dg && pr.kind !== 'boom' && pr.life > 0 && dgShotBlocked(g.dg.L, pr.x, pr.y)){ if(pr.kind === 'fire') explode(pr); else { pr.life = 0; burst(pr.x, pr.y, pr.color, 3, 80); } }
     if(pr.kind === 'fire' && Math.random() < .5 && g.parts.length < 600) g.parts.push({x:pr.x, y:pr.y, vx:rand(-30, 30), vy:rand(-30, 30), life:.35, max:.35, c:'#ff8a3d', s:rand(2, 4)});
     if(pr.life <= 0) continue;
     query(pr.x, pr.y, pr.r + 45, tmpA);
@@ -3751,7 +3954,7 @@ function togglePause(){
       <div class="lbl">Your build</div><div class="tchips">${rows.map(r => `<span class="tc static">${r}</span>`).join('')}</div>
       ${G.combos.size ? '<div class="lbl" style="margin-top:12px">Combos</div>' + [...G.combos].map(id => { const c = COMBOS.find(x => x.id === id); return `<div class="cmb"><b>${ico('spark')} ${c.name}</b>${c.desc}</div>`; }).join('') : ''}
       <details class="pset"><summary class="lbl" style="margin-top:14px;cursor:pointer">Sound</summary>${volumeHtml()}</details>
-      <div class="mfoot"><button class="btn ghost" data-act="quit">Give up</button><button class="btn hot" data-act="resume">${ico('play')} Resume</button></div>`;
+      <div class="mfoot"><button class="btn ghost" data-act="quit">${G.dg ? 'Give up (lose what you carry)' : 'Give up'}</button><button class="btn hot" data-act="resume">${ico('play')} Resume</button></div>`;
     modal.hidden = false;
     setDuck(true);
   } else if(G.state === 'paused'){
@@ -3771,6 +3974,7 @@ function srcLabel(k){
 function endRun(win){
   if(G.state === 'over') return;
   G.state = 'over';
+  if(G.dg){ dgEndRun(win); return; }
   $('#bossbar').hidden = true;
   setMusic(null); setDuck(false); sfx(win ? 'clear' : 'defeat');
   const st = G.stage, idx = STAGES.indexOf(st);
@@ -3814,10 +4018,12 @@ function endRun(win){
   modal.hidden = false;
 }
 function backToHub(){
+  const wasDg = !!(G && G.dg);
   modal.hidden = true;
   $('#hud').hidden = true;
   G = null;
   joy.active = false;
+  if(wasDg){ d3Show(false); $('#dgobj').hidden = $('#dgcarry').hidden = $('#rollBtn').hidden = true; goHub('dungeon'); return; }
   goHub(tab === 'stages' || tab === 'loadout' ? tab : 'stages');
 }
 
@@ -3851,8 +4057,11 @@ function updateHud(){
   $('#lvN').textContent = G.level;
   $('#killN').innerHTML = `${ico('skull')} ${G.kills}`;
   const clock = $('#clock');
-  clock.textContent = G.boss ? (G.won ? 'CLEAR' : 'BOSS') : fmtTime(G.stage.dur - G.t);
-  clock.className = 'clock' + (G.boss && !G.won ? ' boss' : '');
+  if(G.dg){ clock.textContent = dgClockText(); clock.className = 'clock dgclock'; dgHud(); }
+  else {
+    clock.textContent = G.boss ? (G.won ? 'CLEAR' : 'BOSS') : fmtTime(G.stage.dur - G.t);
+    clock.className = 'clock' + (G.boss && !G.won ? ' boss' : '');
+  }
   const ch = $('#chain');
   if(G.chain >= 5){
     ch.hidden = false;
@@ -3891,6 +4100,7 @@ function render(now){
     if(!titleEl.hidden) renderDemo(); else renderBackdrop(now);
     return;
   }
+  if(G.dg){ dgRender(now); return; }
   const g = G, p = g.p, st = g.stage, t = g.t;
   ctx.fillStyle = '#090b18'; ctx.fillRect(0, 0, W, H);
   const sh = REDUCED ? 0 : Math.min(14, g.shake * 36);
@@ -4081,6 +4291,2192 @@ function render(now){
     dot(joy.ox + joy.dx * 50, joy.oy + joy.dy * 50, 18, 'rgba(255,255,255,.35)');
   }
 }
+
+/* =====================================================================
+   DUNGEON MODE — a 3D dungeon crawl seen from behind and above (like
+   Minecraft Dungeons). It runs on the same characters, loadouts, weapons
+   and level-ups as the stages. 100 floors in 20 themes are planned;
+   theme 1 (Mossy Ruins, floors 1–5) is built. Every floor is a
+   hand-made ASCII map:
+     #  wall            .  floor          ,  mossy floor     u  stairs
+     ~  pit             c  crumbling floor (falls after you step on it)
+     m  moss pool (poisons and slows you)  w  spider web (slows you)
+     p  pillar          r  rubble         k  bookshelf       o  statue
+     =  gate            $  chest          P  start
+     z s a x  enemy pack (revenants / spiders / archers / mixed); upper case adds an elite
+     1–9  sealed corridor section (ambush waves)
+     b  boss chamber    B  boss spawn     X  exit portal
+   ===================================================================== */
+const THREE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.165.0/three.module.min.js';
+const DT = 64;                                  // one map tile in world units
+const DG_FLOORS_TOTAL = 100, DG_THEMES_TOTAL = 20;
+const DG_ROLL = {time:.3, cd:1.1, speed:2.7};   // dodge roll: duration, cooldown, speed multiplier
+const TT = {WALL:0, FLOOR:1, PIT:2, POOL:3, CRUMBLE:4, WEB:5, GATE:6, PROP:7, STAIR:8};
+const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+const N8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+
+Object.assign(ENEMIES, {
+  revenant:{hp:16, speed:66,  dmg:8,  r:12, xp:1,   armor:0},
+  crawler: {hp:10, speed:116, dmg:5,  r:11, xp:1,   armor:0},
+  archer:  {hp:13, speed:70,  dmg:6,  r:11, xp:1.4, armor:0},
+  soldier: {hp:34, speed:74,  dmg:10, r:13, xp:1,   armor:2},
+});
+// rig = the 3D model (see RIGS); family = which relics it drops
+Object.assign(SKINS, {
+  revenant:    {name:'Ruin Revenant',       rig:'revenant', family:'melee',  body:'#93a886', dark:'#3b3a30', glow:'#d4ff6a', alt:'#665c48', move:'Rises from the floor and shambles at you'},
+  stonespider: {name:'Stone-eater Spider',  rig:'spider',   family:'venom',  body:'#6f7782', dark:'#2a2e35', glow:'#a6ff3d', alt:'#58913f', move:'Fast. Its bite poisons you', venom:{dps:3, dur:3}},
+  ruinarcher:  {name:'Ruin Archer',         rig:'archer',   family:'ranged', body:'#e3dcc6', dark:'#5a5240', glow:'#ffcf6a', alt:'#7a5532', move:'Keeps its distance and shoots arrows',
+                ai:{type:'shoot', range:500, keep:250, cd:2.4, n:1, spread:0, bs:300, dmg:7, color:'#ffe2a0', arrow:true, los:true}},
+  spiderling:  {name:'Spiderling',          rig:'spider',   family:'venom',  body:'#86935e', dark:'#2a3020', glow:'#ff4f7b', alt:'#58913f', venom:{dps:1.5, dur:2}},
+  stonesoldier:{name:'Stone Soldier',       rig:'soldier',  family:'melee',  body:'#a2a79b', dark:'#3a3f38', glow:'#7dff9a', alt:'#4f9a46', move:'Summoned by the Guardian'},
+  // floor bosses and the theme boss
+  mosssentinel:{name:'Moss Sentinel',       rig:'golem',    family:'melee',  body:'#8d978a', dark:'#3b4239', glow:'#ffc94a', alt:'#5aa04a', dmg:14, speed:78, armor:1,
+                patterns:['charge'], about:'A small stone golem. It only charges in a straight line.'},
+  vinebrood:   {name:'Vine-clad Broodmother', rig:'brood',  family:'venom',  body:'#5e5a6e', dark:'#221f2b', glow:'#ff4f7b', alt:'#4f9a3a', dmg:11, speed:80, armor:1, minion:'spiderling',
+                patterns:['web','brood','web','lunge'], about:'Webs you in place and calls spiderlings.'},
+  archcaptain: {name:'Archer Captain',      rig:'captain',  family:'ranged', body:'#e8e0c8', dark:'#5a4a38', glow:'#ff8a3d', alt:'#8a1f2a', dmg:13, speed:88, armor:2, keep:320,
+                patterns:['volley','rain','volley','lunge'], about:'Shoots from range, then lunges in close.'},
+  altarkeeper: {name:'Altar Keeper',        rig:'keeper',   family:'melee',  body:'#8a8f9a', dark:'#2f3340', glow:'#5affd8', alt:'#4f9a46', dmg:20, speed:80, armor:3,
+                patterns:['slam','charge','quake','slam'], about:'Smashes the ground. Stay out of the circles.'},
+  stonegiant:  {name:'Petrified Giant',     rig:'giant',    family:'melee',  body:'#837d72', dark:'#34302a', glow:'#ff8a3d', alt:'#5a9a46', dmg:22, speed:66, armor:3,
+                patterns:['slam','boulders','stomp','quake'], about:'Huge, slow, and hits very hard.'},
+  ruinguardian:{name:'Guardian of the Ruins', rig:'guardian', family:'ranged', body:'#9aa092', dark:'#2f352d', glow:'#7dff6a', alt:'#3f8a34', dmg:22, speed:80, armor:3,
+                phases:[{at:1,  patterns:['whip','roots','whip','aimed']},
+                        {at:.6, patterns:['whip2','soldiers','roots','spiral'], msg:'It calls its stone army'},
+                        {at:.3, patterns:['whip2','roots','beams','soldiers','spiral'], msg:'It is enraged'}],
+                about:'Three phases: vine whips, roots and stone soldiers.'},
+});
+const DG_FAMILY = {revenant:'melee', crawler:'venom', archer:'ranged', soldier:'melee', minion:'venom'};
+// relics: items each enemy family can drop. They only count once you reach an exit portal.
+const DG_RELICS = {
+  melee: {name:'Revenant relics', color:'#d4ff6a', items:['power','tough','berserker','retaliate','thorns','dull','slowhands']},
+  venom: {name:'Spider relics',   color:'#a6ff3d', items:['poison','swift','momentum','frost','hunted','bleeding']},
+  ranged:{name:'Archer relics',   color:'#ffcf6a', items:['lucky','precision','boomerang','lightning','scholar','unlucky']},
+};
+const DG_PACKS = {
+  z:{elite:'revenant', make:f => ({revenant:4 + f})},
+  s:{elite:'crawler',  make:f => ({crawler:3 + f})},
+  a:{elite:'archer',   make:f => ({archer:2 + Math.ceil(f / 2), revenant:2})},
+  x:{elite:'revenant', make:f => ({revenant:3, crawler:3, archer:2})},
+};
+const DG_THEMES = [{id:'ruins', name:'Mossy Ruins', first:1, last:5, accent:'#8be36a',
+  desc:'Stone ruins wrapped in vines and moss. A classic fantasy start, and the way down.'}];
+
+// The loadout builder treats the dungeon like one more stage: one budget for the whole theme.
+const DG_STAGE = {id:'dg-ruins', dungeon:true, name:'Mossy Ruins', art:'forest', seed:37, budget:5, dur:0, spawn:0, hpMul:1, speedMul:1,
+  bossHp:0, bossArmor:0, accent:'#8be36a', mote:'#c8ff8a', rise:0, desc:DG_THEMES[0].desc,
+  rules:['Death sends you back to base','Rewards are only kept at exit portals'], banned:[], forced:[],
+  skins:{revenant:'revenant', crawler:'stonespider', archer:'ruinarcher', soldier:'stonesoldier', minion:'spiderling'},
+  mix:[[0, {revenant:1}]], reward:{coins:0}};
+
+const DG_FLOORS = [
+  {n:1, name:'Crumbled Entrance Hall', boss:'mosssentinel', bossHp:900, hpMul:1, xpMul:1, coinMul:1,
+   trickle:{every:6, n:3, mix:{revenant:1}}, foes:['revenant'],
+   desc:'The broken gateway into the ruins. Few enemies, mostly revenants. A good place to learn the dodge roll.',
+   tags:['Few enemies'], reward:{coins:60, items:[]}, map:`
+####################################################
+###################bbbbbbbbbbbbbb###################
+################bbbbbbbbbbbbbbbbbbbb################
+#############bbbbbpbbbbbbXbbbbbbbpbbbbb#############
+############bbbbbbbbbbbbbbbbbbbbbbbbbbbb############
+###########bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###########
+##########bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb##########
+##########bbpbbbbbbbbbbbbBbbbbbbbbbbbbbpbb##########
+##########bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb##########
+###########bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###########
+############bbbbbbbbbbbbbbbbbbbbbbbbbbbb############
+#############bbbbbpbbbbbbbbbbbbbbpbbbbb#############
+################bbbbbbbbbbbbbbbbbbbb################
+###################bbbbbbbbbbbbbb###################
+#######################======#######################
+##############...............,,.......##############
+############.,,.....r............r......############
+############.,.o....................o...############
+############.............z..............############
+############.......,.................,,.############
+############...o....................o.,.############
+############.,,.......,,.......r........############
+#############...........,..............#############
+######################........######################
+######################........######################
+######,,.................,,.................,,######
+######,.r..............r.....................,#...r#
+#,..,#....p.....p.....r......p.....p.....p....#....#
+#.o..#...............r........................#....#
+#....#...............................z.,,..........#
+#................,,..............r...............Z.#
+#.$..........r.z..,................................#
+#...........................,,..........r.....#....#
+#....#.....,,.............z..,................#..$.#
+#.o..#..............................r.........#r...#
+#,.,.#....p.....p.....p......p.....r.....p....######
+######,....................r......r...........######
+######,,....................................,,######
+#######################......#######################
+#######################uuuuuu#######################
+#######################uuuuuu#######################
+#######################uuuuuu#######################
+#####################..........#####################
+####################.,,.......r.####################
+####################.,..........####################
+####################.....P....,.####################
+####################.r.......,,.####################
+#####################....,,....#####################
+####################################################
+`},
+  {n:2, name:'Vine Corridors', boss:'vinebrood', bossHp:1350, hpMul:1.15, xpMul:1.15, coinMul:1.2,
+   trickle:{every:6.5, n:3, mix:{revenant:1, crawler:1}}, foes:['revenant','stonespider'],
+   desc:'Winding halls choked with vines. Stone-eater spiders wait in the side passages, and their webs slow you down.',
+   tags:['Webs slow you','Poison bites'], reward:{coins:80, items:['poison']}, map:`
+########################################################
+###########################bbbbbbb######################
+#######################bbbbbwbbbwwbbbb##################
+#####################bbwbbbbbbbbbbbbbwbb################
+###################bbbwbbpbbbbBbbbbbbbwbbb####.....#####
+###################bbbbbbbbbbbbbbbbbbbbwbbb=.....,,.####
+##################bbbbbXbbbbbbbbbbbpbbbbbbb=......ww####
+###################bwbbbbbbbbbbbbbbbbbbbbbb=.......w####
+###################bbwbbbbbbbbbbbbbwbbbbbb###.p...p.####
+#####################bbbbbwwbbbbbbwbbbbb#####...s...####
+#######################bbbbbbbbbbbbbbb#######,......####
+###########################bbbbbbb###########,......####
+#############################################.......####
+#############################################.p...p.####
+#############################################......,####
+#####################....,,.......###########......,####
+####################.ww.....,,..ww.##########...z..,####
+####################.w.p.......p...##########.......####
+####################....z...........,..,..,...p...p.####
+##ww.........#######,......o......,.................####
+##w..........#######,.............,..........,......####
+##..p.....p........................##########.......####
+##.....s...............p......sp...##########.......####
+##............,.,.,..w.....,,...ww.##########.p...p.####
+##..p.....p..########.....w.......###########..,,...####
+##...........##################...###########.......####
+##w........ww##################...#############...######
+#####...#######################,..#############...######
+#####,..#######################...#############...######
+#####...#######################...#############...######
+#####...#######################..,############.....#####
+#####...#######################...###########.ww....####
+#####,..#######################...###########.w.....####
+#####....w.w..$##############........########..p....####
+#####.....w.sw.#############..........#######.......####
+#####...####################..r....r..#######...S...####
+#####,..####################........................####
+#####.z.####################....z...................####
+#####...####################......................w.####
+#####...####################..r....r..#######......w####
+#####,..####################..........#######.......####
+#####...#####################........########....p..####
+#####...############w.w#######...############.......####
+#####...############ws.#######...############.......####
+###.........########...#######...############.....$.####
+##.,.........#######...#######...############.......####
+##.,r..........,....,....,....,....,....,....w......####
+##.....P..r...................................w...ww####
+##.........,.......................................w####
+###...,,...,############################################
+########################################################
+########################################################
+`},
+  {n:3, name:'Collapsed Library', boss:'archcaptain', bossHp:1800, hpMul:1.3, xpMul:1.3, coinMul:1.4,
+   trickle:{every:6, n:3, mix:{revenant:2, crawler:1, archer:2}}, foes:['revenant','stonespider','ruinarcher'],
+   desc:'Shelves of rotting books over a chasm. Cracked floor gives way a moment after you step on it. Archers shoot from across the gaps.',
+   tags:['Crumbling floor','Archers'], reward:{coins:100, items:['precision']}, map:`
+########################################################
+#######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#######
+######bbbbbbbbbbbbbbbbbbbbbbXbbbbbbbbbbbbbbbbbbbbb######
+######bbbbbbkbbbbbbbkbbbbbbbbbbbbbbkbbbbbbbkbbbbbb######
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb######
+######bbpbbbbbbbbbbbbbbbbbb~~bbbbbbbbbbbbbbbbbbbbb######
+######bbbbbbbbbbbbbbbbbbbbb~~bbbbbbbbbbbbbbbbbbpbb######
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb######
+######bbbbbbkbbbbbbbkbbbbbbBbbbbbbbkbbbbbbbkbbbbbb######
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb######
+#######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#######
+#########################======#########################
+#########################......#########################
+#########################......#########################
+#############..............................#############
+############.....................c~~~c......############
+############.....c...c.....a.....~~~~~......############
+############...cc~~~~~c.........c~~~~~c.....############
+############...c~~~~~~~c........c~~~~~c.....############
+############...c~~~~~~~c.........~~~~~......############
+##..............c~~~~~c..........c~~~c................##
+##........$......c...c.............c....s....k......$.##
+##..kkkkk.....kz..........k..k...........k............##
+##.............................................cccc...##
+##..........#..............................#...c~~c...##
+##..kkkkk...#############......#############...c~~c...##
+##.a........#############......#############...c~~c...##
+##..........#############k.....#############...cccc...##
+##..kkkkk...#############......#############..A.......##
+##..........#############.....k#############........k.##
+##..........#############......#############..........##
+#######...###############......###############...#######
+#########......................................#########
+########.,.........kkkkkkk.z..kkkkkkk...........########
+########.,kkkkk..............,...........kkkkk..########
+########..........~~~~~~~~~cc~~~~~~~~~..........########
+########........s.~~~~~~~~~cc~~~~~~~~~.....a....########
+########.........~~~~~~~~~~cc~~~~~~~~~~.........########
+########..kkkkk..~~~~~~~~~~cc~~~~~~~~~~..kkkkk..########
+########.........~~~~~~~~~~cc~~~~~~~~~~.........########
+########....a.....~~~~~~~~~cc~~~~~~~~~..z.......########
+########..........~~~~~~~~~cc~~~~~~~~~..........########
+########..kkkkk...........,..............kkkkk,.########
+########...........kkkkkk......kkkkkk.........,.########
+#########......................................#########
+#######################..........#######################
+######################.,,.........######################
+######################............######################
+######################............######################
+######################.k...P....k.######################
+######################.........,,.######################
+#######################..........#######################
+########################################################
+########################################################
+`},
+  {n:4, name:'Stairway to the Altar', boss:'altarkeeper', bossHp:3400, hpMul:1.5, xpMul:1.45, coinMul:1.6,
+   trickle:{every:5, n:4, mix:{revenant:2, crawler:2, archer:1}}, foes:['revenant','stonespider','ruinarcher'],
+   desc:'Great stairs climb toward the altar. Pools of toxic moss narrow the way, and all three enemy types attack together.',
+   tags:['Moss pools poison you','Mixed hordes'], reward:{coins:120, items:['stillness']}, map:`
+##################################################
+##################################################
+###########bbbbbbbbbbbbboobbbbbbbbbbbbb###########
+#########bmmbbbbbbbbbbbbbbbbbbbbbbbbbbmmb#########
+#########bmbbbbbbbbbbbbbbXbbbbbbbbbbbbbmb#########
+#########bbbbbpbbbbbbbbbbbbbbbbbbbbpbbbbb#########
+#########bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#########
+#########bbbbbbbbbbbbbbbBbbbbbbbbbbbbbbbb#########
+#########bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#########
+#########bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#########
+#########bbbbbpbbbbbbbbbbbbbbbbbbbbpbbbbb#########
+#########bmbbbbbbbbbbbbbbbbbbbbbbbbbbbbmb#########
+#########bmmbbbbbbbbbbbbbbbbbbbbbbbbbbmmb#########
+##########bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb##########
+######################======######################
+####################puuuuuuuup####################
+####################uuuuuuuuuu####################
+####################uuuuuuuuuu####################
+####################puuuuuuuup####################
+####################uuuuuuuuuu####################
+####################uuuuuuuuuu####################
+####################uuuuuuuuuu####################
+######mmmm..............................mmmm######
+######mmmm...............S..............mmmm######
+######mmmm..x.........................r.mmmm######
+######.........................mmmm.........######
+######.........mmmm.....x......mmmm.........######
+######.....r...mmmm............mmmm.........######
+######.........mmmm...r..............x......######
+######......................................######
+##########uuuuuu#####mmmmmmmm#####uuuuuu##########
+##########uuuuuu#mmmmmmmmmmmmmmmm#uuuuuu##########
+##########uuuuuu#mmmmmmmmmmmmmmmm#uuuuuu##########
+##########uuuuuu#mmmmmmmmmmmmmmmm#uuuuuu##########
+##########uuuuuu#mmmmmmmmmmmmmmmm#uuuuuu##########
+##########uuuuuu#mmmmmmmmmmmmmmmm#uuuuuu##########
+##########uuuuuu#mmmmmmmmmmmmmmmm#uuuuuu##########
+##########uuuuuu#mmmmmmmmmmmmmmmm#uuuuuu##########
+######mmm...................................######
+######mmm..............................r........o#
+#o....mmm..................mmm...................#
+#...................mmmm...mmm......x..........$.#
+#.$..........x......mmmm...mmm...................#
+#...................mmmm........................o#
+#o........r....................r.........mmm######
+######...................z...............mmm######
+######...................................mmm######
+##################mmuuuuuuuuuumm##################
+##################mmuuuuuuuuuumm##################
+##################mmuuuuuuuuuumm##################
+##################mmuuuuuuuuuumm##################
+##################mmuuuuuuuuuumm##################
+##################mmuuuuuuuuuumm##################
+##################..............##################
+#################.,...........r..#################
+#################.,r...........,.#################
+#################.......P......,.#################
+##################.....,..,.....##################
+##################################################
+##################################################
+`},
+  {n:5, name:'Heart of the Ruins', boss:'stonegiant', bossHp:3800, boss2:'ruinguardian', boss2Hp:7000, hpMul:1.7, xpMul:1.6, coinMul:1.8, themeEnd:true,
+   trickle:null, foes:['revenant','stonespider','ruinarcher'],
+   desc:'One long sealed corridor. Iron gates drop in front of you and behind you, and waves pour in. At the end, two bosses back to back.',
+   tags:['Sealed corridor','No turning back','2 bosses'], reward:{coins:300, items:['static']},
+   zones:{
+     1:{waves:[{revenant:14}, {revenant:18}, {revenant:14, elite:'revenant'}]},
+     2:{waves:[{revenant:10, crawler:8}, {crawler:12, revenant:8}, {revenant:10, crawler:10, elite:'crawler'}]},
+     3:{waves:[{revenant:10, crawler:6, archer:5}, {revenant:12, crawler:8, archer:6}, {revenant:12, crawler:10, archer:8, elite:'archer'}]},
+   }, map:`
+##################################
+######bbbbbbbbboooobbbbbbbbb######
+####bmmbbbbbbbbbbbbbbbbbbbbmmb####
+####bmbbbbbbbbbbXbbbbbbbbbbbmb####
+####bbbbpbbbbbbbbbbbbbbbbpbbbb####
+####bbbbbbbbbbbbbbbbbbbbbbbbbb####
+####bbbbbbbbbbbbbbbbbbbbbbbbbb####
+####bbbbbbbbbbbbbbbbbbbbbbbbbb####
+####bbbbbbbbbbbbBbbbbbbbbbbbbb####
+####bbbbbbbbbbbbbbbbbbbbbbbbbb####
+####bbbbbbbbbbbbbbbbbbbbbbbbbb####
+####bbbbbbbbbbbbbbbbbbbbbbbbbb####
+####bbbbpbbbbbbbbbbbbbbbbpbbbb####
+####bbbbbbbbbbbbbbbbbbbbbbbbbb####
+####bmbbbbbbbbbbbbbbbbbbbbbbmb####
+####bmmbbbbbbbbbbbbbbbbbbbbmmb####
+#####bbbbbbbbbbbbbbbbbbbbbbbb#####
+##########==============##########
+##########33333333333333##########
+##########33333333333333##########
+##########3p3333333333p3##########
+##########33333333333333##########
+##########33333333333333##########
+##########33333333333333##########
+##########3p33r3333333p3##########
+##########33333333333333##########
+##########33333333333333##########
+##########33333333333333##########
+##########3p3333333333p3##########
+##########33333333333333##########
+##########==============##########
+##########22222222222222##########
+##########22222222222222##########
+##########2p2222222222p2##########
+##########22222222222222##########
+##########22222222222222##########
+##########22222222222222##########
+##########2p2222222r22p2##########
+##########22222222222222##########
+##########22222222222222##########
+##########22222222222222##########
+##########2p2222222222p2##########
+##########22222222222222##########
+##########==============##########
+##########11111111111111##########
+##########11111111111111##########
+##########1p1111111111p1##########
+##########11111111111111##########
+##########11111111111111##########
+##########11111111111111##########
+##########1p1111111111p1##########
+##########11111r11111111##########
+##########11111111111111##########
+##########11111111111111##########
+##########1p1111111111p1##########
+##########11111111111111##########
+##########==============##########
+############..........############
+############..........############
+############..........############
+############..........############
+############.,......,.############
+##########..............##########
+#########.,............,.#########
+#########..o..........o..#########
+#########.......P........#########
+#########.,.........$..,.#########
+##########..............##########
+##################################
+##################################
+`},
+];
+
+Object.assign(ICONS, {
+  stairs: 'M3.5 20h5v-4.5h4.5V11h4.5V6.5h3M3.5 20v.5',
+  portal: C(12, 12, 8.5) + 'M12 7.5a4.5 4.5 0 0 1 0 9 3 3 0 0 1 0-6',
+  roll: 'M20 12a8 8 0 1 1-2.4-5.7M20 4v4.5h-4.5',
+});
+Object.assign(PICKUPS, {relic:'#c77dff'});
+Object.assign(SFX, {
+  gate:   {gap:.3,  play(){ tone(70, .5, {type:'sawtooth', vol:.09, to:40, lp:600}); noise(.45, {filter:'lowpass', f:900, fto:150, vol:.15}); }},
+  crack:  {gap:.12, play(){ noise(.14, {filter:'highpass', f:1800, vol:.07}); tone(240, .08, {type:'square', vol:.02, to:120}); }},
+  crumble:{gap:.12, play(){ noise(.5, {filter:'lowpass', f:700, fto:90, vol:.17}); }},
+  portal: {gap:1,   play(){ arp([392, 523, 659, 784, 1046, 1318], .07, {type:'sine', vol:.08, len:.3}); tone(200, 1, {type:'sine', vol:.05, to:800}); }},
+  relic:  {gap:.4,  play(){ arp([659, 988, 1318, 1976], .06, {type:'triangle', vol:.08, len:.25}); }},
+});
+Object.assign(SONGS, {
+  ruins: {bpm:96, root:52, scale:'dorian', prog:[0,5,3,4], bass:'sawtooth', bp:'pulse', lead:'triangle', arp:'sine', drums:1, pad:1, density:.3, seed:211},
+});
+/* ---------- dungeon: map parsing, collisions and pathing ---------- */
+function dgParse(def){
+  const rows = def.map.split('\n').filter(r => r.trim().length);
+  const H = rows.length, W = Math.max(...rows.map(r => r.length)), N = W * H;
+  const L = {W, H, t:new Uint8Array(N), z:new Uint8Array(N), moss:new Uint8Array(N), prop:new Uint8Array(N), closed:new Uint8Array(N),
+    props:[], packs:[], chests:[], gates:[], zoneIds:[], zoneTiles:{}, open:[], start:{x:1, y:1}, boss:null, exit:null};
+  for(let y = 0; y < H; y++) for(let x = 0; x < W; x++){
+    const c = rows[y][x] || '#', i = y * W + x;
+    let t = TT.FLOOR, z = 0;
+    switch(c){
+      case '#': t = TT.WALL; break;
+      case '.': break;
+      case ',': L.moss[i] = 1; break;
+      case '~': t = TT.PIT; break;
+      case 'm': t = TT.POOL; break;
+      case 'c': t = TT.CRUMBLE; break;
+      case 'w': t = TT.WEB; break;
+      case 'u': t = TT.STAIR; break;
+      case 'p': case 'r': case 'k': case 'o': t = TT.PROP; L.prop[i] = c.charCodeAt(0); L.props.push({x, y, kind:c}); break;
+      case '=': t = TT.GATE; L.gates.push({x, y, i, zones:[], open:true, h:0}); break;
+      case 'P': L.start = {x, y}; break;
+      case '$': L.chests.push({x, y, open:false, t:0}); break;
+      case 'b': z = 10; break;
+      case 'B': z = 10; L.boss = {x, y}; break;
+      case 'X': z = 10; L.exit = {x, y}; break;
+      default:
+        if(c >= '1' && c <= '9') z = +c;
+        else if(DG_PACKS[c.toLowerCase()]) L.packs.push({x, y, kind:c.toLowerCase(), elite:c !== c.toLowerCase(), done:false});
+    }
+    L.t[i] = t; L.z[i] = z;
+  }
+  // tiles drawn with their own letter inside a zone (webs, pools, pillars) join the zone around them
+  for(let pass = 0; pass < 3; pass++) for(let y = 1; y < H - 1; y++) for(let x = 1; x < W - 1; x++){
+    const i = y * W + x;
+    if(L.z[i] || L.t[i] === TT.WALL || L.t[i] === TT.GATE) continue;
+    const cnt = {}; let best = 0, bz = 0;
+    for(const [dx, dy] of N4){ const zz = L.z[i + dy * W + dx]; if(zz){ cnt[zz] = (cnt[zz] || 0) + 1; if(cnt[zz] > best){ best = cnt[zz]; bz = zz; } } }
+    if(best >= 2) L.z[i] = bz;
+  }
+  for(let i = 0; i < N; i++){
+    const z = L.z[i];
+    if(z){ if(!L.zoneTiles[z]){ L.zoneTiles[z] = []; L.zoneIds.push(z); } if(dgWalkable(L.t[i])) L.zoneTiles[z].push(i); }
+    else if(L.t[i] === TT.FLOOR || L.t[i] === TT.STAIR) L.open.push(i);
+  }
+  for(const g of L.gates) for(const [dx, dy] of N4){ const z = L.z[g.i + dy * W + dx]; if(z && !g.zones.includes(z)) g.zones.push(z); }
+  return L;
+}
+function dgWalkable(t){ return t !== TT.WALL && t !== TT.PROP && t !== TT.PIT; }
+function dgWalkBlocked(L, tx, ty){
+  if(tx < 0 || ty < 0 || tx >= L.W || ty >= L.H) return true;
+  const i = ty * L.W + tx, t = L.t[i];
+  return t === TT.WALL || t === TT.PROP || t === TT.PIT || (t === TT.GATE && L.closed[i] === 1);
+}
+// rubble is low: shots fly over it. Pits do not stop shots either.
+function dgShotBlocked(L, x, y){
+  const tx = Math.floor(x / DT), ty = Math.floor(y / DT);
+  if(tx < 0 || ty < 0 || tx >= L.W || ty >= L.H) return true;
+  const i = ty * L.W + tx, t = L.t[i];
+  return t === TT.WALL || (t === TT.PROP && L.prop[i] !== 114) || (t === TT.GATE && L.closed[i] === 1);
+}
+const tileAt = (L, x, y) => Math.floor(y / DT) * L.W + Math.floor(x / DT);
+// push a circle out of every blocked tile it overlaps; returns true if it hit something
+function dgCollide(o, r){
+  const L = G.dg.L;
+  r = Math.min(r, 26);
+  let hit = false;
+  for(let it = 0; it < 2; it++){
+    const tx0 = Math.floor((o.x - r) / DT), tx1 = Math.floor((o.x + r) / DT), ty0 = Math.floor((o.y - r) / DT), ty1 = Math.floor((o.y + r) / DT);
+    for(let ty = ty0; ty <= ty1; ty++) for(let tx = tx0; tx <= tx1; tx++){
+      if(!dgWalkBlocked(L, tx, ty)) continue;
+      const x0 = tx * DT, y0 = ty * DT;
+      const nx = Math.max(x0, Math.min(o.x, x0 + DT)), ny = Math.max(y0, Math.min(o.y, y0 + DT));
+      const dx = o.x - nx, dy = o.y - ny, d2 = dx * dx + dy * dy;
+      if(d2 >= r * r) continue;
+      hit = true;
+      if(d2 > 1e-6){ const d = Math.sqrt(d2); o.x += dx / d * (r - d); o.y += dy / d * (r - d); }
+      else {
+        const cx = x0 + DT / 2, cy = y0 + DT / 2, ox = o.x - cx, oy = o.y - cy;
+        if(Math.abs(ox) > Math.abs(oy)) o.x = cx + Math.sign(ox || 1) * (DT / 2 + r); else o.y = cy + Math.sign(oy || 1) * (DT / 2 + r);
+      }
+    }
+  }
+  return hit;
+}
+// breadth-first distance from the player's tile; enemies walk downhill on it
+function dgFlow(){
+  const D = G.dg, L = D.L, p = G.p, tx = Math.floor(p.x / DT), ty = Math.floor(p.y / DT), key = ty * L.W + tx;
+  if(key === D.flowKey && !D.flowDirty) return;
+  D.flowKey = key; D.flowDirty = false;
+  const f = D.flow, q = D.q; f.fill(-1);
+  if(tx < 0 || ty < 0 || tx >= L.W || ty >= L.H) return;
+  let h = 0, tl = 0;
+  f[key] = 0; q[tl++] = key;
+  while(h < tl){
+    const i = q[h++], x = i % L.W, y = (i - x) / L.W, d = f[i] + 1;
+    for(const [dx, dy] of N4){
+      const nx = x + dx, ny = y + dy;
+      if(dgWalkBlocked(L, nx, ny)) continue;
+      const j = ny * L.W + nx;
+      if(f[j] >= 0) continue;
+      f[j] = d; q[tl++] = j;
+    }
+  }
+}
+function dgChase(e, sp, dt, dx, dy, d){
+  const D = G.dg, L = D.L, tx = Math.floor(e.x / DT), ty = Math.floor(e.y / DT);
+  let mx = dx / d, my = dy / d;
+  const i = ty * L.W + tx, cd = (tx >= 0 && ty >= 0 && tx < L.W && ty < L.H) ? D.flow[i] : -1;
+  if(cd > 1){
+    let best = cd, bx = 0, by = 0;
+    for(const [ox, oy] of N8){
+      const nx = tx + ox, ny = ty + oy;
+      if(nx < 0 || ny < 0 || nx >= L.W || ny >= L.H) continue;
+      const v = D.flow[ny * L.W + nx];
+      if(v < 0 || v >= best) continue;
+      if(ox && oy && (dgWalkBlocked(L, tx + ox, ty) || dgWalkBlocked(L, tx, ty + oy))) continue;
+      best = v; bx = ox; by = oy;
+    }
+    if(best < cd){
+      const gx = (tx + bx + .5) * DT - e.x, gy = (ty + by + .5) * DT - e.y, gl = Math.hypot(gx, gy) || 1;
+      mx = gx / gl; my = gy / gl;
+    }
+  }
+  e.x += mx * sp * dt; e.y += my * sp * dt;
+}
+function dgLos(x0, y0, x1, y1){
+  const L = G.dg.L, dx = x1 - x0, dy = y1 - y0, n = Math.ceil(Math.hypot(dx, dy) / 20);
+  for(let i = 1; i < n; i++) if(dgShotBlocked(L, x0 + dx * i / n, y0 + dy * i / n)) return false;
+  return true;
+}
+// nearest enemy you can actually see, so weapons do not waste shots on walls
+function dgNearest(x, y, maxD){
+  const c = [], m2 = maxD * maxD;
+  for(const e of G.enemies){
+    if(e.dead || e.hidden || e.rise > 0) continue;
+    const d = (e.x - x) ** 2 + (e.y - y) ** 2;
+    if(d < m2) c.push([d, e]);
+  }
+  c.sort((a, b) => a[0] - b[0]);
+  for(let i = 0; i < c.length && i < 6; i++) if(dgLos(x, y, c[i][1].x, c[i][1].y)) return c[i][1];
+  return null;
+}
+
+/* ---------- dungeon: run flow ---------- */
+function dgEnter(n){
+  startRun(Object.assign({}, DG_STAGE), B.char, B.items.slice());
+  G.dg = {start:n, floor:0, carried:{coins:0, items:[]}, secured:{coins:0, items:[]}, floorsCleared:0, roll:{t:0, cd:0, dx:0, dy:1}};
+  document.body.classList.add('dg');
+  $('#dgobj').hidden = $('#dgcarry').hidden = $('#rollBtn').hidden = false;
+  d3Show(true);
+  dgLoadFloor(n);
+}
+function dgLoadFloor(n){
+  const def = DG_FLOORS[n - 1], D = G.dg, L = dgParse(def), N = L.W * L.H;
+  Object.assign(D, {floor:n, def, L, flow:new Int16Array(N), flowKey:-1, flowDirty:true, q:new Int32Array(N), seen:new Uint8Array(N), seenT:0,
+    mapDirty:true, crumble:new Map(), trickT:5, zones:{}, portal:null, bossQ:null, objective:'', safe:null, chainBoss:false});
+  for(const k of L.zoneIds) D.zones[k] = {id:k, state:'idle', boss:k === 10, waves:k === 10 ? null : def.zones[k].waves, wi:0, wait:0, alive:0};
+  for(const k of ['enemies','projs','ebullets','gems','pickups','puddles','fx','parts','texts','hazards']) G[k] = [];
+  G.boss = null; $('#bossbar').hidden = true;
+  G.stage.hpMul = def.hpMul;
+  G.stage.name = `${DG_THEMES[0].name} · Floor ${n}`;
+  const p = G.p;
+  p.x = (L.start.x + .5) * DT; p.y = (L.start.y + .5) * DT; p.vx = p.vy = 0; p.fx = 0; p.fy = -1; p.trail.length = 0;
+  p.rootT = 0; p.poisonT = 0; p.poisonDps = 0;
+  D.safe = {x:p.x, y:p.y};
+  D.roll.t = 0; D.roll.cd = 0;
+  G.state = 'play';
+  d3BuildLevel();
+  setMusic('ruins', 0); setDuck(false);
+  showBanner(`FLOOR ${n}`, '', def.name);
+  dgObjective();
+}
+function dgSpot(cx, cy, rad){
+  const L = G.dg.L;
+  for(let k = 0; k < 14; k++){
+    const a = Math.random() * TAU, r = Math.random() * rad, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+    if(!dgWalkBlocked(L, Math.floor(x / DT), Math.floor(y / DT))) return [x, y];
+  }
+  return [cx, cy];
+}
+function dgSpawn(type, x, y, elite, zone){
+  if(G.enemies.length >= MAX_ENEMIES) return null;
+  spawnEnemy(type, x, y, elite);
+  const e = G.enemies[G.enemies.length - 1];
+  e.rise = e.riseMax = .75; e.zone = zone || 0; e.xp *= G.dg.def.xpMul;
+  dgCollide(e, e.r);
+  if(G.parts.length < 600) burst(e.x, e.y, '#9a8a6a', 5, 110);
+  return e;
+}
+function dgSpawnGroup(comp, cx, cy, rad, zone){
+  for(const type in comp){
+    if(type === 'elite') continue;
+    for(let i = 0; i < comp[type]; i++){ const [x, y] = dgSpot(cx, cy, rad); dgSpawn(type, x, y, false, zone); }
+  }
+  if(comp.elite){ const [x, y] = dgSpot(cx, cy, rad * .5); dgSpawn(comp.elite, x, y, true, zone); showBanner('ELITE', 'elite', 'It carries a relic. Defeat it'); sfx('elite'); }
+}
+function dgPickMix(mix){
+  let tot = 0; for(const k in mix) tot += mix[k];
+  let r = Math.random() * tot;
+  for(const k in mix){ r -= mix[k]; if(r <= 0) return k; }
+  return Object.keys(mix)[0];
+}
+function dgActiveZone(){ for(const k in G.dg.zones){ const Z = G.dg.zones[k]; if(Z.state === 'active' && Z.waves) return Z; } return null; }
+
+function dgTick(dt){
+  const D = G.dg, L = D.L, p = G.p, def = D.def;
+  dgFlow();
+  const ptx = Math.floor(p.x / DT), pty = Math.floor(p.y / DT), pi = pty * L.W + ptx, pt = L.t[pi];
+  D.seenT -= dt;
+  if(D.seenT <= 0){
+    D.seenT = .15;
+    for(let y = pty - 7; y <= pty + 7; y++) for(let x = ptx - 7; x <= ptx + 7; x++){
+      if(x < 0 || y < 0 || x >= L.W || y >= L.H || (x - ptx) ** 2 + (y - pty) ** 2 > 50) continue;
+      const i = y * L.W + x;
+      if(!D.seen[i]){ D.seen[i] = 1; D.mapDirty = true; }
+    }
+  }
+  if(pt === TT.POOL){ p.poisonT = Math.max(p.poisonT, .6); p.poisonDps = Math.max(p.poisonDps, 3 + D.floor); }
+  if(pt === TT.CRUMBLE && !D.crumble.has(pi)){ D.crumble.set(pi, .75); sfx('crack'); }
+  for(const [i, t] of D.crumble){ if(t - dt <= 0){ D.crumble.delete(i); dgCollapse(i); } else D.crumble.set(i, t - dt); }
+  if(G.state !== 'play') return;
+  if(pt !== TT.CRUMBLE && dgWalkable(pt)) D.safe = {x:(ptx + .5) * DT, y:(pty + .5) * DT};
+  if(p.poisonT > 0){ p.poisonT -= dt; if(p.hp > 1) p.hp = Math.max(1, p.hp - p.poisonDps * dt); if(p.poisonT <= 0) p.poisonDps = 0; }
+  // gems fly to you on their own a moment after they drop, so exploring never means backtracking for XP
+  for(const gm of G.gems) if(!gm.mag){ gm.age = (gm.age || 0) + dt; if(gm.age > .7 && Math.abs(gm.x - p.x) < 700 && Math.abs(gm.y - p.y) < 700) gm.mag = true; }
+  for(const pk of L.packs){
+    if(pk.done) continue;
+    const fd = D.flow[pk.y * L.W + pk.x], dd = Math.hypot((pk.x + .5) * DT - p.x, (pk.y + .5) * DT - p.y);
+    if((fd >= 0 && fd <= 9) || dd < 5 * DT){ pk.done = true; const comp = DG_PACKS[pk.kind].make(D.floor); if(pk.elite) comp.elite = DG_PACKS[pk.kind].elite; dgSpawnGroup(comp, (pk.x + .5) * DT, (pk.y + .5) * DT, 110, 0); }
+  }
+  for(const c of L.chests) if(!c.open && Math.hypot((c.x + .5) * DT - p.x, (c.y + .5) * DT - p.y) < 42){ dgOpenChest(c); if(G.state !== 'play') return; }
+  dgZones(dt, pi);
+  if(D.bossQ){ D.bossQ.t -= dt; if(D.bossQ.t <= 0){ const q = D.bossQ; D.bossQ = null; dgSpawnBoss(q.skin, q.hp, q.second); } }
+  if(def.trickle && !G.boss && !D.bossQ && !dgActiveZone() && !D.portal){
+    D.trickT -= dt;
+    if(D.trickT <= 0){ D.trickT = def.trickle.every; dgTrickle(); }
+  }
+  if(D.portal){
+    D.portal.t += dt;
+    if(D.portal.t > .8 && Math.hypot(D.portal.x - p.x, D.portal.y - p.y) < 48) dgFloorClear();
+  }
+}
+function dgNearGate(i){
+  const L = G.dg.L;
+  for(const [dx, dy] of N8){ const j = i + dy * L.W + dx; if(j >= 0 && j < L.t.length && L.t[j] === TT.GATE) return true; }
+  return false;
+}
+function dgSetGate(g, open){
+  const D = G.dg;
+  if(g.open === open) return;
+  g.open = open; D.L.closed[g.i] = open ? 0 : 1; D.flowDirty = true; D.mapDirty = true;
+}
+function dgZones(dt, pi){
+  const D = G.dg, L = D.L, pz = L.z[pi];
+  if(pz && D.zones[pz] && D.zones[pz].state === 'idle' && !dgNearGate(pi)) dgTrigger(D.zones[pz]);
+  for(const k in D.zones){
+    const Z = D.zones[k];
+    if(Z.state !== 'active' || !Z.waves) continue;
+    let alive = 0;
+    for(const e of G.enemies) if(!e.dead && e.zone === Z.id) alive++;
+    Z.alive = alive;
+    if(Z.wi < Z.waves.length){
+      const prev = Z.wi ? Z.waves[Z.wi - 1] : null;
+      let size = 0; if(prev) for(const t in prev) size += t === 'elite' ? 1 : prev[t];
+      if(alive <= Math.floor(size * .2)){ Z.wait -= dt; if(Z.wait <= 0){ dgSpawnWave(Z); Z.wait = 1.4; } }
+    } else if(alive === 0) dgClearZone(Z);
+  }
+}
+function dgTrigger(Z){
+  const D = G.dg, L = D.L;
+  Z.state = 'active';
+  for(const g of L.gates) if(g.zones.includes(Z.id)) dgSetGate(g, false);
+  G.shake = .3; sfx('gate');
+  if(Z.boss){
+    D.bossQ = {skin:D.def.boss, hp:D.def.bossHp, t:1.6};
+    showBanner('THE GATE SLAMS SHUT', 'warn', `${SKINS[D.def.boss].name} awakens`); sfx('warning');
+  } else {
+    Z.wait = .9;
+    const n = Object.keys(D.zones).filter(k => +k !== 10).length;
+    showBanner('AMBUSH', 'warn', `Section ${Z.id} of ${n} · the gates are sealed`); sfx('swarm');
+  }
+  dgObjective();
+}
+function dgSpawnWave(Z){
+  const D = G.dg, L = D.L, p = G.p, w = Z.waves[Z.wi], tiles = L.zoneTiles[Z.id];
+  Z.wi++;
+  const far = tiles.filter(i => Math.hypot((i % L.W + .5) * DT - p.x, (Math.floor(i / L.W) + .5) * DT - p.y) > 4 * DT);
+  const pool = far.length ? far : tiles;
+  const one = type => { const i = pool[Math.floor(Math.random() * pool.length)]; dgSpawn(type, (i % L.W + .5) * DT + rand(-16, 16), (Math.floor(i / L.W) + .5) * DT + rand(-16, 16), false, Z.id); };
+  for(const type in w){ if(type === 'elite') continue; for(let i = 0; i < w[type]; i++) one(type); }
+  if(w.elite){ const i = pool[Math.floor(Math.random() * pool.length)]; dgSpawn(w.elite, (i % L.W + .5) * DT, (Math.floor(i / L.W) + .5) * DT, true, Z.id); sfx('elite'); }
+  addText(p.x, p.y - 40, `WAVE ${Z.wi} / ${Z.waves.length}`, 2);
+  dgObjective();
+}
+function dgClearZone(Z){
+  const D = G.dg, L = D.L;
+  Z.state = 'cleared';
+  for(const g of L.gates) if(g.zones.includes(Z.id) && g.zones.some(z => D.zones[z] && D.zones[z].state === 'idle')) dgSetGate(g, true);
+  if(!Z.boss){
+    showBanner('SECTION CLEAR', 'elite', 'The gate ahead opens. The way back stays shut'); sfx('treasure');
+    dropPickup('heart', G.p.x + rand(-30, 30), G.p.y - 60);
+  }
+  dgObjective();
+}
+function dgTrickle(){
+  const D = G.dg, L = D.L, tr = D.def.trickle;
+  if(G.enemies.length > 34 || !L.open.length) return;
+  for(let k = 0; k < 40; k++){
+    const i = L.open[Math.floor(Math.random() * L.open.length)], f = D.flow[i];
+    if(f < 9 || f > 16) continue;
+    const x = (i % L.W + .5) * DT, y = (Math.floor(i / L.W) + .5) * DT;
+    for(let n = 0; n < tr.n; n++){ const [sx, sy] = dgSpot(x, y, 60); dgSpawn(dgPickMix(tr.mix), sx, sy, false, 0); }
+    return;
+  }
+}
+function dgSpawnBoss(skin, hp, second){
+  const D = G.dg, L = D.L, sk = SKINS[skin], rig = RIGS[sk.rig];
+  const x = (L.boss.x + .5) * DT, y = (L.boss.y + .5) * DT, H = hp * G.s.enemyHp;
+  const b = {type:'boss', skin, boss:true, x, y, r:rig.r, hp:H, maxHp:H, speed:sk.speed, dmg:sk.dmg, xp:0, color:sk.body, armor:sk.armor,
+    slow:0, flash:0, oT:-9, dead:false, seed:0, shape:SHAPE, atkT:2.2, rise:1.4, riseMax:1.4, zone:10};
+  G.enemies.push(b); G.boss = b;
+  $('#bossName').textContent = sk.name; $('#bossbar').hidden = false;
+  showBanner(second ? 'THEME BOSS' : 'FLOOR BOSS', 'warn', sk.name);
+  sfx('warning'); setMusic('ruins', 2); G.shake = .5;
+  burst(x, y, '#9a8a6a', 40, 260, 1.6);
+  G.fx.push({type:'ring', x, y, r:10, maxR:220, life:.6, max:.6, color:sk.glow, fill:true});
+  dgObjective();
+}
+function dgBossDead(b){
+  const D = G.dg, def = D.def, L = D.L, sk = SKINS[b.skin];
+  G.boss = null; $('#bossbar').hidden = true; G.shake = .6; G.flash = .3;
+  G.fx.push({type:'ring', x:b.x, y:b.y, r:0, maxR:600, life:1, max:1, color:'#ffd84a'});
+  D.carried.coins += 25 + 15 * D.floor;
+  G.pickups.push({kind:'relic', x:b.x, y:b.y, t:0, family:sk.family});
+  G.ebullets.length = 0; G.hazards.length = 0;
+  for(const e of G.enemies) if(!e.dead && !e.boss){ e.dead = true; burst(e.x, e.y, e.color, 5, 160); G.gems.push({x:e.x, y:e.y, v:e.xp, mag:true}); }
+  for(const gm of G.gems) gm.mag = true;
+  if(def.boss2 && b.skin === def.boss){
+    showBanner('IT CRUMBLES', 'elite', 'The ground is shaking...'); sfx('clear');
+    D.bossQ = {skin:def.boss2, hp:def.boss2Hp, t:3.4, second:true};
+    dgObjective();
+    return;
+  }
+  showBanner(def.themeEnd ? 'THEME CLEAR' : 'FLOOR CLEAR', 'elite', `${sk.name} defeated! Step into the portal`);
+  sfx('clear'); setMusic('ruins', 0);
+  dgClearZone(D.zones[10]);
+  D.portal = {x:(L.exit.x + .5) * DT, y:(L.exit.y + .5) * DT, t:0, home:!!def.themeEnd || !DG_FLOORS[D.floor]};
+  dgObjective();
+}
+function dgOnKill(e){
+  const D = G.dg;
+  D.carried.coins += .3 * D.def.coinMul * (e.elite ? 6 : 1);
+  if(e.elite) G.pickups.push({kind:'relic', x:e.x, y:e.y + 26, t:0, family:DG_FAMILY[e.type] || 'melee'});
+}
+function dgCollectRelic(pk){
+  const D = G.dg, fam = DG_RELICS[pk.family] || DG_RELICS.melee;
+  const pool = fam.items.filter(id => !isUnlocked(id) && !D.carried.items.includes(id));
+  if(pool.length){
+    const id = pool[Math.floor(Math.random() * pool.length)];
+    D.carried.items.push(id);
+    showBanner('RELIC FOUND', 'elite', `${ITEMS[id].name} · bring it to a portal to keep it`); sfx('relic');
+  } else {
+    const c = 30; D.carried.coins += c;
+    addText(G.p.x, G.p.y - 34, `+${c} coins`, 2); sfx('treasure');
+  }
+}
+function dgOpenChest(c){
+  const D = G.dg, x = (c.x + .5) * DT, y = (c.y + .5) * DT, coins = 12 + 6 * D.floor;
+  c.open = true; c.t = 0;
+  D.carried.coins += coins;
+  addText(x, y - 40, `+${coins} coins`, 2);
+  burst(x, y, '#ffd84a', 26, 240);
+  G.fx.push({type:'ring', x, y, r:8, maxR:110, life:.45, max:.45, color:'#ffd84a', fill:true});
+  G.pendingTreasure++; sfx('treasure');
+  if(G.state === 'play') openLevelUp();
+}
+function dgCollapse(i){
+  const D = G.dg, L = D.L, p = G.p;
+  L.t[i] = TT.PIT; D.flowDirty = true; D.mapDirty = true;
+  const x = (i % L.W + .5) * DT, y = (Math.floor(i / L.W) + .5) * DT;
+  burst(x, y, '#8a7f6a', 12, 150); sfx('crumble');
+  d3Collapse(i);
+  if(tileAt(L, p.x, p.y) === i) dgFall();
+  for(const e of G.enemies) if(!e.dead && !e.boss && tileAt(L, e.x, e.y) === i){ e.hp = 0; killEnemy(e); }
+}
+// falling into a pit costs HP but never kills; you climb back out where you last stood safely
+function dgFall(){
+  const D = G.dg, p = G.p, dmg = Math.round(p.maxHp * .12);
+  p.hp = Math.max(1, p.hp - dmg);
+  p.x = D.safe.x; p.y = D.safe.y; p.inv = Math.max(p.inv, 1.2);
+  D.roll.t = 0;
+  G.flash = .25; G.shake = .35; sfx('hurt');
+  addText(p.x, p.y - 34, `FELL −${dmg}`, 2);
+}
+function dgMovePlayer(dt){
+  const D = G.dg, L = D.L, p = G.p, R = D.roll;
+  if(R.cd > 0) R.cd -= dt;
+  if(R.t > 0){ R.t -= dt; p.vx = R.dx * p.speed * DG_ROLL.speed; p.vy = R.dy * p.speed * DG_ROLL.speed; }
+  else if(p.rootT > 0){ p.rootT -= dt; p.vx = p.vy = 0; }
+  else {
+    const t = L.t[tileAt(L, p.x, p.y)];
+    const m = t === TT.WEB ? .55 : t === TT.POOL ? .7 : 1;
+    p.vx *= m; p.vy *= m;
+  }
+  p.x += p.vx * dt; p.y += p.vy * dt;
+  dgCollide(p, p.r);
+}
+function dgRoll(){
+  if(!G || !G.dg || G.state !== 'play') return;
+  const D = G.dg, p = G.p, R = D.roll;
+  if(R.cd > 0 || R.t > 0) return;
+  let dx = p.vx, dy = p.vy, l = Math.hypot(dx, dy);
+  if(l < 5){ dx = p.fx; dy = p.fy; l = Math.hypot(dx, dy) || 1; }
+  R.dx = dx / l; R.dy = dy / l; R.t = DG_ROLL.time; R.cd = DG_ROLL.cd; p.rootT = 0;
+  p.inv = Math.max(p.inv, DG_ROLL.time + .05);
+  sfx('dash'); burst(p.x, p.y, '#cfd8e8', 6, 90);
+}
+// spider bites poison you; the poison can bring you down to 1 HP but never kills
+function dgContact(e){
+  const v = SKINS[e.skin].venom, p = G.p;
+  if(!v) return;
+  p.poisonT = Math.max(p.poisonT, v.dur); p.poisonDps = Math.max(p.poisonDps, v.dps);
+}
+function dgObjective(){
+  const D = G.dg;
+  let s = '';
+  if(D.portal) s = D.portal.home ? 'Step into the portal to return to base' : 'Step into the portal';
+  else if(G.boss || D.bossQ) s = '';
+  else {
+    const Z = dgActiveZone();
+    if(Z) s = `Survive the ambush · wave ${Math.max(1, Z.wi)} / ${Z.waves.length}`;
+    else if(D.def.zones && Object.values(D.zones).some(z => !z.boss && z.state === 'idle')) s = 'Fight through the sealed corridor';
+    else s = 'Find the boss chamber';
+  }
+  D.objective = s;
+}
+function dgFloorClear(){
+  const D = G.dg, def = D.def, n = D.floor;
+  G.state = 'portal';
+  joy.active = false; joy.dx = joy.dy = 0;
+  sfx('portal');
+  const poorF = negF('poor'), coins = Math.round(D.carried.coins * (1 - .5 * poorF));
+  const lines = [[`Coins you carried${poorF > 0 ? ' (Poor)' : ''}`, coins]], unlocked = [];
+  for(const id of D.carried.items) if(!isUnlocked(id)){ save.unlocked.push(id); unlocked.push(id); }
+  let first = 0;
+  if(!save.dg.cleared[n]){
+    save.dg.cleared[n] = true; first = def.reward.coins;
+    lines.push([`First clear of floor ${n}`, first]);
+    for(const id of def.reward.items) if(!isUnlocked(id)){ save.unlocked.push(id); unlocked.push(id); }
+  }
+  const total = coins + first;
+  save.coins += total;
+  save.dg.reached = Math.max(save.dg.reached, Math.min(n + 1, DG_FLOORS.length));
+  if(def.themeEnd) save.dg.themes[DG_THEMES[0].id] = true;
+  persist();
+  D.secured.coins += total; D.secured.items.push(...unlocked); D.floorsCleared++;
+  D.carried = {coins:0, items:[]};
+  const next = !def.themeEnd && DG_FLOORS[n] ? n + 1 : 0;
+  mbox.className = 'mbox res';
+  mbox.innerHTML = `<h2 class="win">${def.themeEnd ? 'MOSSY RUINS CLEARED' : `FLOOR ${n} SECURED`}</h2>
+    <div class="sub">${esc(def.name)}</div>
+    <p class="mnote" style="text-align:center">Everything you carried is now safe in your base. ${next ? 'You can also start from floor ' + next + ' next time.' : ''}</p>
+    <h3>Secured</h3>${lines.map(l => `<div class="row"><span>${l[0]}</span><b>+${l[1]}</b></div>`).join('')}
+    <div class="row total"><span>Total</span><b>+${total} ${ico('coin')}</b></div>
+    ${unlocked.length ? `<h3>Unlocked</h3><div class="unl">${unlocked.map(id => `<span class="rchip rew">${ico(id)} ${ITEMS[id].name}</span>`).join('')}</div>` : ''}
+    ${def.themeEnd ? `<p class="note" style="margin-top:12px">You beat the first theme. Floors ${DG_FLOORS.length + 1}–${DG_FLOORS_TOTAL} (${DG_THEMES_TOTAL - 1} more themes) are not built yet.</p>` : ''}
+    <div class="mfoot"><button class="btn ${next ? 'ghost' : 'hot'}" data-act="dgHome">Return to base</button>
+    ${next ? `<button class="btn hot" data-act="dgNext">${ico('stairs')} Descend to floor ${next}</button>` : ''}</div>`;
+  modal.hidden = false;
+}
+function dgNext(){
+  if(!G || !G.dg || G.state !== 'portal') return;
+  const p = G.p;
+  modal.hidden = true;
+  p.hp = Math.min(p.maxHp, p.hp + p.maxHp * .35);
+  dgLoadFloor(G.dg.floor + 1);
+}
+function dgEndRun(win){
+  const D = G.dg, def = D.def;
+  $('#bossbar').hidden = true;
+  setMusic(null); setDuck(false); sfx(win ? 'clear' : 'defeat');
+  const lost = D.carried;
+  if(!win){ const b = save.dg.best[def.n]; if(!b) save.dg.best[def.n] = 'Reached'; }
+  persist();
+  const dm = Object.entries(G.dmgBy).sort((a, b) => b[1] - a[1]), top = dm.length ? dm[0][1] : 1;
+  const lostItems = lost.items.filter(id => !isUnlocked(id));
+  mbox.className = 'mbox res';
+  mbox.innerHTML = `<h2 class="${win ? 'win' : 'lose'}">${win ? 'BACK AT BASE' : 'DEFEATED'}</h2>
+    <div class="sub">Floor ${D.floor} · ${esc(def.name)}</div>
+    <div class="tiles"><div class="tile"><small>FLOORS CLEARED</small><b>${D.floorsCleared}</b></div><div class="tile"><small>LEVEL</small><b>${G.level}</b></div>
+    <div class="tile"><small>KILLS</small><b>${G.kills}</b></div><div class="tile"><small>TIME</small><b>${fmtTime(G.t)}</b></div></div>
+    ${dm.length ? `<h3>Damage dealt</h3>${dm.slice(0, 6).map(([k, v]) => `<div class="dmr"><span>${srcLabel(k)}</span><div><i style="width:${v / top * 100}%"></i></div><b>${fmtNum(v)}</b></div>`).join('')}` : ''}
+    <h3>Secured this dive</h3><div class="row"><span>Coins</span><b>+${D.secured.coins}</b></div>
+    ${D.secured.items.length ? `<div class="unl">${D.secured.items.map(id => `<span class="rchip rew">${ico(id)} ${ITEMS[id].name}</span>`).join('')}</div>` : ''}
+    ${!win && (lost.coins >= 1 || lostItems.length) ? `<h3>Lost (not secured)</h3><div class="row lost"><span>Coins</span><b>−${Math.floor(lost.coins)}</b></div>
+      ${lostItems.length ? `<div class="unl">${lostItems.map(id => `<span class="rchip lostc">${ico(id)} ${ITEMS[id].name}</span>`).join('')}</div>` : ''}
+      <p class="note">Rewards are only kept once you step into an exit portal.</p>` : ''}
+    <div class="mfoot"><button class="btn hot" id="backB" data-act="back">Back to base</button></div>`;
+  modal.hidden = false;
+}
+function dgClockText(){ return 'FLOOR ' + G.dg.floor; }
+function dgHud(){
+  const D = G.dg, o = $('#dgobj');
+  o.textContent = D.objective; o.hidden = !D.objective;
+  const c = D.carried;
+  $('#dgcarry').innerHTML = `${ico('coin')} <b>${Math.floor(c.coins)}</b>${c.items.length ? ` ${ico('gem')} <b>${c.items.length}</b>` : ''}<small>not yet secured</small>`;
+  const R = D.roll, rb = $('#rollBtn');
+  rb.style.setProperty('--cd', R.cd > 0 ? (R.cd / DG_ROLL.cd * 100) + '%' : '0%');
+  rb.classList.toggle('ready', R.cd <= 0);
+}
+/* ---------- dungeon: 3D models ----------
+   Every model is a blocky rig of boxes facing +z, feet at y = 0.
+   part: [name, [w,h,d], pivot [x,y,z], offset from pivot [x,y,z], color, anim, extra]
+   color is a palette key of the skin (body/dark/glow/alt) or a hex color.
+   extra: rx/ry/rz rest rotation, g = glows (unlit), k = animation phase, R = orbit radius.
+   Parts that move together share a pivot and an anim. r = the collision radius the
+   model was built for; the model is scaled by enemy.r / r. */
+const RIGS = {
+  revenant:{r:12, parts:[
+    ['legL', [6, 15, 6], [-4, 15, 0], [0, -7.5, 0], 'dark', 'legL'],
+    ['legR', [6, 15, 6], [4, 15, 0], [0, -7.5, 0], 'dark', 'legR'],
+    ['torso', [15, 16, 9], [0, 15, 0], [0, 8, 0], 'alt', 'body', {rx:.2}],
+    ['rag', [16.5, 5, 10], [0, 15, 0], [0, 1.5, 0], 'dark', 'body', {rx:.2}],
+    ['head', [12, 12, 12], [0, 30, 3], [0, 6, 1], 'body', 'head'],
+    ['jaw', [9, 3, 4], [0, 30, 3], [0, 1, 6.5], 'dark', 'head'],
+    ['eyeL', [3, 2.4, 1], [0, 30, 3], [-2.8, 7.5, 7.3], 'glow', 'head', {g:1}],
+    ['eyeR', [3, 2.4, 1], [0, 30, 3], [2.8, 7.5, 7.3], 'glow', 'head', {g:1}],
+    ['armL', [5, 17, 5], [-10.5, 28, 2], [0, -8.5, 0], 'body', 'zarmL', {rx:-1.35}],
+    ['armR', [5, 17, 5], [10.5, 28, 2], [0, -8.5, 0], 'body', 'zarmR', {rx:-1.2}],
+    ['moss', [7, 3, 7], [-10.5, 28, 2], [0, 1, 0], 'glow', 'zarmL', {rx:-1.35}],
+  ]},
+  spider:{r:11, parts:[
+    ['abdomen', [17, 12, 19], [0, 12, -9], [0, 0, 0], 'body', 'breathe'],
+    ['moss', [9, 2, 11], [0, 12, -9], [0, 6.5, 0], 'alt', 'breathe'],
+    ['thorax', [13, 9, 12], [0, 10, 4], [0, 0, 0], 'dark', 'body'],
+    ['head', [9, 7, 7], [0, 10, 4], [0, 0, 9], 'dark', 'body'],
+    ['eyes', [7, 2, 1], [0, 10, 4], [0, 1.5, 12.6], 'glow', 'body', {g:1}],
+    ['fangL', [2, 5, 2], [0, 10, 4], [-2.2, -3, 12], 'glow', 'body', {g:1}],
+    ['fangR', [2, 5, 2], [0, 10, 4], [2.2, -3, 12], 'glow', 'body', {g:1}],
+    ...[0, 1, 2, 3].flatMap(i => [-1, 1].map(s =>
+      ['leg', [18, 3, 3], [s * 5.5, 11, 8 - i * 4.5], [s * 9, 0, 0], 'dark', 'legS', {ry:-s * (.6 - i * .4), rz:-s * .55, k:i * 1.6 + (s > 0 ? Math.PI : 0)}])),
+  ]},
+  archer:{r:11, parts:[
+    ['legL', [4, 16, 4], [-3.5, 16, 0], [0, -8, 0], 'body', 'legL'],
+    ['legR', [4, 16, 4], [3.5, 16, 0], [0, -8, 0], 'body', 'legR'],
+    ['pelvis', [10, 3, 5], [0, 16, 0], [0, 1.5, 0], 'body', 'body'],
+    ['spine', [3, 8, 3], [0, 16, 0], [0, 6, 0], 'body', 'body'],
+    ['ribs', [12, 9, 7], [0, 16, 0], [0, 14, 0], 'body', 'body'],
+    ['skull', [10, 10, 10], [0, 28, .5], [0, 5, 0], 'body', 'head'],
+    ['jaw', [8, 3, 6], [0, 28, .5], [0, -.5, 2], 'dark', 'head'],
+    ['eyeL', [2.2, 2.2, 1], [0, 28, .5], [-2.3, 6, 5.2], 'glow', 'head', {g:1}],
+    ['eyeR', [2.2, 2.2, 1], [0, 28, .5], [2.3, 6, 5.2], 'glow', 'head', {g:1}],
+    ['armL', [3.5, 15, 3.5], [-7, 26, 0], [0, -7.5, 0], 'body', 'bowArm', {rx:-1.45, ry:.3}],
+    ['bow', [2, 2, 28], [-7, 26, 0], [0, -15, 0], 'alt', 'bowArm', {rx:-1.45, ry:.3}],
+    ['string', [.8, 2.5, 24], [-7, 26, 0], [0, -11.5, 0], '#e8e0d0', 'bowArm', {rx:-1.45, ry:.3}],
+    ['armR', [3.5, 14, 3.5], [7, 26, 0], [0, -7, 0], 'body', 'drawArm', {rx:-1.35, ry:-.45}],
+    ['quiver', [5, 13, 5], [0, 22, -5], [0, 0, 0], 'alt', 'body', {rz:.35}],
+    ['fletch', [4, 4, 4], [0, 22, -5], [0, 8, 0], '#c84a3a', 'body', {rz:.35}],
+  ]},
+  soldier:{r:13, parts:[
+    ['legL', [6, 13, 6], [-4, 13, 0], [0, -6.5, 0], 'dark', 'legL'],
+    ['legR', [6, 13, 6], [4, 13, 0], [0, -6.5, 0], 'dark', 'legR'],
+    ['torso', [16, 15, 10], [0, 13, 0], [0, 7.5, 0], 'body', 'body'],
+    ['moss', [8, 3, 9], [0, 13, 0], [-6, 15.5, 0], 'alt', 'body'],
+    ['head', [11, 11, 11], [0, 28, 0], [0, 5.5, 0], 'body', 'head'],
+    ['visor', [8, 2, 1], [0, 28, 0], [0, 6, 5.8], 'glow', 'head', {g:1}],
+    ['armL', [5, 13, 5], [-10.5, 26, 0], [0, -6.5, 0], 'body', 'armL', {rx:-.4}],
+    ['shield', [3, 16, 13], [-10.5, 26, 0], [-3, -10, 4], 'alt', 'armL', {rx:-.4}],
+    ['armR', [5, 13, 5], [10.5, 26, 0], [0, -6.5, 0], 'body', 'armR', {rx:-.7}],
+    ['spear', [2, 2, 46], [10.5, 26, 0], [0, -12, 8], 'dark', 'armR', {rx:-.7}],
+    ['tip', [3.5, 3.5, 8], [10.5, 26, 0], [0, -12, 34], 'body', 'armR', {rx:-.7}],
+  ]},
+  golem:{r:40, parts:[
+    ['legL', [14, 22, 14], [-11, 22, 0], [0, -11, 0], 'dark', 'legL'],
+    ['legR', [14, 22, 14], [11, 22, 0], [0, -11, 0], 'dark', 'legR'],
+    ['pelvis', [30, 10, 18], [0, 22, 0], [0, 5, 0], 'dark', 'body'],
+    ['torso', [40, 32, 26], [0, 26, 0], [0, 17, 0], 'body', 'body', {rx:.1}],
+    ['mossBack', [36, 7, 22], [0, 26, 0], [0, 35, -2], 'alt', 'body', {rx:.1}],
+    ['mossL', [14, 6, 16], [0, 26, 0], [-20, 33, 0], 'alt', 'body', {rx:.1}],
+    ['mossR', [14, 6, 16], [0, 26, 0], [20, 33, 0], 'alt', 'body', {rx:.1}],
+    ['rune', [10, 10, 1], [0, 26, 0], [0, 17, 13.2], 'glow', 'body', {rx:.1, g:1}],
+    ['head', [18, 15, 16], [0, 56, 5], [0, 6, 0], 'body', 'head'],
+    ['eyes', [12, 3, 1], [0, 56, 5], [0, 7, 8.2], 'glow', 'head', {g:1}],
+    ['armL', [13, 34, 13], [-27, 52, 0], [0, -17, 0], 'body', 'armL'],
+    ['fistL', [17, 14, 17], [-27, 52, 0], [0, -38, 0], 'dark', 'armL'],
+    ['armR', [13, 34, 13], [27, 52, 0], [0, -17, 0], 'body', 'armR'],
+    ['fistR', [17, 14, 17], [27, 52, 0], [0, -38, 0], 'dark', 'armR'],
+  ]},
+  brood:{r:50, parts:[
+    ['abdomen', [56, 40, 62], [0, 42, -30], [0, 0, 0], 'body', 'breathe'],
+    ['vine1', [6, 4, 62], [0, 42, -30], [-14, 20.5, 0], 'alt', 'breathe'],
+    ['vine2', [6, 4, 62], [0, 42, -30], [12, 20.5, 0], 'alt', 'breathe'],
+    ['vine3', [56.5, 4, 6], [0, 42, -30], [0, 12, -10], 'alt', 'breathe'],
+    ['vine4', [56.5, 4, 6], [0, 42, -30], [0, 5, 14], 'alt', 'breathe'],
+    ['sac', [22, 18, 20], [0, 42, -30], [0, 4, -38], '#d8d0b8', 'breathe'],
+    ['thorax', [40, 26, 34], [0, 36, 12], [0, 0, 0], 'dark', 'body'],
+    ['head', [28, 20, 20], [0, 36, 12], [0, 2, 26], 'dark', 'body'],
+    ['eyesBig', [18, 6, 1], [0, 36, 12], [0, 6, 36.2], 'glow', 'body', {g:1}],
+    ['eyesSmall', [26, 3, 1], [0, 36, 12], [0, -1, 36.2], 'glow', 'body', {g:1}],
+    ['fangL', [5, 14, 5], [0, 36, 12], [-7, -12, 34], '#e8e0c8', 'body', {rx:.3}],
+    ['fangR', [5, 14, 5], [0, 36, 12], [7, -12, 34], '#e8e0c8', 'body', {rx:.3}],
+    ...[0, 1, 2, 3].flatMap(i => [-1, 1].map(s =>
+      ['leg', [58, 7, 7], [s * 17, 40, 22 - i * 13], [s * 29, 0, 0], 'dark', 'legS', {ry:-s * (.65 - i * .42), rz:-s * .5, k:i * 1.6 + (s > 0 ? Math.PI : 0)}])),
+  ]},
+  captain:{r:40, parts:[
+    ['legL', [10, 40, 10], [-9, 40, 0], [0, -20, 0], 'body', 'legL'],
+    ['legR', [10, 40, 10], [9, 40, 0], [0, -20, 0], 'body', 'legR'],
+    ['pelvis', [26, 8, 13], [0, 40, 0], [0, 4, 0], 'body', 'body'],
+    ['ribs', [30, 24, 18], [0, 40, 0], [0, 30, 0], 'body', 'body'],
+    ['spine', [7, 20, 7], [0, 40, 0], [0, 12, 0], 'body', 'body'],
+    ['pauldL', [14, 7, 18], [0, 40, 0], [-18, 42, 0], '#c9a24a', 'body'],
+    ['pauldR', [14, 7, 18], [0, 40, 0], [18, 42, 0], '#c9a24a', 'body'],
+    ['cape', [28, 44, 3], [0, 82, -10], [0, -22, 0], 'alt', 'cape'],
+    ['skull', [24, 24, 24], [0, 72, 1], [0, 12, 0], 'body', 'head'],
+    ['helm', [27, 9, 27], [0, 72, 1], [0, 25, 0], '#c9a24a', 'head'],
+    ['plume', [6, 18, 24], [0, 72, 1], [0, 37, -2], 'alt', 'head'],
+    ['eyeL', [5, 5, 1], [0, 72, 1], [-5.5, 13, 12.3], 'glow', 'head', {g:1}],
+    ['eyeR', [5, 5, 1], [0, 72, 1], [5.5, 13, 12.3], 'glow', 'head', {g:1}],
+    ['armL', [8, 36, 8], [-19, 66, 0], [0, -18, 0], 'body', 'bowArm', {rx:-1.45, ry:.3}],
+    ['bow', [5, 5, 70], [-19, 66, 0], [0, -36, 0], '#6a4428', 'bowArm', {rx:-1.45, ry:.3}],
+    ['string', [2, 6, 62], [-19, 66, 0], [0, -28, 0], '#e8e0d0', 'bowArm', {rx:-1.45, ry:.3}],
+    ['armR', [8, 34, 8], [19, 66, 0], [0, -17, 0], 'body', 'drawArm', {rx:-1.35, ry:-.45}],
+    ['quiver', [12, 30, 12], [0, 56, -13], [0, 0, 0], '#6a4428', 'body', {rz:.35}],
+    ['fletch', [10, 9, 10], [0, 56, -13], [0, 18, 0], 'glow', 'body', {rz:.35, g:1}],
+  ]},
+  keeper:{r:44, parts:[
+    ['legL', [14, 24, 14], [-10, 24, 0], [0, -12, 0], 'dark', 'legL'],
+    ['legR', [14, 24, 14], [10, 24, 0], [0, -12, 0], 'dark', 'legR'],
+    ['skirt', [34, 14, 24], [0, 24, 0], [0, 3, 0], 'dark', 'body'],
+    ['torso', [36, 30, 24], [0, 26, 0], [0, 17, 0], 'body', 'body'],
+    ['runeH', [26, 3, 1], [0, 26, 0], [0, 22, 12.3], 'glow', 'body', {g:1}],
+    ['runeV', [3, 18, 1], [0, 26, 0], [0, 15, 12.3], 'glow', 'body', {g:1}],
+    ['pauldL', [16, 10, 22], [0, 26, 0], [-22, 30, 0], 'alt', 'body'],
+    ['pauldR', [16, 10, 22], [0, 26, 0], [22, 30, 0], 'alt', 'body'],
+    ['head', [18, 18, 18], [0, 56, 0], [0, 9, 0], 'body', 'head'],
+    ['visor', [14, 3, 1], [0, 56, 0], [0, 9, 9.3], 'glow', 'head', {g:1}],
+    ['crest', [4, 10, 20], [0, 56, 0], [0, 21, 0], 'dark', 'head'],
+    ['armL', [11, 30, 11], [-25, 52, 0], [0, -15, 0], 'body', 'armL', {rx:-.35}],
+    ['shield', [6, 52, 40], [-25, 52, 0], [-7, -30, 10], 'body', 'armL', {rx:-.35}],
+    ['emblem', [1, 16, 16], [-25, 52, 0], [-10.4, -30, 10], 'glow', 'armL', {rx:-.35, g:1}],
+    ['armR', [11, 30, 11], [25, 52, 0], [0, -15, 0], 'body', 'hammer'],
+    ['handle', [5, 40, 5], [25, 52, 0], [0, -42, 0], 'dark', 'hammer'],
+    ['hammer', [24, 18, 18], [25, 52, 0], [0, -64, 0], 'body', 'hammer'],
+  ]},
+  giant:{r:58, parts:[
+    ['legL', [22, 36, 22], [-16, 36, 0], [0, -18, 0], 'body', 'legL'],
+    ['legR', [22, 36, 22], [16, 36, 0], [0, -18, 0], 'body', 'legR'],
+    ['torso', [56, 44, 34], [0, 36, 0], [0, 22, 0], 'body', 'body', {rx:.15}],
+    ['crack1', [3, 30, 1], [0, 36, 0], [-10, 22, 17.2], 'glow', 'body', {rx:.15, g:1}],
+    ['crack2', [24, 3, 1], [0, 36, 0], [8, 30, 17.2], 'glow', 'body', {rx:.15, g:1}],
+    ['crack3', [3, 18, 1], [0, 36, 0], [17, 14, 17.2], 'glow', 'body', {rx:.15, g:1}],
+    ['moss', [50, 9, 30], [0, 36, 0], [0, 46, -2], 'alt', 'body', {rx:.15}],
+    ['head', [26, 22, 24], [0, 80, 8], [0, 11, 0], 'body', 'head'],
+    ['brow', [28, 5, 6], [0, 80, 8], [0, 17, 11], 'dark', 'head'],
+    ['eyes', [16, 4, 1], [0, 80, 8], [0, 12, 12.2], 'glow', 'head', {g:1}],
+    ['armL', [20, 50, 20], [-38, 76, 0], [0, -25, 0], 'body', 'armL'],
+    ['fistL', [27, 22, 27], [-38, 76, 0], [0, -56, 0], 'dark', 'armL'],
+    ['crackL', [1, 24, 3], [-38, 76, 0], [-10.4, -24, 0], 'glow', 'armL', {g:1}],
+    ['armR', [20, 50, 20], [38, 76, 0], [0, -25, 0], 'body', 'armR'],
+    ['fistR', [27, 22, 27], [38, 76, 0], [0, -56, 0], 'dark', 'armR'],
+  ]},
+  guardian:{r:56, parts:[
+    ['legL', [20, 30, 20], [-16, 30, 0], [0, -15, 0], 'body', 'legL'],
+    ['legR', [20, 30, 20], [16, 30, 0], [0, -15, 0], 'body', 'legR'],
+    ['vineLegs', [44, 6, 24], [0, 30, 0], [0, -14, 0], 'alt', 'body'],
+    ['hips', [44, 12, 28], [0, 30, 0], [0, 6, 0], 'dark', 'body'],
+    ['torso', [52, 40, 30], [0, 30, 0], [0, 32, 0], 'body', 'body'],
+    ['vineWrap', [54, 6, 32], [0, 30, 0], [0, 22, 0], 'alt', 'body', {rz:.22}],
+    ['vineUp', [6, 40, 32], [0, 30, 0], [-17, 32, 0], 'alt', 'body'],
+    ['core', [16, 16, 4], [0, 30, 0], [0, 34, 15.5], 'glow', 'body', {g:1}],
+    ['head', [24, 22, 22], [0, 72, 2], [0, 11, 0], 'body', 'head'],
+    ['crown', [27, 6, 25], [0, 72, 2], [0, 23, 0], 'alt', 'head'],
+    ['eyes', [16, 3, 1], [0, 72, 2], [0, 11, 11.2], 'glow', 'head', {g:1}],
+    ['armL', [16, 44, 16], [-35, 66, 0], [0, -22, 0], 'body', 'armL'],
+    ['whipL', [6, 6, 62], [-35, 66, 0], [0, -46, 24], 'alt', 'whip', {k:0}],
+    ['armR', [16, 44, 16], [35, 66, 0], [0, -22, 0], 'body', 'armR'],
+    ['whipR', [6, 6, 62], [35, 66, 0], [0, -46, 24], 'alt', 'whip', {k:2}],
+    ...[0, 1, 2, 3].map(i => ['stone', [12, 12, 12], [0, 62, 0], [0, 0, 0], 'body', 'orbit', {k:i * Math.PI / 2, R:52}]),
+  ]},
+  mage:{r:12, parts:[
+    ['footL', [5, 4, 7], [-3.5, 4, 0], [0, -2, 1], '#2a3c7a', 'legL'],
+    ['footR', [5, 4, 7], [3.5, 4, 0], [0, -2, 1], '#2a3c7a', 'legR'],
+    ['robe', [15, 16, 12], [0, 4, 0], [0, 8, 0], '#2f5fc8', 'body'],
+    ['torso', [14, 13, 10], [0, 4, 0], [0, 22.5, 0], '#3a74e0', 'body'],
+    ['belt', [15, 2.5, 11], [0, 4, 0], [0, 17, 0], '#ffcf6a', 'body'],
+    ['head', [11, 11, 11], [0, 33, 0], [0, 5.5, 0], '#f2d2b0', 'head'],
+    ['eyes', [7, 2, 1], [0, 33, 0], [0, 5.5, 5.6], '#1a2040', 'head'],
+    ['brim', [18, 2, 18], [0, 33, 0], [0, 11.5, 0], '#24449a', 'head'],
+    ['hat', [11, 8, 11], [0, 33, 0], [0, 16.5, -.5], '#2a52b8', 'head'],
+    ['tip', [6, 7, 6], [0, 33, 0], [0, 23, -2], '#2a52b8', 'head', {rx:-.25}],
+    ['armL', [4.5, 13, 4.5], [-9.5, 30, 0], [0, -6.5, 0], '#3a74e0', 'armL'],
+    ['armR', [4.5, 13, 4.5], [9.5, 30, 0], [0, -6.5, 0], '#3a74e0', 'staff'],
+    ['staff', [2.5, 46, 2.5], [9.5, 30, 0], [0, -6, 3], '#7a5532', 'staff'],
+    ['orb', [6, 6, 6], [9.5, 30, 0], [0, 19, 3], '#9fe8ff', 'staff', {g:1}],
+  ]},
+  knight:{r:12, parts:[
+    ['legL', [5.5, 14, 5.5], [-3.5, 14, 0], [0, -7, 0], '#7c8496', 'legL'],
+    ['legR', [5.5, 14, 5.5], [3.5, 14, 0], [0, -7, 0], '#7c8496', 'legR'],
+    ['torso', [16, 16, 10], [0, 14, 0], [0, 8, 0], '#9aa3b6', 'body'],
+    ['tabard', [12, 15, 10.6], [0, 14, 0], [0, 7, 0], '#ffb23d', 'body'],
+    ['head', [12, 12, 12], [0, 30, 0], [0, 6, 0], '#c3cbdb', 'head'],
+    ['visor', [9, 1.6, 1], [0, 30, 0], [0, 6.5, 6.1], '#141826', 'head'],
+    ['plume', [3, 7, 10], [0, 30, 0], [0, 14.5, -1], '#ff8a3d', 'head'],
+    ['armL', [5, 14, 5], [-10.5, 29, 0], [0, -7, 0], '#7c8496', 'armL', {rx:-.5}],
+    ['shield', [2.5, 15, 12], [-10.5, 29, 0], [-3.5, -9, 3], '#ffb23d', 'armL', {rx:-.5}],
+    ['boss', [1, 5, 5], [-10.5, 29, 0], [-5, -9, 3], '#fff2c4', 'armL', {rx:-.5}],
+    ['armR', [5, 14, 5], [10.5, 29, 0], [0, -7, 0], '#7c8496', 'sword'],
+    ['guard', [8, 2, 3], [10.5, 29, 0], [0, -14, 0], '#ffcf6a', 'sword'],
+    ['blade', [2.5, 1.6, 26], [10.5, 29, 0], [0, -14, 14], '#e6eeff', 'sword'],
+  ]},
+};
+/* ---------- dungeon: 3D renderer (Three.js, loaded only when needed) ----------
+   World x/y map to 3D x/z; y is up. Static level parts are instanced meshes;
+   characters are instanced per body part so a whole horde costs a few draw
+   calls. Ground effects (hazard warnings, rings, slashes) are drawn with the
+   2D code onto a canvas that lies on the floor around the player. */
+const D3 = {T:null, loading:null, R:null, portraits:{}, rigs:{}, occ:new Map(), cut:new Map(), cutWant:new Set(), torches:[], gates:[], chests:[],
+  falling:[], crumbleIdx:new Map(), cx:0, cy:0, dist:1000, snap:true, last:0, lightT:0};
+const WALLH = 108;
+const VIS = 1.2;          // characters are drawn a little larger than their hit circles
+
+function d3Load(){
+  if(D3.T) return Promise.resolve(D3.T);
+  if(!D3.loading) D3.loading = import(THREE_URL).then(m => (D3.T = m)).catch(err => { D3.loading = null; throw err; });
+  return D3.loading;
+}
+function d3Init(){
+  if(D3.R) return;
+  const T = D3.T;
+  const canvas = document.createElement('canvas');
+  canvas.id = 'gl';
+  cv.parentNode.insertBefore(canvas, cv);
+  let R;
+  try{ R = new T.WebGLRenderer({canvas, antialias:true, powerPreference:'high-performance'}); }
+  catch(err){ canvas.remove(); throw err; }
+  D3.R = R; D3.canvas = canvas;
+  D3.RT = {root:new T.Matrix4(), loc:new T.Matrix4(), m:new T.Matrix4(), s:new T.Matrix4(), t1:new T.Matrix4(), r1:new T.Matrix4(), t2:new T.Matrix4(),
+    q:new T.Quaternion(), e:new T.Euler(0, 0, 0, 'YXZ'), v:new T.Vector3(), sc:new T.Vector3(), col:new T.Color(), white:new T.Color(1, 1, 1),
+    gold:new T.Color('#ffd84a'), green:new T.Color('#7dff6a')};
+  R.shadowMap.enabled = true; R.shadowMap.type = T.PCFSoftShadowMap;
+  const scene = D3.scene = new T.Scene();
+  scene.background = new T.Color('#0b1110');
+  scene.fog = new T.Fog('#0b1110', 1000, 2400);
+  D3.cam = new T.PerspectiveCamera(38, 1, 20, 7000);
+  scene.add(D3.hemi = new T.HemisphereLight('#c9dcff', '#3d3428', 1.7));
+  const sun = D3.sun = new T.DirectionalLight('#ffeccc', 1.9);
+  const small = Math.min(innerWidth, innerHeight) < 700;
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
+  Object.assign(sun.shadow.camera, {left:-850, right:850, top:850, bottom:-850, near:50, far:3400});
+  sun.shadow.bias = -0.0006; sun.shadow.normalBias = 1.5;
+  scene.add(sun, sun.target);
+  D3.torchLights = Array.from({length:6}, () => { const l = new T.PointLight('#ff9a48', 0, 380, 0); scene.add(l); return l; });
+  scene.add(D3.pLight = new T.PointLight('#d6eaff', 1.1, 330, 0));
+  scene.add(D3.portalLight = new T.PointLight('#7df9ff', 0, 440, 0));
+  d3Textures(); d3Materials(); d3Geometries();
+  scene.add(D3.level = new T.Group());
+  scene.add(D3.dyn = new T.Group());
+  d3Dynamic();
+  addEventListener('resize', d3Resize);
+}
+function d3Show(on){
+  if(on){ d3Init(); D3.snap = true; d3Resize(); }
+  document.body.classList.toggle('dg', !!on);
+}
+function d3Resize(){
+  if(!D3.R) return;
+  D3.R.setPixelRatio(Math.min(window.devicePixelRatio || 1, innerWidth < 800 ? 1.25 : 1.5));
+  D3.R.setSize(innerWidth, innerHeight, false);
+  D3.cam.aspect = innerWidth / Math.max(1, innerHeight);
+  D3.cam.updateProjectionMatrix();
+  if(D3.gpMat) D3.gpMat.uniforms.uScale.value = D3.R.getDrawingBufferSize(D3.RT.v).y / (2 * Math.tan(D3.cam.fov * Math.PI / 360));
+}
+
+/* ---------- textures, painted on canvases ---------- */
+function d3Canvas(size, draw, h){
+  const c = document.createElement('canvas'); c.width = size; c.height = h || size;
+  draw(c.getContext('2d'), size, mulberry(size * 31 + (h || 0)));
+  return c;
+}
+function d3Tex(c){
+  const T = D3.T, t = new T.CanvasTexture(c);
+  t.colorSpace = T.SRGBColorSpace; t.wrapS = t.wrapT = T.RepeatWrapping;
+  t.anisotropy = Math.min(8, D3.R.capabilities.getMaxAnisotropy());
+  return t;
+}
+function paintStone(x, S, rnd, base){
+  x.fillStyle = '#2b2e29'; x.fillRect(0, 0, S, S);
+  const h = S / 2;
+  for(let j = 0; j < 2; j++) for(let i = 0; i < 2; i++){
+    const v = base + (rnd() * 26 - 13) | 0;
+    x.fillStyle = `rgb(${v},${v + 4},${v - 4})`; x.fillRect(i * h + 2, j * h + 2, h - 4, h - 4);
+    x.fillStyle = 'rgba(255,255,255,.08)'; x.fillRect(i * h + 2, j * h + 2, h - 4, 3);
+    x.fillStyle = 'rgba(0,0,0,.2)'; x.fillRect(i * h + 2, j * h + h - 5, h - 4, 3);
+  }
+  for(let k = 0; k < S * 7; k++){ x.fillStyle = rnd() < .5 ? 'rgba(0,0,0,.13)' : 'rgba(255,255,255,.06)'; x.fillRect(rnd() * S, rnd() * S, 1 + rnd() * 1.5, 1 + rnd() * 1.5); }
+}
+function paintCracks(x, S, rnd, n, col, lw){
+  x.strokeStyle = col; x.lineWidth = lw || 1.2; x.lineCap = 'round';
+  for(let k = 0; k < n; k++){
+    let px = rnd() * S, py = rnd() * S, a = rnd() * TAU;
+    x.beginPath(); x.moveTo(px, py);
+    for(let s = 0; s < 6; s++){ a += rnd() - .5; px += Math.cos(a) * S / 16; py += Math.sin(a) * S / 16; x.lineTo(px, py); }
+    x.stroke();
+  }
+}
+function paintMoss(x, S, rnd, n){
+  for(let k = 0; k < n; k++){
+    const px = rnd() * S, py = rnd() * S, r = S * (.03 + rnd() * .1);
+    x.fillStyle = `rgba(${70 + rnd() * 30 | 0},${118 + rnd() * 40 | 0},${48 + rnd() * 20 | 0},${.4 + rnd() * .35})`;
+    x.beginPath(); x.arc(px, py, r, 0, TAU); x.fill();
+  }
+  for(let k = 0; k < n * 8; k++){ x.fillStyle = rnd() < .5 ? 'rgba(150,215,90,.6)' : 'rgba(60,110,40,.5)'; x.fillRect(rnd() * S, rnd() * S, 1.6, 1.6); }
+}
+function d3Textures(){
+  const X = D3.tex = {};
+  X.floor = d3Tex(d3Canvas(128, (x, S, r) => { paintStone(x, S, r, 100); paintCracks(x, S, r, 3, 'rgba(0,0,0,.35)'); }));
+  X.moss = d3Tex(d3Canvas(128, (x, S, r) => { paintStone(x, S, r, 94); paintMoss(x, S, r, 12); }));
+  X.crumble = d3Tex(d3Canvas(128, (x, S, r) => { paintStone(x, S, r, 112); paintCracks(x, S, r, 16, 'rgba(18,14,8,.8)', 1.6); paintCracks(x, S, r, 6, 'rgba(255,240,200,.25)'); }));
+  X.stair = d3Tex(d3Canvas(128, (x, S, r) => {
+    paintStone(x, S, r, 104);
+    for(let k = 0; k < 2; k++){ const y0 = k * 64; x.fillStyle = 'rgba(0,0,0,.42)'; x.fillRect(0, y0 + 50, S, 14); x.fillStyle = 'rgba(255,255,255,.16)'; x.fillRect(0, y0, S, 5); }
+  }));
+  X.wall = d3Tex(d3Canvas(128, (x, S, r) => {
+    x.fillStyle = '#34372f'; x.fillRect(0, 0, S, S);
+    for(let row = 0; row < 4; row++){
+      const off = row % 2 ? 32 : 0;
+      for(let col = -1; col < 3; col++){
+        const bx = col * 64 + off, by = row * 32, v = 104 + (r() * 30 - 15) | 0;
+        x.fillStyle = `rgb(${v},${v + 3},${v - 6})`; x.fillRect(bx + 2, by + 2, 60, 28);
+        x.fillStyle = 'rgba(255,255,255,.09)'; x.fillRect(bx + 2, by + 2, 60, 3);
+        x.fillStyle = 'rgba(0,0,0,.22)'; x.fillRect(bx + 2, by + 26, 60, 4);
+      }
+    }
+    for(let k = 0; k < 700; k++){ x.fillStyle = r() < .5 ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.06)'; x.fillRect(r() * S, r() * S, 1.5, 1.5); }
+    paintCracks(x, S, r, 3, 'rgba(0,0,0,.4)');
+    paintMoss(x, S, r, 5);
+  }));
+  X.pool = d3Tex(d3Canvas(128, (x, S, r) => {
+    x.fillStyle = '#123d12'; x.fillRect(0, 0, S, S);
+    const wrapDo = (px, py, fn) => { for(const ox of [-S, 0, S]) for(const oy of [-S, 0, S]) fn(px + ox, py + oy); };
+    for(let k = 0; k < 16; k++){
+      const px = r() * S, py = r() * S, rr = 12 + r() * 26, a = .25 + r() * .3;
+      wrapDo(px, py, (qx, qy) => { const g = x.createRadialGradient(qx, qy, 0, qx, qy, rr); g.addColorStop(0, `rgba(120,230,60,${a})`); g.addColorStop(1, 'rgba(120,230,60,0)'); x.fillStyle = g; x.fillRect(qx - rr, qy - rr, rr * 2, rr * 2); });
+    }
+    x.strokeStyle = 'rgba(190,255,120,.55)'; x.lineWidth = 1.2;
+    for(let k = 0; k < 10; k++){ const px = r() * S, py = r() * S, rr = 2 + r() * 4; wrapDo(px, py, (qx, qy) => { x.beginPath(); x.arc(qx, qy, rr, 0, TAU); x.stroke(); }); }
+    x.fillStyle = 'rgba(230,255,200,.35)';
+    for(let k = 0; k < 8; k++){ const px = r() * S, py = r() * S; wrapDo(px, py, (qx, qy) => { x.beginPath(); x.ellipse(qx, qy, 5, 1.6, -.5, 0, TAU); x.fill(); }); }
+  }));
+  X.web = d3Tex(d3Canvas(128, (x, S) => {
+    x.strokeStyle = 'rgba(240,240,240,.92)'; x.lineWidth = 1.5;
+    const c = S / 2, n = 10;
+    x.beginPath();
+    for(let i = 0; i < n; i++){ const a = i / n * TAU; x.moveTo(c, c); x.lineTo(c + Math.cos(a) * c * .98, c + Math.sin(a) * c * .98); }
+    for(let k = 1; k <= 5; k++){ const rr = c * k / 5.4; for(let i = 0; i <= n; i++){ const a = i / n * TAU, px = c + Math.cos(a) * rr, py = c + Math.sin(a) * rr; if(i) x.lineTo(px, py); else x.moveTo(px, py); } }
+    x.stroke();
+  }));
+  X.rune = d3Tex(d3Canvas(256, (x, S) => {
+    const c = S / 2;
+    x.strokeStyle = '#ffffff'; x.lineWidth = 4;
+    for(const rr of [.94, .78, .5]){ x.beginPath(); x.arc(c, c, c * rr, 0, TAU); x.stroke(); }
+    x.lineWidth = 3;
+    for(let i = 0; i < 16; i++){ const a = i / 16 * TAU; x.save(); x.translate(c + Math.cos(a) * c * .86, c + Math.sin(a) * c * .86); x.rotate(a); x.strokeRect(-6, -9, 12, 18); x.beginPath(); x.moveTo(-6, 0); x.lineTo(6, 0); x.stroke(); x.restore(); }
+    x.beginPath(); for(let i = 0; i < 6; i++){ const a = i / 6 * TAU - Math.PI / 2, b = a + Math.PI * 2 / 3; x.moveTo(c + Math.cos(a) * c * .5, c + Math.sin(a) * c * .5); x.lineTo(c + Math.cos(b) * c * .5, c + Math.sin(b) * c * .5); } x.stroke();
+  }));
+  X.vine = d3Tex(d3Canvas(64, (x, S, r) => {
+    for(let k = 0; k < 4; k++){
+      let px = 8 + r() * 48;
+      x.strokeStyle = k % 2 ? '#3a6e26' : '#4f8a32'; x.lineWidth = 3;
+      x.beginPath(); x.moveTo(px, 0);
+      for(let y = 0; y < 128; y += 8){ px += r() * 6 - 3; x.lineTo(px, y); }
+      x.stroke();
+      for(let y = 6; y < 120 - r() * 50; y += 10 + r() * 8){ x.fillStyle = r() < .5 ? '#5fa83a' : '#7cc24a'; x.beginPath(); x.ellipse(px + (r() * 10 - 5), y, 5, 3, r() * 3, 0, TAU); x.fill(); }
+    }
+  }, 128));
+  X.swirl = d3Tex(d3Canvas(128, (x, S) => {
+    const c = S / 2;
+    for(let arm = 0; arm < 3; arm++){
+      for(let i = 0; i < 60; i++){
+        const q = i / 60, a = arm / 3 * TAU + q * 5, rr = q * c * .95;
+        x.fillStyle = `rgba(255,255,255,${(1 - q) * .55})`;
+        x.beginPath(); x.arc(c + Math.cos(a) * rr, c + Math.sin(a) * rr, 2 + q * 7, 0, TAU); x.fill();
+      }
+    }
+    const g = x.createRadialGradient(c, c, 0, c, c, c); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(.35, 'rgba(255,255,255,.25)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.fillRect(0, 0, S, S);
+  }));
+  X.swirl.wrapS = X.swirl.wrapT = D3.T.ClampToEdgeWrapping;
+  X.rune.wrapS = X.rune.wrapT = D3.T.ClampToEdgeWrapping;
+  X.icons = {};
+}
+function d3IconTex(kind){
+  if(D3.tex.icons[kind]) return D3.tex.icons[kind];
+  const col = PICKUPS[kind] || '#ffffff', icon = kind === 'relic' ? 'gem' : kind;
+  const c = d3Canvas(128, x => {
+    x.fillStyle = 'rgba(9,11,24,.88)'; x.beginPath(); x.arc(64, 64, 50, 0, TAU); x.fill();
+    x.strokeStyle = col; x.lineWidth = 8; x.beginPath(); x.arc(64, 64, 50, 0, TAU); x.stroke();
+    x.save(); x.translate(64 - 36, 64 - 36); x.scale(3, 3); x.strokeStyle = '#ffffff'; x.lineWidth = 2.2; x.lineCap = 'round'; x.lineJoin = 'round';
+    x.stroke(path2d(icon)); x.restore();
+  });
+  const t = d3Tex(c); t.wrapS = t.wrapT = D3.T.ClampToEdgeWrapping;
+  return D3.tex.icons[kind] = new D3.T.SpriteMaterial({map:t, transparent:true, depthWrite:false});
+}
+function d3Materials(){
+  const T = D3.T, X = D3.tex;
+  const lam = o => new T.MeshLambertMaterial(o);
+  D3.M = {
+    lit: lam({color:'#ffffff'}),
+    glow: new T.MeshBasicMaterial({color:'#ffffff'}),
+    floor: lam({map:X.floor, vertexColors:true}), moss: lam({map:X.moss, vertexColors:true}),
+    stair: lam({map:X.stair, vertexColors:true}), crumble: lam({map:X.crumble, vertexColors:true}),
+    wall: lam({map:X.wall, vertexColors:true}),
+    stone: lam({vertexColors:true}),
+    pool: new T.MeshBasicMaterial({map:X.pool, color:'#b8f08a', transparent:true, opacity:.88, depthWrite:false}),
+    web: new T.MeshBasicMaterial({map:X.web, transparent:true, opacity:.7, depthWrite:false}),
+    vine: lam({map:X.vine, alphaTest:.45, side:T.DoubleSide}),
+    rune: new T.MeshBasicMaterial({map:X.rune, color:'#7dff6a', transparent:true, opacity:.5, blending:T.AdditiveBlending, depthWrite:false, fog:false}),
+    swirl: new T.MeshBasicMaterial({map:X.swirl, color:'#7df9ff', transparent:true, blending:T.AdditiveBlending, depthWrite:false, side:T.DoubleSide, fog:false}),
+    ring: new T.MeshBasicMaterial({color:'#7df9ff', fog:false}),
+  };
+}
+
+/* ---------- geometry helpers ---------- */
+function gBox(w, h, d, ox, oy, oz){ const g = new D3.T.BoxGeometry(w, h, d).toNonIndexed(); g.translate(ox || 0, oy || 0, oz || 0); return g; }
+function gCyl(rt, rb, h, seg, ox, oy, oz){ const g = new D3.T.CylinderGeometry(rt, rb, h, seg).toNonIndexed(); g.translate(ox || 0, oy || 0, oz || 0); return g; }
+function gColor(g, fn){
+  const p = g.attributes.position, n = g.attributes.normal, a = new Float32Array(p.count * 3);
+  for(let i = 0; i < p.count; i++){ const c = fn(p.getX(i), p.getY(i), p.getZ(i), n.getX(i), n.getY(i), n.getZ(i)); a[i * 3] = c[0]; a[i * 3 + 1] = c[1]; a[i * 3 + 2] = c[2]; }
+  g.setAttribute('color', new D3.T.BufferAttribute(a, 3));
+  return g;
+}
+function gTint(g, hex, k){ const c = new D3.T.Color(hex); k = k || 1; return gColor(g, () => [c.r * k, c.g * k, c.b * k]); }
+function gMerge(list){
+  const T = D3.T, out = new T.BufferGeometry();
+  for(const name of ['position', 'normal', 'uv', 'color']){
+    const parts = list.map(g => g.attributes[name]);
+    if(parts.some(a => !a)) continue;
+    const size = parts[0].itemSize, arr = new Float32Array(parts.reduce((s, a) => s + a.count * size, 0));
+    let o = 0;
+    for(const a of parts){ arr.set(a.array, o); o += a.array.length; }
+    out.setAttribute(name, new T.BufferAttribute(arr, size));
+  }
+  for(const g of list) g.dispose();
+  return out;
+}
+function d3Geometries(){
+  const T = D3.T, G3 = D3.geo = {};
+  // floor tiles are deep blocks so the edge of a chasm shows a cliff fading into the dark
+  G3.floor = gColor(gBox(64, 160, 64, 0, -80, 0), (x, y, z, nx, ny) => ny > .5 ? [1, 1, 1] : y > -1 ? [.62, .62, .6] : [.03, .03, .03]);
+  const uv = G3.floor.attributes.uv, nrm = G3.floor.attributes.normal;
+  for(let i = 0; i < uv.count; i++) if(Math.abs(nrm.getY(i)) < .5) uv.setY(i, uv.getY(i) * 2.5);
+  G3.wall = gColor(gBox(64, WALLH, 64, 0, WALLH / 2, 0), (x, y, z, nx, ny) => ny > .5 ? [.62, .84, .5] : (() => { const f = .48 + .52 * (y / WALLH); return [f, f, f * .97]; })());
+  const wuv = G3.wall.attributes.uv, wn = G3.wall.attributes.normal;
+  for(let i = 0; i < wuv.count; i++) if(Math.abs(wn.getY(i)) < .5) wuv.setY(i, wuv.getY(i) * WALLH / 64);
+  const stone = (g, hex, mossBelow) => { const c = new T.Color(hex), m = new T.Color('#5f8f42'); return gColor(g, (x, y) => { const k = .75 + .25 * Math.min(1, y / 60); return y < (mossBelow || 0) ? [m.r, m.g, m.b] : [c.r * k, c.g * k, c.b * k]; }); };
+  G3.pillar = gMerge([stone(gBox(54, 14, 54, 0, 7, 0), '#9a9d92', 10), stone(gCyl(21, 23, 152, 10, 0, 90, 0), '#a7aa9f', 30), stone(gBox(52, 12, 52, 0, 172, 0), '#9a9d92'),
+    gTint(gBox(30, 10, 54.5, 0, 172, 0), '#5f8f42')]);
+  G3.pillarBroken = gMerge([stone(gBox(54, 14, 54, 0, 7, 0), '#9a9d92', 10), stone(gCyl(21, 23, 70, 10, 0, 49, 0), '#a7aa9f', 30), stone(gCyl(14, 19, 22, 7, 4, 94, -3), '#a7aa9f'),
+    stone(gBox(26, 14, 22, 30, 7, 18), '#8f9287')]);
+  const rub = seed => { const r = mulberry(seed), list = []; for(let k = 0; k < 6; k++){ const s = 12 + r() * 20; list.push(stone(gBox(s * (1 + r() * .6), s * .7, s, (r() - .5) * 36, s * .35, (r() - .5) * 36), k % 3 ? '#8f9287' : '#7d806f', k ? 0 : 6)); } return gMerge(list); };
+  G3.rubble = [rub(3), rub(7), rub(11)];
+  const books = [], br = mulberry(5), bcol = ['#8a2f2a', '#2f5a8a', '#6a7a2f', '#7a5a2a', '#4a2f6a', '#a07a3a'];
+  for(let row = 0; row < 4; row++){ let x0 = -27; while(x0 < 25){ const w = 3 + br() * 4, h = 16 + br() * 8; if(x0 + w > 27) break; books.push(gTint(gBox(w, h, 22, x0 + w / 2, 8 + row * 27 + h / 2, 3), bcol[Math.floor(br() * bcol.length)], .9)); x0 += w + .4; } }
+  G3.shelf = gMerge([gTint(gBox(62, 114, 4, 0, 57, -13), '#3a2a1c'), gTint(gBox(4, 114, 30, -29, 57, 0), '#4a3424'), gTint(gBox(4, 114, 30, 29, 57, 0), '#4a3424'),
+    ...[0, 1, 2, 3, 4].map(k => gTint(gBox(58, 4, 30, 0, 6 + k * 27, 0), '#4a3424')), ...books]);
+  G3.statue = gMerge([stone(gBox(46, 22, 46, 0, 11, 0), '#8d9087', 8), stone(gBox(10, 26, 10, -6, 35, 0), '#a2a59a'), stone(gBox(10, 26, 10, 6, 35, 0), '#a2a59a'),
+    stone(gBox(26, 30, 14, 0, 63, 0), '#a2a59a'), stone(gBox(16, 16, 16, 0, 86, 0), '#a2a59a'), stone(gBox(8, 28, 8, -17, 66, 6), '#a2a59a'),
+    stone(gBox(4, 54, 3, -17, 80, 14), '#b8bbb0'), gTint(gBox(28, 6, 15, 0, 79, -1), '#5f8f42'), gTint(gBox(18, 4, 18, 0, 95, 0), '#5f8f42')]);
+  G3.torch = gMerge([gTint(gBox(5, 18, 8, 0, -9, -3), '#3a3530'), gTint(gBox(12, 6, 12, 0, 2, 3), '#5a4a38')]);
+  const bars = [], gateCol = '#4a505c';
+  for(let k = 0; k < 5; k++) bars.push(gTint(gCyl(3, 3, 124, 6, -26 + k * 13, 62, 0), gateCol));
+  bars.push(gTint(gBox(64, 6, 6, 0, 42, 0), '#3a3f4a'), gTint(gBox(64, 6, 6, 0, 104, 0), '#3a3f4a'));
+  for(let k = 0; k < 5; k++) bars.push(gTint(gBox(5, 8, 5, -26 + k * 13, 2, 0), '#8a9099'));
+  G3.gate = gMerge(bars);
+  G3.chestBase = gMerge([gTint(gBox(36, 20, 26, 0, 10, 0), '#7a4f2a'), gTint(gBox(37, 3, 27, 0, 4, 0), '#c9a24a'), gTint(gBox(37, 3, 27, 0, 17, 0), '#c9a24a'), gTint(gBox(4, 21, 27, -12, 10.5, 0), '#c9a24a'), gTint(gBox(4, 21, 27, 12, 10.5, 0), '#c9a24a')]);
+  G3.chestLid = gMerge([gTint(gBox(36, 10, 26, 0, 5, 13), '#8a5a30'), gTint(gBox(4, 11, 27, -12, 5, 13), '#c9a24a'), gTint(gBox(4, 11, 27, 12, 5, 13), '#c9a24a'), gTint(gBox(7, 7, 3, 0, 2, 26.5), '#ffd84a')]);
+  G3.plane = new T.PlaneGeometry(1, 1);
+  G3.ground = new T.PlaneGeometry(64, 64).rotateX(-Math.PI / 2);
+  G3.gem = new T.OctahedronGeometry(1, 0);
+  G3.arrow = gMerge([gTint(gBox(1.6, 1.6, 30, 0, 0, 0), '#8a6a42'), gTint(gBox(4, 4, 7, 0, 0, 17), '#c8ccd4'), gTint(gBox(6, 1, 7, 0, 0, -13), '#e8e0d0'), gTint(gBox(1, 6, 7, 0, 0, -13), '#e8e0d0')]);
+  G3.boomer = gMerge([gTint(gBox(22, 3, 6, 8, 0, 0), '#ffe08a'), gTint(gBox(6, 3, 22, 0, 0, 8), '#ffe08a')]);
+  G3.blade = new T.OctahedronGeometry(1, 0).scale(3.5, 1.6, 15);
+  G3.drone = gMerge([gTint(gBox(14, 4, 14, 0, 0, 0), '#3a4a5c'), gTint(gBox(6, 6, 6, 0, 4, 0), '#a8ffe0')]);
+  for(const k in G3){ const v = G3[k]; for(const g of Array.isArray(v) ? v : [v]) g.userData.keep = true; }
+}
+
+/* ---------- level build ---------- */
+function d3Inst(mesh, idx, x, y, z, ry, sx, sy, sz){
+  const R = D3.RT;
+  R.e.set(0, ry || 0, 0); R.q.setFromEuler(R.e); R.v.set(x, y, z); R.sc.set(sx, sy, sz);
+  R.m.compose(R.v, R.q, R.sc);
+  mesh.setMatrixAt(idx, R.m);
+}
+function d3Instanced(geo, mat, list, place, opts){
+  if(!list.length) return null;
+  const T = D3.T, m = new T.InstancedMesh(geo, mat, list.length);
+  list.forEach((o, i) => place(m, i, o));
+  m.receiveShadow = !opts || opts.recv !== false; m.castShadow = !!(opts && opts.cast);
+  m.instanceMatrix.needsUpdate = true;
+  if(m.instanceColor) m.instanceColor.needsUpdate = true;
+  m.computeBoundingSphere();
+  D3.level.add(m);
+  return m;
+}
+function d3BuildLevel(){
+  const T = D3.T, D = G.dg, L = D.L, W = L.W, rnd = mulberry(D.floor * 977 + 13), M = D3.M, G3 = D3.geo;
+  for(const c of [...D3.level.children]){
+    D3.level.remove(c);
+    c.traverse(o => { if(o.isInstancedMesh) o.dispose(); if(o.geometry && !o.geometry.userData.keep) o.geometry.dispose(); });
+  }
+  D3.occ.clear(); D3.cut.clear(); D3.torches = []; D3.gates = []; D3.chests = []; D3.falling = []; D3.crumbleIdx.clear();
+  const isWall = (x, y) => x < 0 || y < 0 || x >= W || y >= L.H || L.t[y * W + x] === TT.WALL;
+  const h3 = (x, y, s) => hash3(x, y, D.floor * 31 + s);
+  const occ = (i, o) => { let a = D3.occ.get(i); if(!a){ a = []; D3.occ.set(i, a); } a.push(o); };
+  const col = (m, i, k) => { D3.RT.col.setRGB(k, k, k * .98); m.setColorAt(i, D3.RT.col); };
+  // floors
+  const fl = {floor:[], moss:[], stair:[], crumble:[]}, pools = [], webs = [];
+  for(let y = 0; y < L.H; y++) for(let x = 0; x < W; x++){
+    const i = y * W + x, t = L.t[i];
+    if(t === TT.WALL || t === TT.PIT) continue;
+    let near = 0; for(const [dx, dy] of N8) if(isWall(x + dx, y + dy)) near++;
+    const kind = t === TT.STAIR ? 'stair' : t === TT.CRUMBLE ? 'crumble' : (L.moss[i] || t === TT.POOL || (near && h3(x, y, 1) < .22)) ? 'moss' : 'floor';
+    fl[kind].push({x, y, i, k:(.86 + h3(x, y, 2) * .16) * Math.max(.7, 1 - near * .05), r:Math.floor(h3(x, y, 3) * 4)});
+    if(t === TT.POOL) pools.push({x, y});
+    if(t === TT.WEB) webs.push({x, y, r:h3(x, y, 4) * TAU});
+  }
+  for(const kind in fl){
+    const m = d3Instanced(G3.floor, M[kind], fl[kind], (m, i, o) => { d3Inst(m, i, o.x * DT + 32, 0, o.y * DT + 32, o.r * Math.PI / 2, 1, 1, 1); col(m, i, o.k); });
+    if(kind === 'crumble' && m){ fl.crumble.forEach((o, i) => D3.crumbleIdx.set(o.i, {m, idx:i, x:o.x * DT + 32, z:o.y * DT + 32, k:o.k})); }
+  }
+  const pm = d3Instanced(G3.ground, M.pool, pools, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 1.5, o.y * DT + 32, 0, 1, 1, 1), {recv:false});
+  if(pm) pm.renderOrder = 1;
+  const wm = d3Instanced(G3.ground, M.web, webs, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 1, o.y * DT + 32, o.r, 1.15, 1, 1.15), {recv:false});
+  if(wm) wm.renderOrder = 2;
+  // walls: only the ones that touch a walkable tile
+  const walls = [], torches = [], vines = [], rock = new Int16Array(W * L.H).fill(-1), rq = [];
+  for(let i = 0; i < W * L.H; i++) if(L.t[i] !== TT.WALL){ rock[i] = 0; rq.push(i); }
+  for(let h = 0; h < rq.length; h++){ const i = rq[h], x = i % W, y = (i - x) / W; for(const [dx, dy] of N8){ const nx = x + dx, ny = y + dy; if(nx < 0 || ny < 0 || nx >= W || ny >= L.H) continue; const j = ny * W + nx; if(rock[j] < 0){ rock[j] = rock[i] + 1; rq.push(j); } } }
+  for(let y = 0; y < L.H; y++) for(let x = 0; x < W; x++){
+    if(!isWall(x, y)) continue;
+    const depth = rock[y * W + x];
+    if(depth < 1 || depth > 6) continue;
+    if(depth > 1){ walls.push({x, y, i:y * W + x, h:1.02 + h3(x, y, 5) * .14 + depth * .02, k:Math.max(.42, .74 - depth * .05) + h3(x, y, 7) * .08}); continue; }
+    let h = .94 + h3(x, y, 5) * .12;
+    if(h3(x, y, 6) < .07) h *= .55;
+    walls.push({x, y, i:y * W + x, h, k:.84 + h3(x, y, 7) * .2});
+    const south = y + 1 < L.H ? L.t[(y + 1) * W + x] : TT.WALL;
+    if(h > .9 && south !== TT.WALL && south !== TT.PIT && south !== TT.GATE){
+      if(h3(x, y, 8) < .17 && !torches.some(o => Math.abs(o.x - x) < 5 && Math.abs(o.y - y) < 4)) torches.push({x, y, i:y * W + x});
+      else if(h3(x, y, 9) < .4) vines.push({x, y, i:y * W + x, len:44 + h3(x, y, 10) * 60, off:(h3(x, y, 11) - .5) * 26, h:h * WALLH});
+    }
+  }
+  const wallM = d3Instanced(G3.wall, M.wall, walls, (m, i, o) => { d3Inst(m, i, o.x * DT + 32, 0, o.y * DT + 32, 0, 1, o.h, 1); col(m, i, o.k); }, {cast:true});
+  walls.forEach((o, i) => occ(o.i, {mesh:wallM, idx:i, x:o.x * DT + 32, y:0, z:o.y * DT + 32, ry:0, sx:1, sy:o.h, sz:1}));
+  const torchM = d3Instanced(G3.torch, M.stone, torches, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 80, o.y * DT + 64 + 5, 0, 1, 1, 1), {recv:false});
+  torches.forEach((o, i) => { occ(o.i, {mesh:torchM, idx:i, x:o.x * DT + 32, y:80, z:o.y * DT + 69, ry:0, sx:1, sy:1, sz:1, dep:true}); D3.torches.push({x:o.x * DT + 32, y:92, z:o.y * DT + 72, i:o.i, f:h3(o.x, o.y, 12) * 10}); });
+  const vineM = d3Instanced(G3.plane, M.vine, vines, (m, i, o) => d3Inst(m, i, o.x * DT + 32 + o.off, o.h - o.len / 2, o.y * DT + 65.5, 0, 40, o.len, 1), {recv:false});
+  vines.forEach((o, i) => occ(o.i, {mesh:vineM, idx:i, x:o.x * DT + 32 + o.off, y:o.h - o.len / 2, z:o.y * DT + 65.5, ry:0, sx:40, sy:o.len, sz:1, dep:true}));
+  // props
+  const byKind = {p:[], pb:[], r0:[], r1:[], r2:[], k:[], o:[]};
+  for(const pr of L.props){
+    const i = pr.y * W + pr.x, o = {x:pr.x * DT + 32, z:pr.y * DT + 32, i, ry:0};
+    if(pr.kind === 'p'){ (h3(pr.x, pr.y, 13) < .3 ? byKind.pb : byKind.p).push(Object.assign(o, {ry:Math.floor(h3(pr.x, pr.y, 14) * 4) * Math.PI / 2})); }
+    else if(pr.kind === 'r') byKind['r' + Math.floor(h3(pr.x, pr.y, 15) * 3)].push(Object.assign(o, {ry:h3(pr.x, pr.y, 16) * TAU}));
+    else byKind[pr.kind].push(o);
+  }
+  const propGeo = {p:G3.pillar, pb:G3.pillarBroken, r0:G3.rubble[0], r1:G3.rubble[1], r2:G3.rubble[2], k:G3.shelf, o:G3.statue};
+  for(const k in byKind){
+    const m = d3Instanced(propGeo[k], M.stone, byKind[k], (m, i, o) => d3Inst(m, i, o.x, 0, o.z, o.ry, 1, 1, 1), {cast:true});
+    if(m && k !== 'r0' && k !== 'r1' && k !== 'r2') byKind[k].forEach((o, i) => occ(o.i, {mesh:m, idx:i, x:o.x, y:0, z:o.z, ry:o.ry, sx:1, sy:1, sz:1}));
+  }
+  // gates
+  for(const g of L.gates){
+    const horiz = (isWall(g.x - 1, g.y) || L.t[g.i - 1] === TT.GATE) && (isWall(g.x + 1, g.y) || L.t[g.i + 1] === TT.GATE);
+    const mesh = new T.Mesh(G3.gate, M.stone);
+    mesh.position.set(g.x * DT + 32, g.open ? -130 : 0, g.y * DT + 32);
+    if(!horiz) mesh.rotation.y = Math.PI / 2;
+    mesh.castShadow = true;
+    D3.level.add(mesh);
+    D3.gates.push({mesh, g, y:mesh.position.y});
+  }
+  // chests
+  for(const c of L.chests){
+    const grp = new T.Group(), base = new T.Mesh(G3.chestBase, M.stone), lid = new T.Mesh(G3.chestLid, M.stone);
+    lid.position.set(0, 20, -13); grp.add(base, lid);
+    grp.position.set(c.x * DT + 32, 0, c.y * DT + 32);
+    base.castShadow = lid.castShadow = true;
+    D3.level.add(grp);
+    D3.chests.push({grp, lid, c});
+  }
+  // boss rune and the portal (hidden until the floor is cleared)
+  if(L.boss){
+    const rune = new T.Mesh(new T.PlaneGeometry(300, 300).rotateX(-Math.PI / 2), M.rune);
+    rune.position.set(L.boss.x * DT + 32, 2.5, L.boss.y * DT + 32); rune.renderOrder = 3;
+    D3.level.add(rune); D3.rune = rune;
+  }
+  const portal = new T.Group();
+  const ring = new T.Mesh(new T.TorusGeometry(54, 7, 10, 48), M.ring);
+  ring.position.y = 70;
+  const swirl = new T.Mesh(new T.CircleGeometry(50, 40), M.swirl);
+  swirl.position.y = 70;
+  const base = new T.Mesh(gColor(gCyl(76, 82, 10, 16, 0, 5, 0), () => [.55, .58, .52]), M.stone);
+  base.receiveShadow = true;
+  portal.add(ring, swirl, base);
+  portal.position.set(L.exit.x * DT + 32, 0, L.exit.y * DT + 32);
+  portal.visible = false;
+  D3.level.add(portal);
+  D3.portal = {grp:portal, ring, swirl};
+  D3.snap = true; D3.lightT = 0;
+}
+function d3Collapse(i){
+  const c = D3.crumbleIdx.get(i);
+  if(c){ D3.falling.push({c, t:0, r:Math.random() - .5}); D3.crumbleIdx.delete(i); }
+}
+function d3SetOcc(i, f){
+  for(const o of D3.occ.get(i) || []){
+    if(!o.mesh) continue;
+    if(o.dep) d3Inst(o.mesh, o.idx, o.x, o.y, o.z, o.ry, f < .7 ? 0 : o.sx, f < .7 ? 0 : o.sy, f < .7 ? 0 : o.sz);
+    else d3Inst(o.mesh, o.idx, o.x, o.y, o.z, o.ry, o.sx, o.sy * f, o.sz);
+    o.mesh.instanceMatrix.needsUpdate = true;
+  }
+}
+// walls and pillars between the camera and the player sink down so you never lose sight of yourself
+function d3Cutaway(dt){
+  const L = G.dg.L, p = G.p, ptx = Math.floor(p.x / DT), pty = Math.floor(p.y / DT), want = D3.cutWant;
+  want.clear();
+  for(let ty = pty + 1; ty <= pty + 3; ty++) for(let tx = ptx - 3; tx <= ptx + 3; tx++){
+    if(tx < 0 || ty < 0 || tx >= L.W || ty >= L.H) continue;
+    const i = ty * L.W + tx;
+    if(D3.occ.has(i)) want.add(i);
+  }
+  for(const i of want) if(!D3.cut.has(i)) D3.cut.set(i, 1);
+  for(const [i, f] of D3.cut){
+    const target = want.has(i) ? .18 : 1, nf = f + (target - f) * Math.min(1, dt * 9);
+    if(target === 1 && nf > .99){ D3.cut.delete(i); d3SetOcc(i, 1); }
+    else { D3.cut.set(i, nf); d3SetOcc(i, nf); }
+  }
+}
+
+/* ---------- dynamic objects ---------- */
+function d3Dynamic(){
+  const T = D3.T, G3 = D3.geo;
+  const inst = (geo, mat, cap, shadow) => { const m = new T.InstancedMesh(geo, mat, cap); m.count = 0; m.frustumCulled = false; m.castShadow = !!shadow; m.setColorAt(0, D3.RT.white); D3.dyn.add(m); return m; };
+  D3.gems = inst(G3.gem, D3.M.glow, 400);
+  D3.arrows = inst(G3.arrow, new T.MeshLambertMaterial({vertexColors:true}), 160, true);
+  D3.boomers = inst(G3.boomer, new T.MeshLambertMaterial({vertexColors:true}), 16, true);
+  D3.blades = inst(G3.blade, new T.MeshLambertMaterial({color:'#e6eeff', emissive:'#5a76b8', emissiveIntensity:.6}), 8, true);
+  D3.drones = inst(G3.drone, new T.MeshLambertMaterial({vertexColors:true}), 4, true);
+  // glowing points: projectiles, sparks, gems, flames
+  const cap = 5000, geo = new T.BufferGeometry();
+  const gp = D3.gp = {cap, n:0, pos:new Float32Array(cap * 3), col:new Float32Array(cap * 3), size:new Float32Array(cap), core:new Float32Array(cap)};
+  geo.setAttribute('position', new T.BufferAttribute(gp.pos, 3).setUsage(T.DynamicDrawUsage));
+  geo.setAttribute('gcol', new T.BufferAttribute(gp.col, 3).setUsage(T.DynamicDrawUsage));
+  geo.setAttribute('gsize', new T.BufferAttribute(gp.size, 1).setUsage(T.DynamicDrawUsage));
+  geo.setAttribute('gcore', new T.BufferAttribute(gp.core, 1).setUsage(T.DynamicDrawUsage));
+  D3.gpMat = new T.ShaderMaterial({
+    uniforms:{uScale:{value:600}},
+    vertexShader:`attribute vec3 gcol; attribute float gsize; attribute float gcore; varying vec3 vCol; varying float vCore; uniform float uScale;
+      void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = gsize * uScale / -mv.z; vCol = gcol; vCore = gcore; }`,
+    fragmentShader:`varying vec3 vCol; varying float vCore;
+      void main(){ float d = length(gl_PointCoord - 0.5) * 2.0; if(d > 1.0) discard; float a = pow(1.0 - d, 1.7); float c = smoothstep(0.42, 0.0, d) * vCore; gl_FragColor = vec4((vCol + vec3(c)) * a, 1.0); }`,
+    blending:T.AdditiveBlending, depthWrite:false, transparent:true,
+  });
+  const pts = D3.points = new T.Points(geo, D3.gpMat);
+  pts.frustumCulled = false; pts.renderOrder = 6;
+  D3.dyn.add(pts);
+  // the ground layer: a canvas that follows the player
+  const dc = document.createElement('canvas'); dc.width = dc.height = 1024;
+  const dtex = new T.CanvasTexture(dc); dtex.colorSpace = T.SRGBColorSpace;
+  const dmesh = new T.Mesh(new T.PlaneGeometry(1800, 1800).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({map:dtex, transparent:true, depthWrite:false, fog:false}));
+  dmesh.renderOrder = 4; dmesh.frustumCulled = false;
+  D3.dyn.add(dmesh);
+  D3.decal = {canvas:dc, ctx:dc.getContext('2d'), tex:dtex, mesh:dmesh, px:1024, w:1800};
+  D3.sprites = [];
+}
+const HEXC = new Map();
+function hexRGB(h){
+  let c = HEXC.get(h);
+  if(!c){ const n = parseInt(h.slice(1), 16); c = [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; HEXC.set(h, c); }
+  return c;
+}
+function gp(x, y, z, hex, size, a, core){
+  const P = D3.gp;
+  if(P.n >= P.cap || a <= .003) return;
+  const n = P.n++, c = hexRGB(hex);
+  P.pos[n * 3] = x; P.pos[n * 3 + 1] = y; P.pos[n * 3 + 2] = z;
+  P.col[n * 3] = c[0] * a; P.col[n * 3 + 1] = c[1] * a; P.col[n * 3 + 2] = c[2] * a;
+  P.size[n] = size; P.core[n] = (core || 0) * a;
+}
+
+/* ---------- character rigs ---------- */
+function d3Rig(id){
+  let R = D3.rigs[id];
+  if(R) return R;
+  const T = D3.T, rig = RIGS[id], cap = id === 'mage' || id === 'knight' ? 1 : rig.r >= 30 ? 2 : 220;
+  R = D3.rigs[id] = {rig, cap, n:0, pp:rig.parts.map(d3PartSpec), meshes:[]};
+  R.meshes = rig.parts.map(pt => {
+    const glow = pt[6] && pt[6].g, m = new T.InstancedMesh(gBox(pt[1][0], pt[1][1], pt[1][2], pt[3][0], pt[3][1], pt[3][2]), glow ? D3.M.glow : D3.M.lit, cap);
+    m.castShadow = !glow; m.frustumCulled = false; m.count = 0;
+    m.setColorAt(0, D3.RT.white);
+    D3.dyn.add(m);
+    return m;
+  });
+  return R;
+}
+function d3PartSpec(pt){
+  const x = pt[6] || {};
+  return {px:pt[2][0], py:pt[2][1], pz:pt[2][2], rx:x.rx || 0, ry:x.ry || 0, rz:x.rz || 0, a:pt[5], k:x.k || 0, R:x.R || 0, color:pt[4], g:!!x.g};
+}
+// local transform of one body part for the animation state st
+function d3PartLocal(pt, st, out){
+  const R = D3.RT, ph = st.ph, mv = st.mv, t = st.t, pose = st.pose;
+  let rx = pt.rx, ry = pt.ry, rz = pt.rz, ox = 0, oy = 0, oz = 0, sc = 1;
+  switch(pt.a){
+    case 'legL': rx += Math.sin(ph) * .8 * mv; break;
+    case 'legR': rx -= Math.sin(ph) * .8 * mv; break;
+    case 'armL': rx -= Math.sin(ph) * .55 * mv + pose * 2.3; break;
+    case 'armR': rx += Math.sin(ph) * .55 * mv - pose * 2.3; break;
+    case 'zarmL': rx += Math.sin(t * 2.6 + st.seed) * .12 - pose * .5; break;
+    case 'zarmR': rx += Math.sin(t * 2.6 + st.seed + 1.3) * .12 - pose * .5; break;
+    case 'body': oy += Math.abs(Math.sin(ph)) * 1.6 * mv + Math.sin(t * 2 + st.seed) * .5 * (1 - mv); break;
+    case 'head': oy += Math.abs(Math.sin(ph)) * 1.6 * mv; ry += Math.sin(t * 1.1 + st.seed) * .18; break;
+    case 'legS': rz += Math.sin(ph * 1.3 + pt.k) * .32 * (.25 + mv); break;
+    case 'breathe': sc = 1 + Math.sin(t * 2.4 + st.seed) * .04; break;
+    case 'cape': rx += .12 + .25 * mv + Math.sin(t * 3 + st.seed) * .06; break;
+    case 'bowArm': rx -= pose * .15; break;
+    case 'drawArm': ry -= pose * .35; break;
+    case 'hammer': rx -= pose * 2.6 - Math.sin(ph) * .3 * mv; break;
+    case 'whip': rx += Math.sin(t * 3.2 + pt.k) * .25 - pose * .9; rz += Math.sin(t * 2.1 + pt.k) * .2; break;
+    case 'orbit': { const a = t * 1.3 + pt.k; ox = Math.cos(a) * pt.R; oz = Math.sin(a) * pt.R; oy = Math.sin(t * 2 + pt.k) * 6; ry = t * 2 + pt.k; break; }
+    case 'staff': rx += -.45 + Math.sin(ph) * .25 * mv - st.cast * 1.1; break;
+    case 'sword': rx += -.5 + Math.sin(ph) * .3 * mv - st.swing * 1.2; ry -= st.swing * 1.4; break;
+  }
+  R.e.set(rx, ry, rz); R.q.setFromEuler(R.e);
+  R.v.set(pt.px + ox, pt.py + oy, pt.pz + oz); R.sc.set(sc, sc, sc);
+  return out.compose(R.v, R.q, R.sc);
+}
+const D3COL = new Map();
+function d3PartColor(skin, skinId, pt){
+  const key = skinId + '|' + pt.color;
+  let c = D3COL.get(key);
+  if(!c){ c = new D3.T.Color(skin && skin[pt.color] ? skin[pt.color] : pt.color); D3COL.set(key, c); }
+  return c;
+}
+function d3Entity(rigId, skinId, x, z, face, scale, st, flash, tint, yOff, roll){
+  const R = d3Rig(rigId), RT = D3.RT;
+  if(R.n >= R.cap) return;
+  const idx = R.n++, skin = SKINS[skinId];
+  RT.root.makeRotationY(Math.PI / 2 - face);
+  RT.root.setPosition(x, yOff || 0, z);
+  if(scale !== 1){ RT.s.makeScale(scale, scale, scale); RT.root.multiply(RT.s); }
+  if(roll){ RT.t1.makeTranslation(0, 20, 0); RT.r1.makeRotationX(roll); RT.t2.makeTranslation(0, -20, 0); RT.root.multiply(RT.t1).multiply(RT.r1).multiply(RT.t2); }
+  for(let k = 0; k < R.pp.length; k++){
+    const pt = R.pp[k], mesh = R.meshes[k];
+    d3PartLocal(pt, st, RT.loc);
+    RT.m.multiplyMatrices(RT.root, RT.loc);
+    mesh.setMatrixAt(idx, RT.m);
+    if(flash || tint){
+      RT.col.copy(d3PartColor(skin, skinId, pt));
+      if(tint) RT.col.lerp(tint, .45);
+      if(flash) RT.col.lerp(RT.white, flash);
+      mesh.setColorAt(idx, RT.col);
+    } else mesh.setColorAt(idx, d3PartColor(skin, skinId, pt));
+  }
+}
+function lerpAngle(a, b, k){ let d = (b - a) % TAU; if(d > Math.PI) d -= TAU; if(d < -Math.PI) d += TAU; return a + d * k; }
+function d3Characters(dt){
+  const g = G, p = g.p, D = g.dg, RT = D3.RT;
+  for(const id in D3.rigs) D3.rigs[id].n = 0;
+  // player
+  const R = D.roll, rolling = R.t > 0;
+  const sp = Math.hypot(p.vx, p.vy);
+  p._mv = (p._mv || 0) + ((sp > 10 ? Math.min(1, sp / p.speed) : 0) - (p._mv || 0)) * Math.min(1, dt * 10);
+  p._ph = (p._ph || 0) + sp * dt * .085;
+  const wcd = g.cd.weapon || 0;
+  if(wcd > (D3.lastCd || 0) + .05) D3.castT = .22;
+  D3.lastCd = wcd;
+  D3.castT = Math.max(0, (D3.castT || 0) - dt);
+  let swing = 0;
+  for(const f of g.fx) if(f.type === 'arc') swing = Math.max(swing, f.life / f.max);
+  const blink = p.inv > 0 && !rolling && Math.floor(p.inv * 20) % 2;
+  if(g.state !== 'over' && !blink){
+    const face = Math.atan2(p.fy, p.fx), roll = rolling ? (1 - R.t / DG_ROLL.time) * TAU : 0;
+    const tint = p.poisonT > 0 ? RT.green : null;
+    d3Entity(g.char, null, p.x, p.y, face, VIS, {ph:p._ph, mv:p._mv, t:g.t, seed:0, pose:0, cast:D3.castT / .22, swing}, false, tint, 0, roll);
+  }
+  // enemies
+  const cx = D3.cx, cy = D3.cy, far = D3.dist * 1.6;
+  for(const e of g.enemies){
+    if(e.dead || e.hidden) continue;
+    if(Math.abs(e.x - cx) > far || Math.abs(e.y - cy) > far) continue;
+    const sk = SKINS[e.skin];
+    if(!sk || !sk.rig) continue;
+    const rig = RIGS[sk.rig];
+    const mx = e.x - (e._px === undefined ? e.x : e._px), my = e.y - (e._py === undefined ? e.y : e._py);
+    e._px = e.x; e._py = e.y;
+    const v = Math.hypot(mx, my) / Math.max(dt, 1e-3);
+    e._mv = (e._mv || 0) + ((v > 8 ? Math.min(1, v / Math.max(40, e.speed)) : 0) - (e._mv || 0)) * Math.min(1, dt * 8);
+    e._ph = (e._ph || e.seed || 0) + v * dt * .09 * (12 / rig.r);
+    const toP = Math.atan2(p.y - e.y, p.x - e.x), moveA = v > 12 ? Math.atan2(my, mx) : toP;
+    const want = e.boss || Math.hypot(p.x - e.x, p.y - e.y) < 260 ? toP : moveA;
+    e._fa = e._fa === undefined ? want : lerpAngle(e._fa, want, Math.min(1, dt * 9));
+    const acting = e.boss ? !!e.act : (e.st === 'wind' || e.st === 'fuse' || e.aT < .35);
+    e._pose = (e._pose || 0) + ((acting ? 1 : 0) - (e._pose || 0)) * Math.min(1, dt * 8);
+    const scale = e.r / rig.r * VIS;
+    const yOff = e.rise > 0 ? -(e.rise / e.riseMax) * rig.r * 4.4 * scale : 0;
+    d3Entity(sk.rig, e.skin, e.x, e.y, e._fa, scale, {ph:e._ph, mv:e._mv, t:g.t, seed:e.seed || 0, pose:e._pose, cast:0, swing:0},
+      e.flash > 0 ? (e.boss ? .35 : .75) : 0, e.elite ? RT.gold : null, yOff, 0);
+  }
+  for(const id in D3.rigs){
+    const R2 = D3.rigs[id];
+    for(const m of R2.meshes){ m.count = R2.n; m.instanceMatrix.needsUpdate = true; if(m.instanceColor) m.instanceColor.needsUpdate = true; }
+  }
+}
+
+/* ---------- per-frame scene update ---------- */
+function d3Camera(dt){
+  const cam = D3.cam, p = G.p, asp = W / Math.max(1, H), tanH = Math.tan(cam.fov * Math.PI / 360);
+  const dist = Math.max(880, 270 / (tanH * asp));
+  if(Math.abs(p.x - D3.cx) + Math.abs(p.y - D3.cy) > 700) D3.snap = true;
+  if(D3.snap){ D3.cx = p.x; D3.cy = p.y; D3.snap = false; }
+  const k = 1 - Math.exp(-dt * 7);
+  D3.cx += (p.x - D3.cx) * k; D3.cy += (p.y - D3.cy) * k;
+  const sh = REDUCED ? 0 : Math.min(18, G.shake * 40), sx = rand(-sh, sh), sy = rand(-sh, sh);
+  cam.position.set(D3.cx + sx, dist * .8, D3.cy + dist * .6 + sy);
+  cam.lookAt(D3.cx + sx, 0, D3.cy - 30 + sy);
+  D3.dist = dist;
+  D3.scene.fog.near = dist * .95; D3.scene.fog.far = dist * 2.3;
+  D3.sun.position.set(D3.cx - 380, 1100, D3.cy + 520); D3.sun.target.position.set(D3.cx, 0, D3.cy - 120);
+  D3.pLight.position.set(p.x, 95, p.y + 10);
+}
+function d3UpdateLevel(dt, ts){
+  const D = G.dg, L = D.L, RT = D3.RT;
+  for(const o of D3.gates){
+    const target = o.g.open ? -130 : 0;
+    o.y += (target - o.y) * Math.min(1, dt * (o.g.open ? 3 : 10));
+    o.mesh.position.y = o.y; o.mesh.visible = o.y > -128;
+  }
+  for(const o of D3.chests){
+    if(o.c.open && o.lid.rotation.x > -1.9) o.lid.rotation.x = Math.max(-1.9, o.lid.rotation.x - dt * 6);
+    if(!o.c.open) gp(o.grp.position.x + Math.sin(ts * 3) * 14, 30 + Math.sin(ts * 5) * 6, o.grp.position.z + 14, '#ffd84a', 26, .55 + .25 * Math.sin(ts * 6), .4);
+  }
+  for(const [i, t] of D.crumble){
+    const c = D3.crumbleIdx.get(i);
+    if(!c) continue;
+    const j = (1 - t / .75) * 3;
+    d3Inst(c.m, c.idx, c.x + rand(-j, j), -j * .5, c.z + rand(-j, j), 0, 1, 1, 1);
+    RT.col.setRGB(c.k * (1 - j * .12), c.k * (1 - j * .14), c.k * (1 - j * .16)); c.m.setColorAt(c.idx, RT.col);
+    c.m.instanceMatrix.needsUpdate = true; c.m.instanceColor.needsUpdate = true;
+  }
+  D3.falling = D3.falling.filter(f => {
+    f.t += dt;
+    const c = f.c, done = f.t > 1.2;
+    d3Inst(c.m, c.idx, c.x, -f.t * f.t * 520, c.z, f.r * f.t * 2, done ? 0 : 1, done ? 0 : 1, done ? 0 : 1);
+    c.m.instanceMatrix.needsUpdate = true;
+    return !done;
+  });
+  D3.tex.pool.offset.set(ts * .02, ts * .013);
+  if(D3.rune){ D3.rune.rotation.y = ts * .15; D3.M.rune.opacity = G.boss ? .85 + .15 * Math.sin(ts * 6) : .35; }
+  const P = D3.portal, po = D.portal;
+  if(po){
+    if(!P.grp.visible){
+      P.grp.visible = true;
+      const c = po.home ? '#ffd84a' : '#7df9ff';
+      D3.M.ring.color.set(c); D3.M.swirl.color.set(c); D3.portalLight.color.set(c);
+    }
+    const s = Math.min(1, po.t * 1.6);
+    P.grp.scale.setScalar(Math.max(.01, s));
+    P.swirl.rotation.z = -ts * 2.2;
+    D3.portalLight.position.set(P.grp.position.x, 80, P.grp.position.z + 30);
+    D3.portalLight.intensity = 2.6 * s;
+    const pc = po.home ? '#ffd84a' : '#7df9ff';
+    for(let k = 0; k < 3; k++){ const a = ts * 2 + k * 2.1; gp(P.grp.position.x + Math.cos(a) * 56, 70 + Math.sin(a) * 56, P.grp.position.z, pc, 30, .8 * s, .6); }
+    gp(P.grp.position.x, 70, P.grp.position.z + 4, pc, 150, .35 * s, 0);
+  } else { P.grp.visible = false; D3.portalLight.intensity = 0; }
+  // the six torches nearest the camera get real lights; all of them flicker
+  D3.lightT -= dt;
+  if(D3.lightT <= 0){
+    D3.lightT = .25;
+    D3.lit = D3.torches.filter(o => !(D3.cut.get(o.i) < .7)).sort((a, b) => ((a.x - D3.cx) ** 2 + (a.z - D3.cy) ** 2) - ((b.x - D3.cx) ** 2 + (b.z - D3.cy) ** 2)).slice(0, 6);
+  }
+  D3.torchLights.forEach((l, k) => {
+    const o = D3.lit && D3.lit[k];
+    if(!o){ l.intensity = 0; return; }
+    l.position.set(o.x, o.y + 6, o.z + 18);
+    l.intensity = 2.3 * (.85 + .15 * Math.sin(ts * 9 + o.f) * Math.sin(ts * 5.3 + o.f * 2));
+  });
+  for(const o of D3.torches){
+    if(Math.abs(o.x - D3.cx) > 1400 || Math.abs(o.z - D3.cy) > 1400 || D3.cut.get(o.i) < .7) continue;
+    const fl = .8 + .2 * Math.sin(ts * 11 + o.f);
+    gp(o.x, o.y, o.z, '#ff8a2a', 46 * fl, .75, 0);
+    gp(o.x, o.y + 2, o.z, '#ffd27a', 18 * fl, 1, .9);
+    gp(o.x + Math.sin(ts * 7 + o.f) * 3, o.y + 10 + (ts * 30 + o.f * 9) % 14, o.z, '#ffb23d', 9, .7, .5);
+  }
+  d3Cutaway(dt);
+}
+function d3Things(dt, ts){
+  const g = G, p = g.p, RT = D3.RT, cx = D3.cx, cy = D3.cy, far = D3.dist * 1.5;
+  const vis = (x, y) => Math.abs(x - cx) < far && Math.abs(y - cy) < far;
+  // gems
+  let n = 0;
+  for(const gm of g.gems){
+    if(n >= 400 || !vis(gm.x, gm.y)) continue;
+    const big = gm.v >= 10, mid = gm.v >= 3, s = big ? 8.5 : mid ? 6.8 : 5.2, col = big ? '#ff5ce1' : mid ? '#3dffa8' : '#38e1ff';
+    const hy = 15 + Math.sin(ts * 3 + gm.x * .05) * 3;
+    RT.e.set(0, ts * 2.5 + gm.y * .1, 0); RT.q.setFromEuler(RT.e); RT.v.set(gm.x, hy, gm.y); RT.sc.set(s, s * 1.35, s);
+    RT.m.compose(RT.v, RT.q, RT.sc); D3.gems.setMatrixAt(n, RT.m);
+    RT.col.set(col); D3.gems.setColorAt(n, RT.col); n++;
+    gp(gm.x, hy, gm.y, col, s * 5, .55, 0);
+  }
+  D3.gems.count = n; D3.gems.instanceMatrix.needsUpdate = true; if(D3.gems.instanceColor) D3.gems.instanceColor.needsUpdate = true;
+  // pickups (sprites) and their glow
+  let si = 0;
+  for(const pk of g.pickups){
+    if(si >= 24 || !vis(pk.x, pk.y)) continue;
+    let sp = D3.sprites[si];
+    if(!sp){ sp = new D3.T.Sprite(d3IconTex(pk.kind)); sp.renderOrder = 7; D3.dyn.add(sp); D3.sprites[si] = sp; }
+    sp.material = d3IconTex(pk.kind); sp.visible = true;
+    const hy = 38 + Math.sin(pk.t * 4) * 5;
+    sp.position.set(pk.x, hy, pk.y); sp.scale.setScalar(pk.kind === 'relic' ? 40 : 34);
+    gp(pk.x, hy, pk.y, PICKUPS[pk.kind], 110, .45 + .2 * Math.sin(pk.t * 6), 0);
+    si++;
+  }
+  for(let k = si; k < D3.sprites.length; k++) D3.sprites[k].visible = false;
+  // player projectiles
+  let nb = 0;
+  for(const pr of g.projs){
+    if(!vis(pr.x, pr.y)) continue;
+    if(pr.kind === 'fire'){ gp(pr.x, 24, pr.y, pr.color, 74, .95, .8); gp(pr.x, 24, pr.y, '#ffd08a', 26, 1, 1); }
+    else if(pr.kind === 'boom'){
+      if(nb < 16){ RT.e.set(0, pr.age * 18, 0); RT.q.setFromEuler(RT.e); RT.v.set(pr.x, 22, pr.y); RT.sc.set(1, 1, 1); RT.m.compose(RT.v, RT.q, RT.sc); D3.boomers.setMatrixAt(nb++, RT.m); }
+      gp(pr.x, 22, pr.y, pr.color, 54, .4, 0);
+    } else {
+      gp(pr.x, 24, pr.y, pr.color, 34, .95, 1);
+      gp(pr.x - pr.vx * .025, 24, pr.y - pr.vy * .025, pr.color, 26, .55, .3);
+      gp(pr.x - pr.vx * .05, 24, pr.y - pr.vy * .05, pr.color, 18, .3, 0);
+    }
+  }
+  D3.boomers.count = nb; D3.boomers.instanceMatrix.needsUpdate = true;
+  // enemy bullets: arrows are real arrows, everything else glows
+  let na = 0;
+  for(const b of g.ebullets){
+    if(!vis(b.x, b.y)) continue;
+    if(b.arrow && na < 160){
+      RT.e.set(0, Math.PI / 2 - Math.atan2(b.vy, b.vx), 0); RT.q.setFromEuler(RT.e); RT.v.set(b.x, 26, b.y); RT.sc.set(1, 1, 1);
+      RT.m.compose(RT.v, RT.q, RT.sc); D3.arrows.setMatrixAt(na++, RT.m);
+      gp(b.x, 26, b.y, '#ffd27a', 26, .35, 0);
+    } else if(b.root){ gp(b.x, 24, b.y, '#f4f4f4', 46, .9, .7); }
+    else { gp(b.x, 24, b.y, b.color, b.r * 5, .95, .9); }
+  }
+  D3.arrows.count = na; D3.arrows.instanceMatrix.needsUpdate = true;
+  // orbit blades and drones
+  let nbl = 0, ndr = 0;
+  if(g.ab.orbit){
+    const os = abS('orbit'), cnt = os.n + (g.combos.has('closeq') ? 1 : 0);
+    for(let i = 0; i < cnt && nbl < 8; i++){
+      const a = g.orbA + i / cnt * TAU, bx = p.x + Math.cos(a) * orbitRad(), by = p.y + Math.sin(a) * orbitRad();
+      RT.e.set(0, -a, 0); RT.q.setFromEuler(RT.e); RT.v.set(bx, 24, by); RT.sc.set(1, 1, 1); RT.m.compose(RT.v, RT.q, RT.sc);
+      D3.blades.setMatrixAt(nbl++, RT.m);
+      gp(bx, 24, by, '#8fb8ff', 44, .55, .3);
+    }
+  }
+  if(g.ab.drone){
+    const cnt = abS('drone').n;
+    for(let i = 0; i < cnt && ndr < 4; i++){
+      const a = g.droneA + i / cnt * TAU, dx = p.x + Math.cos(a) * 48, dy = p.y + Math.sin(a) * 48, hy = 48 + Math.sin(ts * 4 + i) * 4;
+      RT.e.set(0, ts * 2 + i, 0); RT.q.setFromEuler(RT.e); RT.v.set(dx, hy, dy); RT.sc.set(1, 1, 1); RT.m.compose(RT.v, RT.q, RT.sc);
+      D3.drones.setMatrixAt(ndr++, RT.m);
+      gp(dx, hy, dy, '#6dffc4', 34, .7, .5);
+    }
+  }
+  D3.blades.count = nbl; D3.blades.instanceMatrix.needsUpdate = true;
+  D3.drones.count = ndr; D3.drones.instanceMatrix.needsUpdate = true;
+  // effects that live in the air: lobbed shots and lightning
+  for(const f of g.fx){
+    const k = Math.max(0, f.life / f.max);
+    if(f.type === 'lob'){
+      const q = 1 - k, x = f.x0 + (f.x - f.x0) * q, z = f.y0 + (f.y - f.y0) * q, hy = 24 + Math.sin(q * Math.PI) * 170;
+      gp(x, hy, z, f.color, 44, .95, .9);
+    } else if(f.type === 'bolt'){
+      const sky = f.y0 < f.y - 150 && Math.abs(f.x0 - f.x) < 80;
+      const N = sky ? 14 : 9;
+      for(let i = 0; i <= N; i++){
+        const q = i / N, j = i && i < N ? 1 : 0;
+        const x = sky ? f.x + rand(-12, 12) * j : f.x0 + (f.x - f.x0) * q + rand(-10, 10) * j;
+        const z = sky ? f.y + rand(-8, 8) * j : f.y0 + (f.y - f.y0) * q + rand(-10, 10) * j;
+        const hy = sky ? 10 + (1 - q) * 470 : 26 + rand(-6, 6) * j;
+        gp(x, hy, z, f.color, 30, k, .9);
+      }
+      if(sky) gp(f.x, 12, f.y, f.color, 120, k * .6, 0);
+    }
+  }
+  // sparks
+  for(const q of g.parts){
+    if(!vis(q.x, q.y)) continue;
+    const k = q.life / q.max;
+    gp(q.x, 12 + (1 - k) * 30 + (q.s % 1) * 20, q.y, q.c, q.s * 6 * (.4 + k), Math.min(1, k * 1.5), .5);
+  }
+  // player light trail and orb
+  const pc = CHARACTERS[g.char].color;
+  if(G.dg.roll.t > 0) gp(p.x, 22, p.y, pc, 70, .5, .2);
+  // floating spores
+  if(!D3.motes) D3.motes = Array.from({length:70}, () => ({x:rand(-900, 900), y:rand(-900, 900), h:rand(20, 220), s:rand(6, 14), v:rand(6, 16), f:rand(0, 9)}));
+  for(const m of D3.motes){
+    m.h += m.v * dt; if(m.h > 260) m.h = 10;
+    const x = cx + mod(m.x + ts * 6 - cx + 900, 1800) - 900, z = cy - 200 + mod(m.y - cy + 1100, 1800) - 900;
+    gp(x + Math.sin(ts * .7 + m.f) * 12, m.h, z, '#c8ff8a', m.s, .35 * (.5 + .5 * Math.sin(ts * 2 + m.f)), 0);
+  }
+  // toxic bubbles on moss pools near you
+  const L = G.dg.L;
+  if(Math.random() < .5){
+    const tx = Math.floor((cx + rand(-700, 700)) / DT), ty = Math.floor((cy + rand(-600, 400)) / DT);
+    if(tx >= 0 && ty >= 0 && tx < L.W && ty < L.H && L.t[ty * L.W + tx] === TT.POOL) G.parts.push({x:(tx + Math.random()) * DT, y:(ty + Math.random()) * DT, vx:0, vy:-6, life:.9, max:.9, c:'#a6ff3d', s:2.5});
+  }
+}
+// ground effects, drawn with the 2D code onto the floor canvas
+function d3Decal(){
+  const Dc = D3.decal, S = Dc.px / Dc.w, g = G, p = g.p, t = g.t, cx = D3.cx, cy = D3.cy - D3.dist * .12;
+  const x0 = cx - Dc.w / 2, y0 = cy - Dc.w / 2, c = Dc.ctx;
+  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, Dc.px, Dc.px);
+  c.setTransform(S, 0, 0, S, -x0 * S, -y0 * S);
+  withCtx(c, () => {
+    const pc = CHARACTERS[g.char].color;
+    ctx.globalCompositeOperation = 'lighter';
+    drawGlow(pc, p.x, p.y, 48, .4);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = hexA(pc, .7); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(p.x, p.y, 20, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.08)'; ctx.lineWidth = 1.5; ctx.setLineDash([8, 10]);
+    ctx.beginPath(); ctx.arc(p.x, p.y, g.s.pickup, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+    if(p.rootT > 0){
+      ctx.strokeStyle = 'rgba(240,240,240,.85)'; ctx.lineWidth = 2;
+      ctx.beginPath(); for(let i = 0; i < 8; i++){ const a = i / 8 * TAU; ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + Math.cos(a) * 34, p.y + Math.sin(a) * 34); } ctx.stroke();
+      ctx.beginPath(); ctx.arc(p.x, p.y, 22, 0, TAU); ctx.stroke();
+    }
+    for(const pd of g.puddles){
+      const k = Math.min(1, pd.life / pd.max * 2);
+      ell(pd.x, pd.y, pd.r, pd.r * .75, pd.seed, `rgba(60,170,40,${.4 * k})`);
+      addGlow('#7dff6a', pd.x, pd.y, pd.r * 1.3, .35 * k);
+    }
+    for(const e of g.enemies){
+      if(e.dead) continue;
+      if(e.elite || e.boss){ ctx.globalCompositeOperation = 'lighter'; drawGlow(e.boss ? SKINS[e.skin].glow : '#ffd84a', e.x, e.y, e.r * 1.8, .35); ctx.globalCompositeOperation = 'source-over'; }
+      if(e.st === 'wind' && SKINS[e.skin].ai && SKINS[e.skin].ai.type === 'dash'){ ctx.strokeStyle = 'rgba(255,61,90,.5)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(e.x + Math.cos(e.da) * 200, e.y + Math.sin(e.da) * 200); ctx.stroke(); }
+    }
+    drawHazards(false);
+    drawHazards(true);
+    ctx.globalCompositeOperation = 'lighter';
+    for(const f of g.fx){
+      const k = Math.max(0, f.life / f.max);
+      if(f.type === 'ring'){
+        const r = f.maxR - (f.maxR - f.r) * k;
+        if(f.fill){ ctx.globalAlpha = k * .25; ctx.fillStyle = f.color; ctx.beginPath(); ctx.arc(f.x, f.y, r, 0, TAU); ctx.fill(); }
+        ctx.globalAlpha = k; ctx.strokeStyle = f.color; ctx.lineWidth = 3 + 6 * k;
+        ctx.beginPath(); ctx.arc(f.x, f.y, r, 0, TAU); ctx.stroke();
+      } else if(f.type === 'frost'){
+        ctx.globalAlpha = k; ctx.strokeStyle = f.color; ctx.lineWidth = 3;
+        const r = f.r * (1.05 - k * .3);
+        ctx.beginPath();
+        for(let i = 0; i < 12; i++){ const a = i / 12 * TAU; ctx.moveTo(f.x + Math.cos(a) * r * .55, f.y + Math.sin(a) * r * .55); ctx.lineTo(f.x + Math.cos(a) * r, f.y + Math.sin(a) * r); }
+        ctx.stroke();
+      } else if(f.type === 'arc'){
+        ctx.globalAlpha = k * .75; ctx.fillStyle = f.color;
+        const sw = (1 - k) * .3, a0 = f.dir - Math.PI / 3 + sw, a1 = f.dir + Math.PI / 3 + sw;
+        ctx.beginPath(); ctx.arc(p.x, p.y, f.r, a0, a1); ctx.arc(p.x, p.y, f.r * .55, a1, a0, true); ctx.closePath(); ctx.fill();
+        ctx.globalAlpha = k; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(p.x, p.y, f.r, a0, a1); ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  });
+  Dc.mesh.position.set(cx, 2.2, cy);
+  Dc.tex.needsUpdate = true;
+}
+function d3Project(x, h, z){
+  const v = D3.RT.v.set(x, h, z).project(D3.cam);
+  return v.z > 1 ? null : [(v.x + 1) / 2 * W, (1 - v.y) / 2 * H];
+}
+function dgRender(now){
+  const dt = Math.min(.05, Math.max(0, (now - (D3.last || now)) / 1000)), ts = now / 1000, g = G, p = g.p;
+  D3.last = now;
+  D3.gp.n = 0;
+  d3Camera(dt);
+  d3UpdateLevel(dt, ts);
+  d3Characters(dt);
+  d3Things(dt, ts);
+  d3Decal();
+  const P = D3.gp, geo = D3.points.geometry;
+  geo.setDrawRange(0, P.n);
+  for(const k of ['position', 'gcol', 'gsize', 'gcore']){ const a = geo.attributes[k]; a.needsUpdate = true; a.clearUpdateRanges(); a.addUpdateRange(0, P.n * a.itemSize); }
+  D3.R.render(D3.scene, D3.cam);
+  // 2D overlay
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'round';
+  for(const tx of g.texts){
+    const s = d3Project(tx.x, 40, tx.y);
+    if(!s) continue;
+    const k = tx.life / tx.max, pop = 1 + Math.max(0, (k - .75) / .25) * .6;
+    ctx.globalAlpha = Math.min(1, k * 2.5);
+    const size = (tx.kind === 1 ? 20 : tx.kind === 2 ? 21 : 14) * pop;
+    ctx.font = `700 ${size}px "Chakra Petch", system-ui, sans-serif`;
+    ctx.strokeStyle = 'rgba(0,0,0,.8)'; ctx.lineWidth = 3.5;
+    const txt = tx.kind === 1 ? tx.txt + '!' : String(tx.txt);
+    ctx.strokeText(txt, s[0], s[1]);
+    ctx.fillStyle = tx.kind === 1 ? '#ffc23d' : tx.kind === 2 ? '#ffffff' : '#f2f4ff';
+    ctx.fillText(txt, s[0], s[1]);
+  }
+  ctx.globalAlpha = 1;
+  ctx.drawImage(vignette, 0, 0, W, H);
+  const ps = d3Project(p.x, 20, p.y);
+  if(isFinite(g.s.vision) && ps){
+    const ppu = H / (2 * Math.tan(D3.cam.fov * Math.PI / 360) * D3.dist), v = g.s.vision * ppu;
+    const grd = ctx.createRadialGradient(ps[0], ps[1], v * .55, ps[0], ps[1], v);
+    grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(1, 'rgba(2,6,4,0.96)');
+    ctx.fillStyle = grd; ctx.fillRect(0, 0, W, H);
+  }
+  const hpR = p.hp / p.maxHp;
+  if(hpR < .35 && g.state !== 'over'){
+    const a = (.35 - hpR) / .35 * (.35 + .15 * Math.sin(now / 160));
+    const grd = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .3, W / 2, H / 2, Math.hypot(W, H) / 2);
+    grd.addColorStop(0, 'rgba(255,30,70,0)'); grd.addColorStop(1, `rgba(255,30,70,${a})`);
+    ctx.fillStyle = grd; ctx.fillRect(0, 0, W, H);
+  }
+  if(p.poisonT > 0){ ctx.fillStyle = `rgba(90,255,60,${Math.min(.12, p.poisonT * .05)})`; ctx.fillRect(0, 0, W, H); }
+  if(g.flash > 0){ ctx.fillStyle = `rgba(255,255,255,${Math.min(.5, g.flash * 1.6)})`; ctx.fillRect(0, 0, W, H); }
+  dgMinimap(ts);
+  if(joy.active){
+    ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(joy.ox, joy.oy, 50, 0, TAU); ctx.stroke();
+    dot(joy.ox + joy.dx * 50, joy.oy + joy.dy * 50, 18, 'rgba(255,255,255,.35)');
+  }
+}
+function dgMinimap(ts){
+  const D = G.dg, L = D.L, ps = 3;
+  if(!D3.mm || D3.mmFloor !== D.floor){ D3.mm = document.createElement('canvas'); D3.mm.width = L.W * ps; D3.mm.height = L.H * ps; D3.mmFloor = D.floor; D.mapDirty = true; }
+  if(D.mapDirty){
+    D.mapDirty = false;
+    const c = D3.mm.getContext('2d');
+    c.clearRect(0, 0, D3.mm.width, D3.mm.height);
+    for(let y = 0; y < L.H; y++) for(let x = 0; x < L.W; x++){
+      const i = y * L.W + x;
+      if(!D.seen[i]) continue;
+      const t = L.t[i];
+      let col = null;
+      if(t === TT.WALL) col = '#2c3a33';
+      else if(t === TT.PIT) col = '#06090a';
+      else if(t === TT.POOL) col = '#3f9a2a';
+      else if(t === TT.WEB) col = '#a8aeb6';
+      else if(t === TT.GATE) col = L.closed[i] ? '#ff6a3d' : '#c8b48a';
+      else if(t === TT.CRUMBLE) col = '#9a8a6a';
+      else if(t === TT.PROP) col = '#3c4a42';
+      else col = L.z[i] === 10 ? '#8a5058' : L.z[i] ? '#7a7058' : '#5f7a63';
+      c.fillStyle = col; c.fillRect(x * ps, y * ps, ps, ps);
+    }
+  }
+  const box = W < 560 ? 104 : 150, s = Math.min(box / L.W, box / L.H), mw = L.W * s, mh = L.H * s;
+  const mx = W - 12 - mw, my = W < 560 ? 124 : 64;
+  ctx.fillStyle = 'rgba(9,11,24,.6)'; ctx.strokeStyle = 'rgba(140,160,210,.35)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect ? ctx.roundRect(mx - 5, my - 5, mw + 10, mh + 10, 8) : ctx.rect(mx - 5, my - 5, mw + 10, mh + 10); ctx.fill(); ctx.stroke();
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(D3.mm, mx, my, mw, mh);
+  ctx.imageSmoothingEnabled = true;
+  const at = (x, y) => [mx + x / DT * s, my + y / DT * s];
+  for(const c of L.chests){ if(c.open || !D.seen[c.y * L.W + c.x]) continue; const [x, y] = at((c.x + .5) * DT, (c.y + .5) * DT); dot(x, y, 2.6, '#ffd84a'); }
+  if(D.portal){ const [x, y] = at(D.portal.x, D.portal.y); dot(x, y, 4 + Math.sin(ts * 6), D.portal.home ? '#ffd84a' : '#7df9ff'); }
+  else if(L.boss && D.zones[10] && D.zones[10].state !== 'cleared'){
+    const [x, y] = at((L.boss.x + .5) * DT, (L.boss.y + .5) * DT);
+    drawIcon('skull', x, y, 13, G.boss ? '#ff4f7b' : 'rgba(255,120,140,.9)', 2.2);
+  }
+  if(G.boss){ const [x, y] = at(G.boss.x, G.boss.y); dot(x, y, 3.2, '#ff4f7b'); }
+  const [px, py] = at(G.p.x, G.p.y), a = Math.atan2(G.p.fy, G.p.fx);
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.moveTo(px + Math.cos(a) * 5, py + Math.sin(a) * 5); ctx.lineTo(px + Math.cos(a + 2.4) * 4, py + Math.sin(a + 2.4) * 4); ctx.lineTo(px + Math.cos(a - 2.4) * 4, py + Math.sin(a - 2.4) * 4); ctx.closePath(); ctx.fill();
+}
+// enemy portraits for the menus, rendered once with the same models
+function d3Portrait(skinId){
+  if(D3.portraits[skinId]) return D3.portraits[skinId];
+  if(!D3.T) return '';
+  try{
+    d3Init();
+    const T = D3.T, R = D3.R, skin = SKINS[skinId], rig = RIGS[skin.rig];
+    const sc = new T.Scene();
+    sc.add(new T.HemisphereLight('#dfe8ff', '#4a4030', 2.4));
+    const dl = new T.DirectionalLight('#fff2dc', 2.6); dl.position.set(-.6, 1, .9); sc.add(dl);
+    const grp = new T.Group(), made = [];
+    const st = {ph:.7, mv:.5, t:1.3, seed:0, pose:0, cast:0, swing:0};
+    for(const pt of rig.parts){
+      const spec = d3PartSpec(pt), geo = gBox(pt[1][0], pt[1][1], pt[1][2], pt[3][0], pt[3][1], pt[3][2]);
+      const c = new T.Color(skin[spec.color] || spec.color), mat = spec.g ? new T.MeshBasicMaterial({color:c}) : new T.MeshLambertMaterial({color:c});
+      const mesh = new T.Mesh(geo, mat);
+      mesh.matrixAutoUpdate = false; d3PartLocal(spec, st, mesh.matrix);
+      grp.add(mesh); made.push(geo, mat);
+    }
+    grp.rotation.y = .55; sc.add(grp); grp.updateMatrixWorld(true);
+    const box = new T.Box3().setFromObject(grp), size = box.getSize(new T.Vector3()), ctr = box.getCenter(new T.Vector3());
+    const r = Math.max(size.x, size.y, size.z) * .55, dist = r / Math.sin(15 * Math.PI / 180);
+    const cam = new T.PerspectiveCamera(30, 1, 1, 9000);
+    cam.position.set(ctr.x + dist * .3, ctr.y + dist * .42, ctr.z + dist * .86); cam.lookAt(ctr);
+    R.setPixelRatio(1); R.setSize(128, 128, false); R.setClearColor(0x000000, 0);
+    R.render(sc, cam);
+    const url = R.domElement.toDataURL('image/png');
+    for(const o of made) o.dispose();
+    if(G && G.dg) d3Resize();
+    return D3.portraits[skinId] = url;
+  }catch(err){ return ''; }
+}
+/* ---------- dungeon: base menu ---------- */
+const BLANK_IMG = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+function dgFloorUnlocked(n){ return n >= 1 && n <= save.dg.reached; }
+function dgPortraitSrc(skin){
+  const u = d3Portrait(skin);
+  if(u) return u;
+  if(!D3.wantPortraits){
+    D3.wantPortraits = true;
+    d3Load().then(() => { if(!G && !hub.hidden && tab === 'dungeon') renderHub(); }).catch(() => {});
+  }
+  return BLANK_IMG;
+}
+function dgFloorCard(f){
+  const un = dgFloorUnlocked(f.n), on = B.floor === f.n, cleared = save.dg.cleared[f.n];
+  return `<button class="dgf ${on ? 'on' : ''}" style="--sc:${DG_THEMES[0].accent}" ${un ? `data-act="floor" data-id="${f.n}"` : 'disabled'}>
+    ${cleared ? '<span class="sclr">CLEARED</span>' : ''}
+    <span class="dn">B${f.n}</span>
+    <span class="dname">${un ? esc(f.name) : ico('lock') + ' Locked'}</span>
+    <span class="dmeta">${un ? `Boss: ${SKINS[f.boss].name}${f.boss2 ? ' + ' + SKINS[f.boss2].name : ''}` : `Reach it through the portal on floor ${f.n - 1}`}</span>
+    ${un && f.n > 1 ? `<span class="dft">${ico('portal')} Fast travel</span>` : ''}</button>`;
+}
+function dgBriefHtml(f){
+  const foe = s => `<figure class="foe"><img src="${dgPortraitSrc(s)}" alt=""><figcaption>${SKINS[s].name}<br><span class="mv">${SKINS[s].move || ''}</span></figcaption></figure>`;
+  const boss = (s, label) => `<figure class="foe boss"><img src="${dgPortraitSrc(s)}" alt=""><figcaption>${SKINS[s].name}<br><span class="mv">${label}</span></figcaption></figure>`;
+  const rw = [];
+  if(save.dg.cleared[f.n]) rw.push(`<span class="rchip done">${ico('check')} First-clear reward claimed</span>`);
+  else { for(const i of f.reward.items) rw.push(`<span class="rchip rew">${ico(i)} ${ITEMS[i].name}</span>`); rw.push(`<span class="rchip rew">${ico('coin')} ${f.reward.coins}</span>`); }
+  return `<div class="brief dgbrief" style="--sc:${DG_THEMES[0].accent}">
+    <div><div class="lbl" style="margin:0">Floor ${f.n} · ${DG_THEMES[0].name}</div><h2>${esc(f.name)}</h2><p>${esc(f.desc)}</p></div>
+    <div class="chips">${f.tags.map(t => `<span class="rchip">${ico('warn')} ${esc(t)}</span>`).join('')}</div>
+    <div><div class="lbl">Enemies</div><div class="foes">${f.foes.map(foe).join('')}${boss(f.boss, f.boss2 ? 'Floor boss' : 'Boss')}${f.boss2 ? boss(f.boss2, 'Theme boss') : ''}</div>
+      <div class="note" style="margin-top:6px">${SKINS[f.boss].about}${f.boss2 ? ' Then: ' + SKINS[f.boss2].about : ''}</div></div>
+    <div><div class="lbl">Dungeon rules</div><ul class="dgrules">
+      <li>${ico('coin')}<span>Coins and relics you pick up are <b>not safe yet</b>. Step into the exit portal after the boss to keep them.</span></li>
+      <li>${ico('skull')}<span>If you die, you go back to base and lose only what you had not secured.</span></li>
+      <li>${ico('portal')}<span>Every portal you reach lets you start from the next floor later.</span></li>
+      <li>${ico('gem')}<span>Elites and bosses drop <b>relics</b>: items that match their enemy type (melee, poison or ranged).</span></li>
+      <li>${ico('roll')}<span><b>Dodge roll</b> with <kbd>Space</kbd> or the roll button. Nothing can hit you mid-roll.</span></li></ul></div>
+    <div><div class="lbl">First clear reward</div><div class="chips">${rw.join('')}</div></div></div>`;
+}
+function renderDungeon(){
+  if(!dgFloorUnlocked(B.floor)) B.floor = Math.min(save.dg.reached, DG_FLOORS.length);
+  const f = DG_FLOORS[B.floor - 1], th = DG_THEMES[0];
+  let h = `<div class="pagehead"><div><h2>Dungeon</h2><p>${DG_FLOORS_TOTAL} floors underground, in 3D. Your loadout works here too, with one budget for the whole theme.</p></div></div>`;
+  h += `<div class="dgtheme" style="--sc:${th.accent}"><span class="tn">Theme 1 of ${DG_THEMES_TOTAL}</span><b>${th.name}</b><span>Floors ${th.first}–${th.last} · Budget ${DG_STAGE.budget} pts · ${th.desc}</span></div>`;
+  h += `<div class="dgfloors">${DG_FLOORS.map(dgFloorCard).join('')}
+    <div class="dgf more"><span class="dn">B${DG_FLOORS.length + 1}–${DG_FLOORS_TOTAL}</span><span class="dname">${DG_THEMES_TOTAL - 1} more themes</span><span class="dmeta">Not built yet</span></div></div>`;
+  h += `<div class="play split">${dgBriefHtml(f)}${previewHtml(DG_STAGE)}</div>`;
+  return h;
+}
+function dgStartFromHub(){
+  const n = B.floor || 1;
+  if(!dgFloorUnlocked(n)) return;
+  mbox.className = 'mbox';
+  mbox.innerHTML = `<h2>Entering the dungeon</h2><p class="mnote">Loading the 3D engine…</p>`;
+  modal.hidden = false;
+  d3Load().then(() => {
+    d3Init();
+    modal.hidden = true;
+    dgEnter(n);
+  }).catch(() => {
+    mbox.innerHTML = `<h2>Could not start the dungeon</h2><p class="mnote">${D3.T ? 'Your browser could not start 3D graphics (WebGL).' : 'The 3D engine could not be downloaded. Check your internet connection and try again.'}</p>
+      <div class="mfoot"><button class="btn hot" data-act="close">OK</button></div>`;
+  });
+}
+$('#rollBtn').innerHTML = ico('roll') + '<small>ROLL</small>';
+$('#rollBtn').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); dgRoll(); });
 
 // ---------- main loop ----------
 let last = performance.now();
