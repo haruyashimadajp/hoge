@@ -432,7 +432,10 @@ footer{margin:26px 0 6px;display:flex;justify-content:space-between;flex-wrap:wr
    level-up cards display as "before → after". Icons share the item id.
    ===================================================================== */
 
-const MAX_LV = {weapon:10, ability:10, pos:8, neg:4};
+const MAX_LV = {weapon:10, ability:10, pos:8, neg:10};
+// XP needed for the next level: XP_BASE at level 1, then ×XP_GROWTH every level
+const XP_BASE = 12;
+const XP_GROWTH = 1.05;
 
 const CHARACTERS = {
   mage:  {name:'Mage',   hp:90,  speed:160, armor:0, weapon:'bolt',   color:'#5cc8ff',
@@ -2030,7 +2033,7 @@ const negF = id => (G.neg[id] === undefined ? 0 : 1 - G.neg[id] / MAX_LV.neg);  
 const posV = id => (G.pos[id] ? ITEMS[id].lv(G.pos[id]).v / 100 : 0);
 const abS = id => ITEMS[id].lv(G.ab[id]);
 
-function needXp(l){ return Math.floor(3 + l * 1.1 + 0.5 * Math.pow(l, 1.2)); }
+function needXp(l){ return Math.round(XP_BASE * Math.pow(XP_GROWTH, l - 1)); }
 
 function startRun(stage, charId, items){
   const ch = CHARACTERS[charId];
