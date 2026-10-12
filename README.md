@@ -21,6 +21,9 @@ All content lives in the data tables at the top of the script in `index.html`:
 - `ITEMS`: abilities, positive traits and negative traits (cost, rarity, text)
 - `COMBOS`: item pairs with cost changes and effects
 - `STAGES`: budget, rules, forced/banned items, enemy mix, rewards
-- `ENEMIES`, `CHARACTERS`, `WEAPONS`
+- `ENEMIES` (behaviour stats) and `SKINS` (how each stage's enemies and bosses look)
+- `CHARACTERS`, `WEAPONS`
+- `ICONS`: line icons as SVG paths, used in the menus and on the canvas
+- Stage art lives in `TILES` (ground) and `PROPS` (scenery); enemy art in `DRAW`
 
 A new item's numbers go in `ITEMS`: `lv(L)` returns its stats at level L, and `show` lists which stats the level-up cards display. Its behavior goes in `recalcStats()` (passive traits) or `useAbility()` (active abilities).
