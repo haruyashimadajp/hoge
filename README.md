@@ -20,7 +20,7 @@ A 3D mode seen from behind and above, in the style of Minecraft Dungeons. It use
 
 - 100 floors in 20 themes of 5 floors are planned. Theme 1, **Mossy Ruins** (floors 1–5), is built.
 - Every floor is a large hand-made map (about 6–8 minutes for a full clear) with its own floor boss. Floor 5 ends with the floor boss and then the theme boss, back to back.
-- Each floor starts you back at level 1 with your bare loadout, and a level needs twice the XP it does in the stages (`DG_XP_MUL`). XP gems stay where enemies fall.
+- Each floor starts you back at level 1 with your bare loadout, and each level needs 1.1× the XP of the one before (`DG_XP_GROWTH`; the stages use 1.08×). XP gems stay where enemies fall.
 - Every boss has several attacks of its own (for example the Broodmother's web shots, egg sacs, web field, pounce, venom spray and spiderlings); the attack list is `patterns` in its `SKINS` entry, and the attacks live in `bossStep()`.
 - Floor 5 is a long sealed corridor: iron gates drop in front of you and behind you, and four waves attack in each section. There is no way back.
 - Floor gimmicks: spider webs slow you (floor 2), cracked floor falls away (floor 3), moss pools poison you (floor 4).

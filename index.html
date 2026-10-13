@@ -2486,7 +2486,7 @@ function renderGuide(){
     <div class="step"><span class="n">6</span><b>Unlock more</b>First clears give new items and stages. Spend coins on the gacha.</div></div></div>
     <div class="sec"><h2>Dungeon</h2><p>A 3D mode. Same characters and loadouts, one budget for each theme.</p><div class="steps">
     <div class="step"><b>${ico('stairs')} Hand-made floors</b>Explore each floor, find the boss chamber and beat the boss. Then an exit portal opens.</div>
-    <div class="step"><b>${ico('reroll')} Fresh start every floor</b>Each floor starts you back at level 1 with your bare loadout, and a level needs twice the XP it does in the stages. XP gems stay where enemies fall.</div>
+    <div class="step"><b>${ico('reroll')} Fresh start every floor</b>Each floor starts you back at level 1 with your bare loadout, and each level needs 1.1× the XP of the one before (1.08× in the stages). XP gems stay where enemies fall.</div>
     <div class="step"><b>${ico('portal')} Secure your loot</b>Coins and relics only count once you step into a portal. If you die, you lose only what you were carrying.</div>
     <div class="step"><b>${ico('roll')} Dodge roll</b><kbd>Space</kbd> or the roll button. Nothing can hit you mid-roll, and it breaks you out of webs.</div>
     <div class="step"><b>${ico('warn')} Floor hazards</b>Webs slow you down, cracked floor falls away a moment after you step on it, and moss pools poison you.</div>
@@ -2865,7 +2865,7 @@ const negF = id => (G.neg[id] === undefined ? 0 : 1 - G.neg[id] / MAX_LV.neg);  
 const posV = id => (G.pos[id] ? ITEMS[id].lv(G.pos[id]).v / 100 : 0);
 const abS = id => ITEMS[id].lv(G.ab[id]);
 
-function needXp(l){ return Math.round(XP_BASE * (G && G.dg ? DG_XP_MUL : 1) * Math.pow(XP_GROWTH, l - 1)); }
+function needXp(l){ return Math.round(XP_BASE * Math.pow(G && G.dg ? DG_XP_GROWTH : XP_GROWTH, l - 1)); }
 
 function startRun(stage, charId, items){
   const ch = CHARACTERS[charId];
@@ -4492,7 +4492,7 @@ const THREE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.165.0/three
 const DT = 64;                                  // one map tile in world units
 const DG_FLOORS_TOTAL = 100, DG_THEMES_TOTAL = 20;
 const DG_ROLL = {time:.3, cd:1.1, speed:2.7};   // dodge roll: duration, cooldown, speed multiplier
-const DG_XP_MUL = 2;                            // the dungeon needs twice the XP per level, and your level resets on every floor
+const DG_XP_GROWTH = 1.1;                       // in the dungeon each level needs ×1.1 the XP of the one before (stages: ×1.08), and your level resets on every floor
 const TT = {WALL:0, FLOOR:1, PIT:2, POOL:3, CRUMBLE:4, WEB:5, GATE:6, PROP:7, STAIR:8};
 const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 const N8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
@@ -6888,7 +6888,7 @@ function dgBriefHtml(f){
     <div><div class="lbl">Enemies</div><div class="foes">${f.foes.map(foe).join('')}${boss(f.boss, f.boss2 ? 'Floor boss' : 'Boss')}${f.boss2 ? boss(f.boss2, 'Theme boss') : ''}</div>
       <div class="note" style="margin-top:6px">${SKINS[f.boss].about}${f.boss2 ? ' Then: ' + SKINS[f.boss2].about : ''}</div></div>
     <div><div class="lbl">Dungeon rules</div><ul class="dgrules">
-      <li>${ico('reroll')}<span>Your level <b>resets to 1 on every floor</b>, and each level needs twice the XP of the stages. XP gems stay where enemies fall, so go and collect them.</span></li>
+      <li>${ico('reroll')}<span>Your level <b>resets to 1 on every floor</b>, and each level needs 1.1× the XP of the one before (1.08× in the stages). XP gems stay where enemies fall, so go and collect them.</span></li>
       <li>${ico('coin')}<span>Coins and relics you pick up are <b>not safe yet</b>. Step into the exit portal after the boss to keep them.</span></li>
       <li>${ico('skull')}<span>If you die, you go back to base and lose only what you had not secured.</span></li>
       <li>${ico('portal')}<span>Every portal you reach lets you start from the next floor later.</span></li>
