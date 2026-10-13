@@ -34,7 +34,7 @@ A 3D mode seen from behind and above, in the style of Minecraft Dungeons. It use
   - Floor 7, Crab Cisterns: crabs, jellyfish and sailors. Deep water slows you and slick algae makes you slide.
   - Floor 8, Lightless Channels: sirens, jellyfish and eels in darkness. Walk up to lanterns to light them and see far.
   - Floor 9, Flood Halls: eels, crabs, harpooners and sirens. The low halls flood and drain on a cycle.
-  - Floor 10, Bottom of the Great Reservoir: all six types. You climb a sealed corridor while the water rises behind you, then fight the Drowned Admiral and the Leviathan.
+  - Floor 10, Bottom of the Great Reservoir: all six types. You climb three sealed sections while the water rises behind you (XP that falls in floats up to you), then fight the Drowned Admiral and the Leviathan.
 - Elites and bosses drop **relics**, locked items that match their family.
 - Coins and relics you pick up are only kept when you step into the exit portal after the boss. If you die you go back to base and lose only what you had not secured.
 - Each portal you reach lets you start from the next floor later (fast travel).

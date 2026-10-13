@@ -3781,7 +3781,10 @@ function bossStep(b, dt){
       if(A.t > 4.2) done = true;
       break;
     case 'eels':
-      if(G.dg) for(let i = 0; i < 3; i++){ const a = i / 3 * TAU + Math.random(), x = b.x + Math.cos(a) * (b.r + 70), y = b.y + Math.sin(a) * (b.r + 70); dgSpawn('eel', x, y, false, 0); }
+      if(G.dg){   // never more than six of its eels at once
+        const have = G.enemies.filter(e => !e.dead && e.type === 'eel').length;
+        for(let i = 0; i < Math.min(3, 6 - have); i++){ const a = i / 3 * TAU + Math.random(), x = b.x + Math.cos(a) * (b.r + 70), y = b.y + Math.sin(a) * (b.r + 70); dgSpawn('eel', x, y, false, 0); }
+      }
       sfx('splash'); done = true; break;
     case 'torrent':
       hold = true;
@@ -5892,7 +5895,7 @@ DG_FLOORS.push(
 ########################################################################################################
 `},
   {n:10, name:'Bottom of the Great Reservoir', boss:'admiral', bossHp:10500, boss2:'leviathan', boss2Hp:10000, boss2At:[30, 16], hpMul:2.2, xpMul:1.9, coinMul:2.5, themeEnd:true,
-   bossBreak:'THE WATER STIRS', bossBreakSub:'Something huge rises from the reservoir...', flood:{mode:'arena'}, rising:{time:85, wait:8, dmg:4},
+   bossBreak:'THE WATER STIRS', bossBreakSub:'Something huge rises from the reservoir...', flood:{mode:'arena'}, rising:{time:110, wait:8, dmg:4},
    packs:{z:{elite:'sailor', make:() => ({sailor:4, harpooner:3})}, s:{elite:'crab', make:() => ({crab:3, jelly:3})}, a:{elite:'siren', make:() => ({siren:3, eel:3})}, x:{elite:'crab', make:() => ({sailor:2, crab:2, siren:2, eel:2})}},
    trickle:null, foes:['drowned','harpooner','ironcrab','siren','eel','jelly'],
    desc:'Climb out of the drained reservoir while the water rises behind you, then face the Drowned Admiral and the beast of the deep.',
@@ -5900,7 +5903,7 @@ DG_FLOORS.push(
    zones:{
      1:{waves:[{sailor:10, harpooner:3}, {sailor:11, harpooner:4}, {sailor:10, harpooner:5}, {sailor:10, harpooner:4, elite:'sailor'}]},
      2:{waves:[{crab:6, jelly:5}, {crab:6, jelly:5, sailor:4}, {crab:8, jelly:6}, {crab:6, jelly:5, sailor:4, elite:'crab'}]},
-     3:{waves:[{siren:5, eel:8, crab:4}, {siren:6, eel:8, harpooner:4}, {siren:6, eel:10, crab:4, harpooner:3}, {siren:6, eel:8, crab:5, harpooner:4, elite:'siren'}]},
+     3:{waves:[{siren:4, eel:6, crab:3}, {siren:5, eel:6, harpooner:3}, {siren:5, eel:8, crab:3, harpooner:2}, {siren:5, eel:6, crab:4, harpooner:3, elite:'siren'}]},
    }, map:`
 ############################################################
 ############################################################
@@ -5912,19 +5915,19 @@ DG_FLOORS.push(
 ####lllbbbbbbbbbbbbbbbbbbbbbbbBbbbbbbbbbbbbbbbbbbbbbbblll###
 ####lllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbblll###
 ####lllbbbbbpbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbpbbbbblll###
-####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
-####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
-####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
-####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
-####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
-####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
-####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
-####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
-####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
-####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
-####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
-####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
-####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbdddddddddddbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbdddddddddddbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbdddddddddddbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbdddddddddddbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbdddddddddddbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbdddddddddddbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbdddddddddddbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbdddddddddddbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbdddddddddddbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbdddddddddddbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbdddddddddddbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbblll###
 ####lllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbblll###
 ####lllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbblll###
 ####lllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbblll###
@@ -6114,7 +6117,12 @@ function dgParse(def){
     }
     else if(L.t[i] === TT.FLOOR || L.t[i] === TT.STAIR) L.open.push(i);
   }
-  for(const g of L.gates) for(const [dx, dy] of N4){ const z = L.z[g.i + dy * W + dx]; if(z && !g.zones.includes(z)) g.zones.push(z); }
+  // a gate belongs to the zones on either side of it, even with a few unzoned tiles (a flood ring, say) in between
+  for(const g of L.gates) for(const [dx, dy] of N4) for(let k = 1; k <= 4; k++){
+    const j = g.i + (dy * W + dx) * k, z = L.z[j];
+    if(j < 0 || j >= N || L.t[j] === TT.WALL || L.t[j] === TT.GATE) break;
+    if(z){ if(!g.zones.includes(z)) g.zones.push(z); break; }
+  }
   return L;
 }
 function dgWalkable(t){ return t !== TT.WALL && t !== TT.PROP && t !== TT.PIT; }
@@ -6757,9 +6765,9 @@ function dgWaterTick(dt){
     if(Z.state === 'active' && !Z.water) Z.water = {y:(bx.y1 + 1.2) * DT, speed:(bx.y1 - bx.y0 + 1) * DT / def.rising.time, wait:def.rising.wait};
     if(!Z.water) continue;
     if(Z.state === 'active'){
-      // a few seconds of grace after the gates drop, then it climbs until only the top four rows are dry
+      // a few seconds of grace after the gates drop, then it climbs until only the top six rows are dry
       if(Z.water.wait > 0){ Z.water.wait -= dt; if(Z.water.wait <= 0){ addText(p.x, p.y - 40, 'THE WATER RISES · CLIMB', 2); sfx('splash'); } continue; }
-      Z.water.y = Math.max(bx.y0 * DT + DT * 4, Z.water.y - Z.water.speed * dt);
+      Z.water.y = Math.max(bx.y0 * DT + DT * 6, Z.water.y - Z.water.speed * dt);
     } else if(Z.water.y < (bx.y1 + 1.2) * DT) Z.water.y += Z.water.speed * 4 * dt;   // cleared: it drains away
   }
   // XP that falls into the rising water floats up to you
