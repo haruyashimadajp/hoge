@@ -30,6 +30,7 @@ input[type=text]{width:100%;background:var(--ink2);border:1px solid var(--line2)
 .gold{color:var(--gold)}
 
 /* ---------- title ---------- */
+.gfxset{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
 #title{position:fixed;inset:0;z-index:6;display:flex;flex-direction:column;justify-content:center;overflow-y:auto;
   padding:32px max(24px,6vw);padding-top:calc(32px + env(safe-area-inset-top,0px));padding-bottom:calc(32px + env(safe-area-inset-bottom,0px));
   background:linear-gradient(90deg,rgba(9,11,24,.94) 0%,rgba(9,11,24,.74) 34%,rgba(9,11,24,.12) 68%,rgba(9,11,24,0))}
@@ -947,7 +948,7 @@ let TDEMO_RUN = false;   // true while the title's dungeon floor runs: no sound,
    ===================================================================== */
 const SAVE_KEY = 'loadout-survivors-v1';
 function defaultSave(){
-  return {coins:200, unlocked:STARTER.slice(), chars:['mage'], cleared:{}, best:{}, decks:Array(DECK_SLOTS).fill(null), combos:[], seenGuide:false, vol:{master:.8, music:.6, sfx:.8, mute:false},
+  return {coins:200, unlocked:STARTER.slice(), chars:['mage'], cleared:{}, best:{}, decks:Array(DECK_SLOTS).fill(null), combos:[], seenGuide:false, vol:{master:.8, music:.6, sfx:.8, mute:false}, gfx:'auto',
     dg:{reached:1, cleared:{}, best:{}, themes:{}, skills:{}}};
 }
 function loadSave(){
@@ -2525,8 +2526,10 @@ const VOLS = [['master', 'Master volume', 'sound'], ['music', 'Music', 'music'],
 function volumeHtml(){
   return VOLS.map(([k, label, ic]) => `<div class="set"><label for="vol-${k}">${ico(ic)} ${label}</label><output id="out-${k}">${Math.round(save.vol[k] * 100)}</output>
     <input type="range" id="vol-${k}" data-vol="${k}" min="0" max="100" step="1" value="${Math.round(save.vol[k] * 100)}"></div>`).join('')
-    + `<button class="btn" data-act="mute" id="muteBtn">${ico(save.vol.mute ? 'mute' : 'sound')} ${save.vol.mute ? 'Unmute all' : 'Mute all'}</button>`;
+    + `<button class="btn" data-act="mute" id="muteBtn">${ico(save.vol.mute ? 'mute' : 'sound')} ${save.vol.mute ? 'Unmute all' : 'Mute all'}</button>`
+    + `<div class="set gfxset"><span>${ico('gear')} Graphics</span><button class="btn sm" data-act="gfx">${gfxLabel()}</button></div>`;
 }
+const gfxLabel = () => save.gfx === 'fast' ? 'Fast: 70% resolution, no shadows' : 'Auto: lowers resolution when it gets slow';
 function openSettings(){
   mbox.className = 'mbox';
   mbox.innerHTML = `<h2>Settings</h2><p class="mnote">Sound starts after your first click or key press. Settings are saved in this browser.</p>
@@ -2892,6 +2895,7 @@ modal.addEventListener('click', e => {
   if(t.dataset.act !== 'reroll') sfx('click');
   switch(t.dataset.act){
     case 'close': closeModal(); break;
+    case 'gfx': save.gfx = save.gfx === 'fast' ? 'auto' : 'fast'; persist(); d3Quality(); t.textContent = gfxLabel(); break;
     case 'mute': {
       save.vol.mute = !save.vol.mute; persist(); applyVolumes();
       t.innerHTML = `${ico(save.vol.mute ? 'mute' : 'sound')} ${save.vol.mute ? 'Unmute all' : 'Mute all'}`;
@@ -8111,7 +8115,7 @@ Object.assign(SKINS, {
    calls. Ground effects (hazard warnings, rings, slashes) are drawn with the
    2D code onto a canvas that lies on the floor around the player. */
 const D3 = {T:null, loading:null, R:null, portraits:{}, rigs:{}, occ:new Map(), cut:new Map(), cutWant:new Set(), torches:[], gates:[], chests:[],
-  falling:[], crumbleIdx:new Map(), cx:0, cy:0, dist:1000, snap:true, last:0, lightT:0};
+  falling:[], crumbleIdx:new Map(), cx:0, cy:0, dist:1000, snap:true, last:0, lightT:0, res:1};
 const WALLH = 108;
 const VIS = 1.2;          // characters are drawn a little larger than their hit circles
 
@@ -8127,13 +8131,14 @@ function d3Init(){
   canvas.id = 'gl';
   cv.parentNode.insertBefore(canvas, cv);
   let R;
-  try{ R = new T.WebGLRenderer({canvas, antialias:true, powerPreference:'high-performance'}); }
+  // phones skip MSAA: their screens are sharp enough, and it is the costliest pass on their GPUs
+  try{ R = new T.WebGLRenderer({canvas, antialias:!matchMedia('(pointer: coarse)').matches, powerPreference:'high-performance'}); }
   catch(err){ canvas.remove(); throw err; }
   D3.R = R; D3.canvas = canvas;
   D3.RT = {root:new T.Matrix4(), loc:new T.Matrix4(), m:new T.Matrix4(), s:new T.Matrix4(), t1:new T.Matrix4(), r1:new T.Matrix4(), t2:new T.Matrix4(),
     q:new T.Quaternion(), e:new T.Euler(0, 0, 0, 'YXZ'), v:new T.Vector3(), sc:new T.Vector3(), col:new T.Color(), white:new T.Color(1, 1, 1),
     gold:new T.Color('#ffd84a'), green:new T.Color('#7dff6a')};
-  R.shadowMap.enabled = true; R.shadowMap.type = T.PCFSoftShadowMap;
+  R.shadowMap.enabled = true; R.shadowMap.type = T.PCFShadowMap;   // soft PCF cost about 10% more per frame for little visible difference
   const scene = D3.scene = new T.Scene();
   scene.background = new T.Color('#0b1110');
   scene.fog = new T.Fog('#0b1110', 1000, 2400);
@@ -8146,14 +8151,31 @@ function d3Init(){
   Object.assign(sun.shadow.camera, {left:-850, right:850, top:850, bottom:-850, near:50, far:3400});
   sun.shadow.bias = -0.0006; sun.shadow.normalBias = 1.5;
   scene.add(sun, sun.target);
-  D3.torchLights = Array.from({length:6}, () => { const l = new T.PointLight('#ff9a48', 0, 380, 0); scene.add(l); return l; });
+  // every point light costs time on every lit pixel, so there are only four for torches (the portal borrows one) and one on the player.
+  // The count never changes while playing: a different count would make three.js recompile every material.
+  D3.torchLights = Array.from({length:4}, () => { const l = new T.PointLight('#ff9a48', 0, 380, 0); scene.add(l); return l; });
   scene.add(D3.pLight = new T.PointLight('#d6eaff', 1.1, 330, 0));
-  scene.add(D3.portalLight = new T.PointLight('#7df9ff', 0, 440, 0));
   d3Textures(); d3Materials(); d3Geometries(); d3TexturesAQ(); d3GeometriesAQ(); d3GeometriesAQ2();
   scene.add(D3.level = new T.Group());
   scene.add(D3.dyn = new T.Group());
   d3Dynamic();
   addEventListener('resize', d3Resize);
+  d3Quality();
+}
+// Graphics setting: 'auto' lowers the resolution while frames run slow; 'fast' always draws at 70% with no shadows
+function d3Quality(){
+  if(!D3.R) return;
+  D3.sun.castShadow = save.gfx !== 'fast';
+  d3Resize();
+}
+function d3AutoRes(dt){
+  const Q = D3.q || (D3.q = {ft:1 / 60, t:0, hold:2, up:8});
+  if(!(dt > 0) || save.gfx === 'fast') return;
+  Q.ft += (dt - Q.ft) * .05; Q.t += dt; Q.hold -= dt;
+  if(Q.hold > 0 || Q.t < 1) return;
+  Q.t = 0;
+  if(Q.ft > 1 / 48 && D3.res > .55){ D3.res = Math.max(.55, D3.res * .85); Q.hold = 1.5; Q.up = 8; d3Resize(); }
+  else if(Q.ft < 1 / 56 && D3.res < 1 && --Q.up <= 0){ D3.res = Math.min(1, D3.res * 1.1); Q.hold = 2; d3Resize(); }
 }
 function d3Show(on){
   if(on){ d3Init(); D3.snap = true; d3Resize(); }
@@ -8161,7 +8183,7 @@ function d3Show(on){
 }
 function d3Resize(){
   if(!D3.R) return;
-  D3.R.setPixelRatio(Math.min(window.devicePixelRatio || 1, innerWidth < 800 ? 1.25 : 1.5));
+  D3.R.setPixelRatio(Math.min(window.devicePixelRatio || 1, innerWidth < 800 ? 1.25 : 1.5) * (save.gfx === 'fast' ? .7 : D3.res));
   D3.R.setSize(innerWidth, innerHeight, false);
   D3.cam.aspect = innerWidth / Math.max(1, innerHeight);
   D3.cam.updateProjectionMatrix();
@@ -8388,16 +8410,35 @@ function d3Inst(mesh, idx, x, y, z, ry, sx, sy, sz){
   R.m.compose(R.v, R.q, R.sc);
   mesh.setMatrixAt(idx, R.m);
 }
+// Static level parts are split into chunks of 10×10 tiles, each its own instanced mesh with its own
+// bounding sphere, so the camera and the shadow pass both skip whatever is out of view.
+// Returns a group; group.at(i) gives [chunk mesh, index in it] for the i-th item of the list.
+const CHUNK = 10 * DT;
 function d3Instanced(geo, mat, list, place, opts){
   if(!list.length) return null;
-  const T = D3.T, m = new T.InstancedMesh(geo, mat, list.length);
-  list.forEach((o, i) => place(m, i, o));
-  m.receiveShadow = !opts || opts.recv !== false; m.castShadow = !!(opts && opts.cast);
-  m.instanceMatrix.needsUpdate = true;
-  if(m.instanceColor) m.instanceColor.needsUpdate = true;
-  m.computeBoundingSphere();
-  D3.level.add(m);
-  return m;
+  const T = D3.T, full = new T.InstancedMesh(geo, mat, list.length), M = D3.RT.t1, col = D3.RT.col;
+  list.forEach((o, i) => place(full, i, o));
+  const byKey = new Map(), at = new Array(list.length);
+  for(let i = 0; i < list.length; i++){
+    full.getMatrixAt(i, M);
+    const k = Math.floor(M.elements[12] / CHUNK) * 4096 + Math.floor(M.elements[14] / CHUNK);
+    let b = byKey.get(k); if(!b){ b = []; byKey.set(k, b); } b.push(i);
+  }
+  const grp = new T.Group();
+  for(const idx of byKey.values()){
+    const m = new T.InstancedMesh(geo, mat, idx.length);
+    idx.forEach((i, j) => { full.getMatrixAt(i, M); m.setMatrixAt(j, M); if(full.instanceColor){ full.getColorAt(i, col); m.setColorAt(j, col); } at[i] = [m, j]; });
+    m.receiveShadow = !opts || opts.recv !== false; m.castShadow = !!(opts && opts.cast);
+    if(opts && opts.order) m.renderOrder = opts.order;
+    m.instanceMatrix.needsUpdate = true;
+    if(m.instanceColor) m.instanceColor.needsUpdate = true;
+    m.computeBoundingSphere();
+    grp.add(m);
+  }
+  full.dispose();
+  grp.at = i => at[i];
+  D3.level.add(grp);
+  return grp;
 }
 function d3BuildLevel(){
   const T = D3.T, D = G.dg, L = D.L, W = L.W, rnd = mulberry(D.floor * 977 + 13), M = D3.M, G3 = D3.geo;
@@ -8410,7 +8451,8 @@ function d3BuildLevel(){
   const AQ = D3.theme === 'aqueduct', MS = AQ ? D3.MA : M;
   const isWall = (x, y) => x < 0 || y < 0 || x >= W || y >= L.H || L.t[y * W + x] === TT.WALL;
   const h3 = (x, y, s) => hash3(x, y, D.floor * 31 + s);
-  const occ = (i, o) => { let a = D3.occ.get(i); if(!a){ a = []; D3.occ.set(i, a); } a.push(o); };
+  // things that sink away when they stand between the camera and the player; g.at(k) finds the chunk
+  const occ = (i, g, k, o) => { let a = D3.occ.get(i); if(!a){ a = []; D3.occ.set(i, a); } const [mesh, idx] = g.at(k); a.push(Object.assign(o, {mesh, idx})); };
   const col = (m, i, k) => { D3.RT.col.setRGB(k, k, k * .98); m.setColorAt(i, D3.RT.col); };
   // floors
   const fl = {floor:[], moss:[], stair:[], crumble:[], slick:[], bed:[], deck:[]}, pools = [], webs = [];
@@ -8426,12 +8468,10 @@ function d3BuildLevel(){
   }
   for(const kind in fl){
     const m = d3Instanced(G3.floor, kind === 'bed' ? MS.floor : MS[kind], fl[kind], (m, i, o) => { d3Inst(m, i, o.x * DT + 32, o.y0 || 0, o.y * DT + 32, o.r * Math.PI / 2, 1, 1, 1); col(m, i, o.k); });
-    if(kind === 'crumble' && m){ fl.crumble.forEach((o, i) => D3.crumbleIdx.set(o.i, {m, idx:i, x:o.x * DT + 32, z:o.y * DT + 32, k:o.k})); }
+    if(kind === 'crumble' && m){ fl.crumble.forEach((o, i) => { const [cm, idx] = m.at(i); D3.crumbleIdx.set(o.i, {m:cm, idx, x:o.x * DT + 32, z:o.y * DT + 32, k:o.k}); }); }
   }
-  const pm = d3Instanced(G3.ground, M.pool, pools, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 1.5, o.y * DT + 32, 0, 1, 1, 1), {recv:false});
-  if(pm) pm.renderOrder = 1;
-  const wm = d3Instanced(G3.ground, M.web, webs, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 1, o.y * DT + 32, o.r, 1.15, 1, 1.15), {recv:false});
-  if(wm) wm.renderOrder = 2;
+  d3Instanced(G3.ground, M.pool, pools, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 1.5, o.y * DT + 32, 0, 1, 1, 1), {recv:false, order:1});
+  d3Instanced(G3.ground, M.web, webs, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 1, o.y * DT + 32, o.r, 1.15, 1, 1.15), {recv:false, order:2});
   // walls: only the ones that touch a walkable tile
   const walls = [], torches = [], vines = [], rails = [], rock = new Int16Array(W * L.H).fill(-1), rq = [];
   for(let i = 0; i < W * L.H; i++) if(L.t[i] !== TT.WALL){ rock[i] = 0; rq.push(i); }
@@ -8453,12 +8493,12 @@ function d3BuildLevel(){
     }
   }
   const wallM = d3Instanced(G3.wall, MS.wall, walls, (m, i, o) => { d3Inst(m, i, o.x * DT + 32, 0, o.y * DT + 32, 0, 1, o.h, 1); col(m, i, o.k); }, {cast:true});
-  walls.forEach((o, i) => occ(o.i, {mesh:wallM, idx:i, x:o.x * DT + 32, y:0, z:o.y * DT + 32, ry:0, sx:1, sy:o.h, sz:1}));
+  walls.forEach((o, i) => occ(o.i, wallM, i, {x:o.x * DT + 32, y:0, z:o.y * DT + 32, ry:0, sx:1, sy:o.h, sz:1}));
   if(rails.length) d3Instanced(G3.wall, D3.MA.deck, rails, (m, i, o) => { d3Inst(m, i, o.x * DT + 32, 0, o.y * DT + 32, 0, 1, .32, 1); col(m, i, .8); }, {cast:true});
   const torchM = d3Instanced(G3.torch, M.stone, torches, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 80, o.y * DT + 64 + 5, 0, 1, 1, 1), {recv:false});
-  torches.forEach((o, i) => { occ(o.i, {mesh:torchM, idx:i, x:o.x * DT + 32, y:80, z:o.y * DT + 69, ry:0, sx:1, sy:1, sz:1, dep:true}); D3.torches.push({x:o.x * DT + 32, y:92, z:o.y * DT + 72, i:o.i, f:h3(o.x, o.y, 12) * 10}); });
+  torches.forEach((o, i) => { occ(o.i, torchM, i, {x:o.x * DT + 32, y:80, z:o.y * DT + 69, ry:0, sx:1, sy:1, sz:1, dep:true}); D3.torches.push({x:o.x * DT + 32, y:92, z:o.y * DT + 72, i:o.i, f:h3(o.x, o.y, 12) * 10}); });
   const vineM = d3Instanced(G3.plane, M.vine, vines, (m, i, o) => d3Inst(m, i, o.x * DT + 32 + o.off, o.h - o.len / 2, o.y * DT + 65.5, 0, 40, o.len, 1), {recv:false});
-  vines.forEach((o, i) => occ(o.i, {mesh:vineM, idx:i, x:o.x * DT + 32 + o.off, y:o.h - o.len / 2, z:o.y * DT + 65.5, ry:0, sx:40, sy:o.len, sz:1, dep:true}));
+  vines.forEach((o, i) => occ(o.i, vineM, i, {x:o.x * DT + 32 + o.off, y:o.h - o.len / 2, z:o.y * DT + 65.5, ry:0, sx:40, sy:o.len, sz:1, dep:true}));
   // props
   const byKind = {p:[], pb:[], r0:[], r1:[], r2:[], k:[], o:[], L:[], V:[], Q:[], M:[]};
   for(const pr of L.props){
@@ -8473,7 +8513,7 @@ function d3BuildLevel(){
   for(const o of L.lanterns) D3.torches.push({x:(o.x + .5) * DT, y:86, z:(o.y + .5) * DT, i:o.i, f:h3(o.x, o.y, 17) * 10, lan:o});
   for(const k in byKind){
     const m = d3Instanced(propGeo[k], M.stone, byKind[k], (m, i, o) => d3Inst(m, i, o.x, 0, o.z, o.ry, 1, 1, 1), {cast:true});
-    if(m && k !== 'r0' && k !== 'r1' && k !== 'r2') byKind[k].forEach((o, i) => occ(o.i, {mesh:m, idx:i, x:o.x, y:0, z:o.z, ry:o.ry, sx:1, sy:1, sz:1}));
+    if(m && k !== 'r0' && k !== 'r1' && k !== 'r2') byKind[k].forEach((o, i) => occ(o.i, m, i, {x:o.x, y:0, z:o.z, ry:o.ry, sx:1, sy:1, sz:1}));
   }
   d3BuildWater();
   // gates
@@ -8514,6 +8554,7 @@ function d3BuildLevel(){
   D3.level.add(portal);
   D3.portal = {grp:portal, ring, swirl};
   D3.snap = true; D3.lightT = 0;
+  if(D3.q) D3.q.hold = 2;   // the first frames of a new floor compile shaders: do not judge the frame rate on them
 }
 function d3Collapse(i){
   const c = D3.crumbleIdx.get(i);
@@ -8746,6 +8787,8 @@ function d3Camera(dt){
   cam.lookAt(D3.cx + sx, 0, D3.cy - 30 + sy);
   D3.dist = dist;
   D3.scene.fog.near = dist * .95; D3.scene.fog.far = dist * 2.3;
+  // nothing past the fog can be seen, so the camera stops drawing there (whole chunks of the level get skipped)
+  if(Math.abs(cam.far - dist * 2.5) > 1){ cam.far = dist * 2.5; cam.updateProjectionMatrix(); }
   D3.sun.position.set(D3.cx - 380, 1100, D3.cy + 520); D3.sun.target.position.set(D3.cx, 0, D3.cy - 120);
   D3.pLight.position.set(p.x, 95, p.y + 10);
 }
@@ -8778,30 +8821,32 @@ function d3UpdateLevel(dt, ts){
   D3.tex.pool.offset.set(ts * .02, ts * .013);
   if(D3.rune){ D3.rune.rotation.y = ts * .15; D3.M.rune.opacity = G.boss ? .85 + .15 * Math.sin(ts * 6) : .35; }
   const P = D3.portal, po = D.portal;
+  let portal = null;
   if(po){
     if(!P.grp.visible){
       P.grp.visible = true;
       const c = po.home ? '#ffd84a' : '#7df9ff';
-      D3.M.ring.color.set(c); D3.M.swirl.color.set(c); D3.portalLight.color.set(c);
+      D3.M.ring.color.set(c); D3.M.swirl.color.set(c);
     }
     const s = Math.min(1, po.t * 1.6);
     P.grp.scale.setScalar(Math.max(.01, s));
     P.swirl.rotation.z = -ts * 2.2;
-    D3.portalLight.position.set(P.grp.position.x, 80, P.grp.position.z + 30);
-    D3.portalLight.intensity = 2.6 * s;
     const pc = po.home ? '#ffd84a' : '#7df9ff';
+    portal = {x:P.grp.position.x, z:P.grp.position.z + 30, c:pc, i:2.6 * s};
     for(let k = 0; k < 3; k++){ const a = ts * 2 + k * 2.1; gp(P.grp.position.x + Math.cos(a) * 56, 70 + Math.sin(a) * 56, P.grp.position.z, pc, 30, .8 * s, .6); }
     gp(P.grp.position.x, 70, P.grp.position.z + 4, pc, 150, .35 * s, 0);
-  } else { P.grp.visible = false; D3.portalLight.intensity = 0; }
-  // the six torches nearest the camera get real lights; all of them flicker
+  } else P.grp.visible = false;
+  // the torches nearest the camera get real lights (the portal takes the first one while it is open); all of them flicker
   D3.lightT -= dt;
   if(D3.lightT <= 0){
     D3.lightT = .25;
-    D3.lit = D3.torches.filter(o => !(D3.cut.get(o.i) < .7) && (!o.lan || o.lan.lit)).sort((a, b) => ((a.x - D3.cx) ** 2 + (a.z - D3.cy) ** 2) - ((b.x - D3.cx) ** 2 + (b.z - D3.cy) ** 2)).slice(0, 6);
+    D3.lit = D3.torches.filter(o => !(D3.cut.get(o.i) < .7) && (!o.lan || o.lan.lit)).sort((a, b) => ((a.x - D3.cx) ** 2 + (a.z - D3.cy) ** 2) - ((b.x - D3.cx) ** 2 + (b.z - D3.cy) ** 2)).slice(0, D3.torchLights.length);
   }
   D3.torchLights.forEach((l, k) => {
-    const o = D3.lit && D3.lit[k];
+    if(portal && !k){ l.position.set(portal.x, 80, portal.z); l.color.set(portal.c); l.intensity = portal.i; l.distance = 440; return; }
+    const o = D3.lit && D3.lit[portal ? k - 1 : k];
     if(!o){ l.intensity = 0; return; }
+    l.distance = 380;
     l.position.set(o.x, o.y + 6, o.z + 18);
     l.color.set(o.lan ? '#ffcf6a' : D3.look.torch);
     l.intensity = (o.lan ? 3.2 : 2.3) * (.85 + .15 * Math.sin(ts * 9 + o.f) * Math.sin(ts * 5.3 + o.f * 2));
@@ -9009,6 +9054,7 @@ function d3Project(x, h, z){
 function dgRender(now){
   const dt = Math.min(.05, Math.max(0, (now - (D3.last || now)) / 1000)), ts = now / 1000, g = G, p = g.p;
   D3.last = now;
+  d3AutoRes(dt);
   D3.gp.n = 0;
   d3Camera(dt);
   d3UpdateLevel(dt, ts);
@@ -9253,13 +9299,11 @@ function d3BuildWater(){
     else if(L.low[i] && t !== TT.WALL) lows.push({x, y});
   }
   const rot = [Math.PI / 2, -Math.PI / 2, 0, Math.PI];
-  const wm = d3Instanced(G3.ground, MA.water, waters, (m, i, o) => d3Inst(m, i, o.x * DT + 32, -7, o.y * DT + 32, 0, 1, 1, 1), {recv:false});
-  if(wm) wm.renderOrder = 1;
+  d3Instanced(G3.ground, MA.water, waters, (m, i, o) => d3Inst(m, i, o.x * DT + 32, -7, o.y * DT + 32, 0, 1, 1, 1), {recv:false, order:1});
   D3.flowList = flows; D3.flowRot = rot; D3.flipState = false;
-  D3.flowMesh = d3Instanced(G3.ground, MA.flow, flows, (m, i, o) => d3Inst(m, i, o.x * DT + 32, -4, o.y * DT + 32, rot[o.dir], 1, 1, 1), {recv:false});
-  if(D3.flowMesh) D3.flowMesh.renderOrder = 1;
-  D3.floodMesh = d3Instanced(G3.ground, MA.flood, lows, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 0, o.y * DT + 32, 0, 1, 1, 1), {recv:false});
-  if(D3.floodMesh){ D3.floodMesh.renderOrder = 1; D3.floodMesh.position.y = -40; }
+  D3.flowMesh = d3Instanced(G3.ground, MA.flow, flows, (m, i, o) => d3Inst(m, i, o.x * DT + 32, -4, o.y * DT + 32, rot[o.dir], 1, 1, 1), {recv:false, order:1});
+  D3.floodMesh = d3Instanced(G3.ground, MA.flood, lows, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 0, o.y * DT + 32, 0, 1, 1, 1), {recv:false, order:1});
+  if(D3.floodMesh) D3.floodMesh.position.y = -40;
   D3.riseMeshes = [];
   if(D.def.rising) for(const k in D.zones){
     if(!D.zones[k].waves) continue;
@@ -9297,8 +9341,7 @@ function d3UpdateWater(dt, ts){
   const flipped = D.curFlip > 0;
   if(D3.flowMesh && flipped !== D3.flipState){
     D3.flipState = flipped;
-    D3.flowList.forEach((o, i) => { const z = D.L.z[o.i] === 10; d3Inst(D3.flowMesh, i, o.x * DT + 32, -4, o.y * DT + 32, D3.flowRot[o.dir] + (flipped && z ? Math.PI : 0), 1, 1, 1); });
-    D3.flowMesh.instanceMatrix.needsUpdate = true;
+    D3.flowList.forEach((o, i) => { const z = D.L.z[o.i] === 10, [m, j] = D3.flowMesh.at(i); d3Inst(m, j, o.x * DT + 32, -4, o.y * DT + 32, D3.flowRot[o.dir] + (flipped && z ? Math.PI : 0), 1, 1, 1); m.instanceMatrix.needsUpdate = true; });
   }
 }
 // how far a character sinks where it stands

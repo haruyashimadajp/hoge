@@ -40,6 +40,13 @@ Seen from behind and above, in the style of Minecraft Dungeons. It follows the d
 - Each theme has one point budget for the loadout: 5 points for Mossy Ruins, 3 for Flooded Aqueducts.
 - **Skill tree** (the Skills tab): the first clear of a floor gives 1 skill point, and every fifth floor gives 2. Each rank of a skill costs one point more than the rank before it (1, then 2, then 3 …); the three capstones cost a flat 3. Three branches: Agility (roll cooldown, roll distance, move speed, longer i-frames, Tailwind, Water Strider, and Double Roll at the end), Might (damage, cooldowns, crits, Giant Slayer, Head Start, XP, and Overkill) and Survival (max HP, armor, pickup range, a Healing Flask, coins, Lantern Bearer, and Last Stand). A branch's middle row opens after 4 points in its first row, its last row after 10. You can take points back out at any time. Skills only work in the dungeon; the data is `DG_SKILLS`.
 
+## Performance
+
+- The static level is split into chunks of 10×10 tiles (`d3Instanced`), so the camera and the shadow pass only draw what is near the view, and nothing past the fog is drawn.
+- Only five point lights exist: four for the torches nearest the camera (an open portal borrows one) and one on the player. The count never changes during play, so materials are never recompiled mid-run. Shadows use plain PCF filtering.
+- Phones skip MSAA.
+- Settings → Graphics: **Auto** (default) lowers the resolution step by step, down to 55%, while the game runs under about 48 fps, and raises it again once there is room (`d3AutoRes`). **Fast** always draws at 70% resolution without shadows.
+
 ## Sound
 
 All sound effects and music are synthesized in the browser with the Web Audio API (no audio files). The music is hand-written: each song in `SONGS` lists its chords bar by bar, its melodies as note:length pairs and its drum grooves, and plays an intro and then a form like A A+ B B+ A~ A+ (`+` adds an arpeggio, a harmony line and busier drums, `~` is a breather). Everything runs through a small mixer with reverb and a tempo-synced echo. There are songs for the title, the base, each theme, the floor bosses of each theme, and a finale for the theme bosses on floors 5 and 10. Pausing or a level-up muffles the music. Volumes for master, music and sound effects are in Settings (title screen, the gear button, or the pause menu) and are saved in the browser.
