@@ -2486,9 +2486,11 @@ function renderGuide(){
     <div class="step"><span class="n">6</span><b>Unlock more</b>First clears give new items and stages. Spend coins on the gacha.</div></div></div>
     <div class="sec"><h2>Dungeon</h2><p>A 3D mode. Same characters and loadouts, one budget for each theme.</p><div class="steps">
     <div class="step"><b>${ico('stairs')} Hand-made floors</b>Explore each floor, find the boss chamber and beat the boss. Then an exit portal opens.</div>
+    <div class="step"><b>${ico('reroll')} Fresh start every floor</b>Each floor starts you back at level 1 with your bare loadout, and a level needs twice the XP it does in the stages. XP gems stay where enemies fall.</div>
     <div class="step"><b>${ico('portal')} Secure your loot</b>Coins and relics only count once you step into a portal. If you die, you lose only what you were carrying.</div>
     <div class="step"><b>${ico('roll')} Dodge roll</b><kbd>Space</kbd> or the roll button. Nothing can hit you mid-roll, and it breaks you out of webs.</div>
     <div class="step"><b>${ico('warn')} Floor hazards</b>Webs slow you down, cracked floor falls away a moment after you step on it, and moss pools poison you.</div>
+    <div class="step"><b>${ico('crown')} Bosses</b>Every boss has its own set of attacks, and its name for each one shows above it as it starts. Shockwave rings can only be dodged by rolling through them.</div>
     <div class="step"><b>${ico('gem')} Relics</b>Elites and bosses drop relics: locked items that match the enemy type. Revenants drop melee items, spiders poison and speed items, archers ranged items.</div></div></div>
     <div class="sec"><h2>During a run</h2><div class="steps">
     <div class="step"><b>${ico('spark')} Combos</b>Some item pairs change costs or effects. Cards show a hint when one is close.</div>
@@ -2863,7 +2865,7 @@ const negF = id => (G.neg[id] === undefined ? 0 : 1 - G.neg[id] / MAX_LV.neg);  
 const posV = id => (G.pos[id] ? ITEMS[id].lv(G.pos[id]).v / 100 : 0);
 const abS = id => ITEMS[id].lv(G.ab[id]);
 
-function needXp(l){ return Math.round(XP_BASE * Math.pow(XP_GROWTH, l - 1)); }
+function needXp(l){ return Math.round(XP_BASE * (G && G.dg ? DG_XP_MUL : 1) * Math.pow(XP_GROWTH, l - 1)); }
 
 function startRun(stage, charId, items){
   const ch = CHARACTERS[charId];
@@ -3149,10 +3151,11 @@ function updateHazards(dt){
       else {
         hz.active -= dt; hz.a += hz.rot * dt;
         const x1 = hz.x + Math.cos(hz.a) * hz.len, y1 = hz.y + Math.sin(hz.a) * hz.len;
-        if(segDist(p.x, p.y, hz.x, hz.y, x1, y1) < hz.w / 2 + p.r) hurtPlayer(hz.dmg);
+        if(!(hz.once && hz.hitP) && segDist(p.x, p.y, hz.x, hz.y, x1, y1) < hz.w / 2 + p.r){ if(hz.slow) p.slowT = Math.max(p.slowT, hz.slow); const h0 = p.hp; hurtPlayer(hz.dmg); if(p.hp < h0) hz.hitP = true; }
         if(hz.active <= 0) hz.done = true;
       }
     } else if(hz.kind === 'tele'){ hz.warn -= dt; if(hz.warn <= 0) hz.done = true; }
+    else if(HZX[hz.kind]) HZX[hz.kind](hz, dt);
   }
   G.hazards = G.hazards.filter(hz => !hz.done);
 }
@@ -3263,6 +3266,14 @@ function aiStep(e, ai, dt, d, dx, dy, sp){
       }
       return false;
     }
+    case 'hatch': {
+      e.hatchT = (e.hatchT === undefined ? ai.t : e.hatchT) - dt;
+      if(e.hatchT <= 0){
+        e.dead = true; burst(e.x, e.y, '#d8d0b8', 14, 160); sfx('crumble');
+        for(let i = 0; i < ai.n; i++) dgSpawn(ai.minion, e.x + rand(-18, 18), e.y + rand(-18, 18), false, 0);
+      }
+      return true;
+    }
     case 'orbit': {
       if(d > ai.r + 160) return false;
       const cur = Math.atan2(e.y - p.y, e.x - p.x), dir = e.seed > Math.PI ? 1 : -1;
@@ -3320,7 +3331,10 @@ function bossStep(b, dt){
   }
   if(!b.act){
     b.atkT -= dt;
-    if(b.atkT <= 0){ b.pi = (b.pi === undefined ? -1 : b.pi) + 1; b.act = {name:pats[b.pi % pats.length], t:0, k:0}; }
+    if(b.atkT <= 0){
+      b.pi = (b.pi === undefined ? -1 : b.pi) + 1; b.act = {name:pats[b.pi % pats.length], t:0, k:0};
+      if(G.dg && ATK_NAME[b.act.name]) addText(b.x, b.y - 30, ATK_NAME[b.act.name], 2);
+    }
     if(sk.keep){      // archers back away to keep their distance
       const dx = p.x - b.x, dy = p.y - b.y, d = Math.hypot(dx, dy) || 1;
       if(d < sk.keep){ b.x -= dx / d * b.speed * .9 * dt; b.y -= dy / d * b.speed * .9 * dt; return true; }
@@ -3405,9 +3419,9 @@ function bossStep(b, dt){
       hold = A.t < .6; if(A.t > .6) done = true;
       break;
     case 'boulders':
-      for(let i = 0; i < 5; i++){
-        const a = Math.random() * TAU, r = i ? rand(60, 180) : 0, tx = p.x + Math.cos(a) * r, ty = p.y + Math.sin(a) * r, w = 1.15 + i * .15;
-        addCircle(tx, ty, 64, w, dmg, '#c8b89a');
+      for(let i = 0; i < 4; i++){
+        const a = Math.random() * TAU, r = i ? rand(70, 190) : 0, tx = p.x + Math.cos(a) * r, ty = p.y + Math.sin(a) * r, w = 1.2 + i * .18;
+        addCircle(tx, ty, 62, w, dmg * .75, '#c8b89a');
         G.fx.push({type:'lob', x0:b.x, y0:b.y, x:tx, y:ty, life:w, max:w, color:'#e0d4b8'});
       }
       sfx('lob'); done = true;
@@ -3417,7 +3431,7 @@ function bossStep(b, dt){
       done = true;
       break;
     case 'brood': bossSummon(b, 'minion', sk.minion, 3, 70); done = true; break;
-    case 'soldiers': bossSummon(b, 'soldier', sk.minion, 3, 90); sfx('elite'); done = true; break;
+    case 'soldiers': bossSummon(b, 'soldier', sk.minion, 2, 90); sfx('elite'); done = true; break;
     case 'volley':
       while(A.k < 3 && A.t >= A.k * .35){ for(let i = -1.5; i <= 1.5; i++) ebullet(b.x, b.y, aim + i * .17, 320, dmg * .55, '#ffe2a0', {arrow:true}); A.k++; }
       if(A.t > 1.1) done = true;
@@ -3428,15 +3442,15 @@ function bossStep(b, dt){
       break;
     case 'whip':
       hold = true;
-      if(!A.k){ A.k = 1; addBeam({x:b.x, y:b.y, a:aim - 1.1, rot:2.2, len:400, w:32, warn:.6, active:1, dmg:dmg * .8, color:sk.glow, owner:b}); }
+      if(!A.k){ A.k = 1; addBeam({x:b.x, y:b.y, a:aim - 1.1, rot:2.2, len:400, w:32, warn:.7, active:1, dmg:dmg * .6, color:sk.glow, owner:b, once:true}); }
       if(A.t > 1.7) done = true;
       break;
     case 'whip2':
       hold = true;
       if(!A.k){
         A.k = 1;
-        addBeam({x:b.x, y:b.y, a:aim - 1.2, rot:2.4, len:420, w:32, warn:.6, active:1, dmg:dmg * .8, color:sk.glow, owner:b});
-        addBeam({x:b.x, y:b.y, a:aim + 1.2, rot:-2.4, len:420, w:32, warn:.6, active:1, dmg:dmg * .8, color:sk.glow, owner:b});
+        addBeam({x:b.x, y:b.y, a:aim - 1.2, rot:2.4, len:420, w:32, warn:.7, active:1, dmg:dmg * .6, color:sk.glow, owner:b, once:true});
+        addBeam({x:b.x, y:b.y, a:aim + 1.2, rot:-2.4, len:420, w:32, warn:.7, active:1, dmg:dmg * .6, color:sk.glow, owner:b, once:true});
       }
       if(A.t > 1.7) done = true;
       break;
@@ -3444,11 +3458,177 @@ function bossStep(b, dt){
       while(A.k < 3 && A.t >= A.k * .45){ addCircle(p.x + p.vx * .3, p.y + p.vy * .3, 66, .8, dmg * .7, '#7dff6a', {life:3, dps:6}); A.k++; }
       if(A.t > 1.1) done = true;
       break;
+    // ---- Moss Sentinel / Petrified Giant ----
+    case 'stompwave':
+      hold = true;
+      if(A.t >= .7 && A.k < 1){ A.k = 1; addWave(b, 520, 300, sk.glow, dmg); G.shake = .3; sfx('thud'); }
+      if(A.t > 1.1) done = true;
+      break;
+    case 'hurl': {
+      const tx = p.x + p.vx * .5, ty = p.y + p.vy * .5;
+      addCircle(tx, ty, 82, 1.15, dmg * 1.3, '#c8b89a');
+      G.fx.push({type:'lob', x0:b.x, y0:b.y, x:tx, y:ty, life:1.15, max:1.15, color:'#e0d4b8'}); sfx('lob');
+      done = true; break;
+    }
+    case 'mossburst':
+      for(let i = 0; i < 5; i++){ const a = i / 5 * TAU + Math.random(), r = rand(80, 260); addCircle(b.x + Math.cos(a) * r, b.y + Math.sin(a) * r, 64, .9, dmg * .7, '#7dff6a', {life:7, dps:6}); }
+      done = true; break;
+    case 'avalanche': {
+      // rows of falling rocks sweep toward you; every row has one gap
+      const ax = Math.cos(aim), ay = Math.sin(aim), nx = -ay, ny = ax;
+      for(let i = 0; i < 7; i++){
+        const gap = Math.floor(rand(-3, 3)), cx = b.x + ax * (110 + i * 105), cy = b.y + ay * (110 + i * 105);
+        for(let j = -5; j <= 5; j++) if(j !== gap) addCircle(cx + nx * j * 96, cy + ny * j * 96, 54, .85 + i * .24, dmg * .9, '#c8b89a');
+      }
+      G.shake = .25; sfx('crumble'); done = true; break;
+    }
+    // ---- Vine-clad Broodmother ----
+    case 'eggs': {
+      let eggs = 0; for(const e of G.enemies) if(!e.dead && e.type === 'egg') eggs++;
+      for(let i = 0; i < 3 && eggs < 7; i++, eggs++){ const a = aim + (i - 1) * .9, r = rand(120, 220); if(G.dg) dgSpawn('egg', b.x + Math.cos(a) * r, b.y + Math.sin(a) * r, false, 0); }
+      sfx('lob'); done = true; break;
+    }
+    case 'pounce':
+      hold = true;
+      if(!A.k){
+        A.k = 1; A.x0 = b.x; A.y0 = b.y;
+        let tx = p.x + p.vx * .35, ty = p.y + p.vy * .35;
+        if(dgBlockedAt(tx, ty)){ tx = p.x; ty = p.y; }
+        A.tx = tx; A.ty = ty;
+        addCircle(tx, ty, b.r + 60, .9, dmg * 1.2, sk.glow); b.noTouch = true; sfx('charge');
+      }
+      if(A.t < .9){ const q = A.t / .9; b.x = A.x0 + (A.tx - A.x0) * q; b.y = A.y0 + (A.ty - A.y0) * q; b.airH = Math.sin(q * Math.PI) * 190; }
+      else if(A.k === 1){
+        A.k = 2; b.x = A.tx; b.y = A.ty; b.airH = 0; b.noTouch = false; G.shake = .35; burst(b.x, b.y, '#9a8a6a', 24, 220);
+        // the landing throws you clear, so the bite is the circle and not the body
+        const dx = p.x - b.x, dy = p.y - b.y, d = Math.hypot(dx, dy) || 1, R = b.r + p.r + 34;
+        if(d < R){ p.x = b.x + dx / d * R; p.y = b.y + dy / d * R; if(G.dg) dgCollide(p, p.r); }
+      }
+      if(A.t > 1.35) done = true;
+      break;
+    case 'webfield': {
+      let webs = 0; for(const hz of G.hazards) if(hz.kind === 'web') webs++;
+      for(let i = 0; i < 5 && webs < 16; i++, webs++){
+        const a = Math.random() * TAU, r = rand(90, 250), x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r;
+        G.hazards.push({kind:'web', x, y, r:68, delay:.7, life:14, max:14, seed:Math.random() * TAU});
+        G.fx.push({type:'lob', x0:b.x, y0:b.y, x, y, life:.7, max:.7, color:'#f4f4f4'});
+      }
+      sfx('lob'); done = true; break;
+    }
+    case 'venom':
+      hold = true;
+      while(A.k < 10 && A.t >= A.k * .07){ ebullet(b.x, b.y, aim + (A.k - 4.5) * .1 + rand(-.05, .05), rand(230, 290), dmg * .3, '#a6ff3d', {venom:{dps:3, dur:3}, r:8}); A.k++; }
+      if(A.t > 1) done = true;
+      break;
+    // ---- Archer Captain ----
+    case 'snipe':
+      hold = true;
+      if(!A.k){ A.k = 1; A.h = {kind:'tele', x:b.x, y:b.y, a:aim, len:1100, w:18, warn:1.15, max:1.15}; G.hazards.push(A.h); sfx('charge'); }
+      if(A.t < .8){ A.h.x = b.x; A.h.y = b.y; A.h.a = aim; }
+      if(A.t >= 1.15 && A.k === 1){ A.k = 2; ebullet(b.x, b.y, A.h.a, 1050, dmg * 1.6, '#ffe2a0', {arrow:true, r:9}); sfx('laser'); }
+      if(A.t > 1.4) done = true;
+      break;
+    case 'arrowstorm':
+      hold = true;
+      while(A.k < 3 && A.t >= A.k * .5){ const off = A.k * .13; for(let i = 0; i < 16; i++) ebullet(b.x, b.y, off + i / 16 * TAU, 250, dmg * .5, '#ffe2a0', {arrow:true}); A.k++; }
+      if(A.t > 1.3) done = true;
+      break;
+    case 'squad':
+      if(G.dg){ for(let i = 0; i < 4; i++){ const a = i / 4 * TAU + Math.random(), x = b.x + Math.cos(a) * 120, y = b.y + Math.sin(a) * 120; dgSpawn(i < 2 ? 'archer' : 'revenant', x, y, false, 0); } }
+      G.fx.push({type:'ring', x:b.x, y:b.y, r:10, maxR:180, life:.4, max:.4, color:sk.glow, fill:true}); sfx('elite');
+      done = true; break;
+    // ---- Altar Keeper ----
+    case 'spin':
+      hold = true;
+      if(!A.k){ A.k = 1; G.hazards.push({kind:'aura', owner:b, r:b.r + 85, life:3.2, max:3.2, wind:.7, dmg:dmg * .7, tick:.7, color:sk.glow}); sfx('charge'); }
+      if(A.t > .7 && A.t < 3.2){
+        const dx = p.x - b.x, dy = p.y - b.y, d = Math.hypot(dx, dy) || 1, sp = b.speed * 1.35;
+        b.x += dx / d * sp * dt; b.y += dy / d * sp * dt;
+      }
+      if(A.t > 3.4) done = true;
+      break;
+    case 'runes':
+      for(let i = -5; i <= 5; i++){
+        const w = .85 + Math.abs(i) * .17;
+        addCircle(p.x + i * 92, p.y, 48, w, dmg * .6, sk.glow);
+        if(i) addCircle(p.x, p.y + i * 92, 48, w, dmg * .6, sk.glow);
+      }
+      done = true; break;
+    // ---- Guardian of the Ruins ----
+    case 'thornwave':
+      hold = true;
+      while(A.k < 2 && A.t >= .5 + A.k * .8){ addWave(b, 600, 270, '#7dff6a', dmg * .6); sfx('thud'); A.k++; }
+      if(A.t > 1.8) done = true;
+      break;
+    case 'vinewall': {
+      const nx = -Math.sin(aim), ny = Math.cos(aim);
+      for(let j = -7; j <= 7; j++) addCircle(p.x + nx * j * 78, p.y + ny * j * 78, 46, .8 + Math.abs(j) * .06, dmg * .75, '#7dff6a', {life:4, dps:6});
+      done = true; break;
+    }
+    case 'gaze':
+      hold = true;
+      if(!A.k){ A.k = 1; addBeam({x:b.x, y:b.y, a:aim - .7, rot:.55, len:1100, w:44, warn:1, active:2.4, dmg:dmg * .6, color:'#c8ffb0', owner:b, slow:1.2}); }
+      if(A.t > 3.5) done = true;
+      break;
     default: done = true;
   }
   if(done){ b.act = null; b.atkT = sk.phases ? (b.phase >= 2 ? .7 : 1.1) : 1.4; }
   return hold;
 }
+
+// expanding shockwave ring: it hurts once when its edge passes you, so roll through it or stay out of reach
+function addWave(b, maxR, speed, color, dmg){ G.hazards.push({kind:'wave', x:b.x, y:b.y, r:b.r * .6, maxR, speed, w:30, dmg, color, hit:false}); }
+const HZX = {
+  wave(hz, dt){
+    const p = G.p; hz.r += hz.speed * dt;
+    if(!hz.hit && Math.abs(Math.hypot(p.x - hz.x, p.y - hz.y) - hz.r) < hz.w / 2 + p.r){ hz.hit = true; hurtPlayer(hz.dmg); }
+    if(hz.r > hz.maxR) hz.done = true;
+  },
+  web(hz, dt){
+    const p = G.p;
+    if(hz.delay > 0){ hz.delay -= dt; return; }
+    hz.life -= dt;
+    if(Math.hypot(p.x - hz.x, p.y - hz.y) < hz.r) p.webT = .12;
+    if(hz.life <= 0) hz.done = true;
+  },
+  aura(hz, dt){
+    const p = G.p, o = hz.owner;
+    if(!o || o.dead){ hz.done = true; return; }
+    hz.x = o.x; hz.y = o.y; hz.life -= dt; hz.tick -= dt;
+    if(hz.tick <= 0){
+      hz.tick = .4;
+      G.fx.push({type:'ring', x:o.x, y:o.y, r:hz.r * .5, maxR:hz.r, life:.25, max:.25, color:hz.color});
+      if(Math.hypot(p.x - o.x, p.y - o.y) < hz.r + p.r) hurtPlayer(hz.dmg);
+    }
+    if(hz.life <= 0) hz.done = true;
+  },
+};
+const HZD = {
+  wave(hz){
+    const k = 1 - hz.r / hz.maxR;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = hexA(hz.color, .35 * k + .1); ctx.lineWidth = hz.w * 1.6; ctx.beginPath(); ctx.arc(hz.x, hz.y, hz.r, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = hexA('#ffffff', .7 * k + .2); ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(hz.x, hz.y, hz.r, 0, TAU); ctx.stroke();
+    ctx.globalCompositeOperation = 'source-over';
+  },
+  web(hz){
+    if(hz.delay > 0) return;
+    const k = Math.min(1, hz.life / 1.5, (hz.max - hz.life) * 4), n = 10;
+    ctx.save(); ctx.translate(hz.x, hz.y); ctx.rotate(hz.seed);
+    ctx.fillStyle = `rgba(230,230,230,${.08 * k})`; ctx.beginPath(); ctx.arc(0, 0, hz.r, 0, TAU); ctx.fill();
+    ctx.strokeStyle = `rgba(240,240,240,${.75 * k})`; ctx.lineWidth = 2;
+    ctx.beginPath();
+    for(let i = 0; i < n; i++){ const a = i / n * TAU; ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * hz.r, Math.sin(a) * hz.r); }
+    for(let j = 1; j <= 4; j++){ const rr = hz.r * j / 4.3; for(let i = 0; i <= n; i++){ const a = i / n * TAU; i ? ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); } }
+    ctx.stroke(); ctx.restore();
+  },
+  aura(hz){
+    const k = hz.life > hz.max - hz.wind ? (hz.max - hz.life) / hz.wind : 1;
+    ctx.fillStyle = hexA('#ff3d5a', .07 + .1 * k); ctx.beginPath(); ctx.arc(hz.x, hz.y, hz.r, 0, TAU); ctx.fill();
+    ctx.strokeStyle = hexA('#ff3d5a', .45 + .4 * k); ctx.lineWidth = 3; ctx.setLineDash([14, 10]); ctx.lineDashOffset = -G.t * 120;
+    ctx.beginPath(); ctx.arc(hz.x, hz.y, hz.r, 0, TAU); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
+  },
+};
 
 function drawHazards(beams){
   const t = G.t;
@@ -3463,6 +3643,7 @@ function drawHazards(beams){
       addGlow(hz.color, hz.x, hz.y, hz.r * 1.4, .35 * k);
       ell(hz.x, hz.y, hz.r, hz.r * .8, 0, hexA(hz.color, .28 * k));
       dot(hz.x + Math.sin(t * 3 + hz.x) * hz.r * .4, hz.y + Math.cos(t * 2 + hz.y) * hz.r * .3, 2.5, hexA('#ffffff', .5 * k));
+    } else if(HZD[hz.kind] && !beams){ HZD[hz.kind](hz);
     } else if(hz.kind === 'tele' && !beams){
       // a charge is coming: a red lane from the boss
       const k = 1 - hz.warn / hz.max, x1 = hz.x + Math.cos(hz.a) * hz.len, y1 = hz.y + Math.sin(hz.a) * hz.len;
@@ -3687,7 +3868,7 @@ function update(dt){
   }
   if(g.dg) for(const e of g.enemies) if(!e.dead) dgCollide(e, e.r);
   query(p.x, p.y, 80, tmpA);
-  for(const e of tmpA) if(!(e.rise > 0) && Math.hypot(e.x - p.x, e.y - p.y) < e.r + p.r){
+  for(const e of tmpA) if(!(e.rise > 0) && !e.noTouch && Math.hypot(e.x - p.x, e.y - p.y) < e.r + p.r){
     const hp0 = p.hp;
     hurtPlayer(e.dmg);
     if(g.dg && p.hp < hp0) dgContact(e);
@@ -3699,7 +3880,7 @@ function update(dt){
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
     if(g.dg && dgShotBlocked(g.dg.L, b.x, b.y)){ b.life = 0; continue; }
     if(g.dg && g.dg.roll.t > 0) continue;           // rolling: shots pass through you
-    if(Math.hypot(b.x - p.x, b.y - p.y) < b.r + p.r){ b.life = 0; if(b.slow) p.slowT = Math.max(p.slowT, b.slow); if(b.root) p.rootT = Math.max(p.rootT || 0, b.root); hurtPlayer(b.dmg); }
+    if(Math.hypot(b.x - p.x, b.y - p.y) < b.r + p.r){ b.life = 0; if(b.slow) p.slowT = Math.max(p.slowT, b.slow); if(b.root) p.rootT = Math.max(p.rootT || 0, b.root); if(b.venom && p.inv <= 0 && g.dg) dgContact({skin:'', venom:b.venom}); hurtPlayer(b.dmg); }
   }
   g.ebullets = g.ebullets.filter(b => b.life > 0);
   updateHazards(dt);
@@ -4311,6 +4492,7 @@ const THREE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.165.0/three
 const DT = 64;                                  // one map tile in world units
 const DG_FLOORS_TOTAL = 100, DG_THEMES_TOTAL = 20;
 const DG_ROLL = {time:.3, cd:1.1, speed:2.7};   // dodge roll: duration, cooldown, speed multiplier
+const DG_XP_MUL = 2;                            // the dungeon needs twice the XP per level, and your level resets on every floor
 const TT = {WALL:0, FLOOR:1, PIT:2, POOL:3, CRUMBLE:4, WEB:5, GATE:6, PROP:7, STAIR:8};
 const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 const N8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
@@ -4320,6 +4502,7 @@ Object.assign(ENEMIES, {
   crawler: {hp:10, speed:116, dmg:5,  r:11, xp:1,   armor:0},
   archer:  {hp:13, speed:70,  dmg:6,  r:11, xp:1.4, armor:0},
   soldier: {hp:34, speed:74,  dmg:10, r:13, xp:1,   armor:2},
+  egg:     {hp:40, speed:0,   dmg:0,  r:13, xp:.5,  armor:0},   // the Broodmother's egg sacs
 });
 // rig = the 3D model (see RIGS); family = which relics it drops
 Object.assign(SKINS, {
@@ -4328,22 +4511,24 @@ Object.assign(SKINS, {
   ruinarcher:  {name:'Ruin Archer',         rig:'archer',   family:'ranged', body:'#e3dcc6', dark:'#5a5240', glow:'#ffcf6a', alt:'#7a5532', move:'Keeps its distance and shoots arrows',
                 ai:{type:'shoot', range:500, keep:250, cd:2.4, n:1, spread:0, bs:300, dmg:7, color:'#ffe2a0', arrow:true, los:true}},
   spiderling:  {name:'Spiderling',          rig:'spider',   family:'venom',  body:'#86935e', dark:'#2a3020', glow:'#ff4f7b', alt:'#58913f', venom:{dps:1.5, dur:2}},
+  eggsac:      {name:'Egg Sac',             rig:'egg',      family:'venom',  body:'#d8d0b8', dark:'#8a8270', glow:'#ff4f7b', alt:'#e8e8e8', move:'Hatches into spiderlings unless you break it',
+                ai:{type:'hatch', t:4.5, n:3, minion:'minion'}},
   stonesoldier:{name:'Stone Soldier',       rig:'soldier',  family:'melee',  body:'#a2a79b', dark:'#3a3f38', glow:'#7dff9a', alt:'#4f9a46', move:'Summoned by the Guardian'},
   // floor bosses and the theme boss
   mosssentinel:{name:'Moss Sentinel',       rig:'golem',    family:'melee',  body:'#8d978a', dark:'#3b4239', glow:'#ffc94a', alt:'#5aa04a', dmg:14, speed:78, armor:1,
-                patterns:['charge'], about:'A small stone golem. It only charges in a straight line.'},
+                patterns:['charge','stompwave','hurl','charge','mossburst','stompwave'], about:'A stone golem. Charges, throws boulders, and stamps out shockwaves you have to roll through.'},
   vinebrood:   {name:'Vine-clad Broodmother', rig:'brood',  family:'venom',  body:'#5e5a6e', dark:'#221f2b', glow:'#ff4f7b', alt:'#4f9a3a', dmg:11, speed:80, armor:1, minion:'spiderling',
-                patterns:['web','brood','web','lunge'], about:'Webs you in place and calls spiderlings.'},
+                patterns:['web','eggs','pounce','webfield','venom','brood','pounce'], about:'Shoots webs that pin you, lays egg sacs, covers the floor in webs, leaps on you and sprays venom.'},
   archcaptain: {name:'Archer Captain',      rig:'captain',  family:'ranged', body:'#e8e0c8', dark:'#5a4a38', glow:'#ff8a3d', alt:'#8a1f2a', dmg:13, speed:88, armor:2, keep:320,
-                patterns:['volley','rain','volley','lunge'], about:'Shoots from range, then lunges in close.'},
+                patterns:['volley','snipe','rain','lunge','squad','arrowstorm','snipe'], about:'Keeps its distance. Aimed snipes, arrow rain, arrow storms, and a squad of archers.'},
   altarkeeper: {name:'Altar Keeper',        rig:'keeper',   family:'melee',  body:'#8a8f9a', dark:'#2f3340', glow:'#5affd8', alt:'#4f9a46', dmg:20, speed:80, armor:3,
-                patterns:['slam','charge','quake','slam'], about:'Smashes the ground. Stay out of the circles.'},
-  stonegiant:  {name:'Petrified Giant',     rig:'giant',    family:'melee',  body:'#837d72', dark:'#34302a', glow:'#ff8a3d', alt:'#5a9a46', dmg:22, speed:66, armor:3,
-                patterns:['slam','boulders','stomp','quake'], about:'Huge, slow, and hits very hard.'},
-  ruinguardian:{name:'Guardian of the Ruins', rig:'guardian', family:'ranged', body:'#9aa092', dark:'#2f352d', glow:'#7dff6a', alt:'#3f8a34', dmg:22, speed:80, armor:3,
-                phases:[{at:1,  patterns:['whip','roots','whip','aimed']},
-                        {at:.6, patterns:['whip2','soldiers','roots','spiral'], msg:'It calls its stone army'},
-                        {at:.3, patterns:['whip2','roots','beams','soldiers','spiral'], msg:'It is enraged'}],
+                patterns:['slam','spin','runes','charge','quake','spin'], about:'Spins its hammer, smashes the ground and lights up rune crosses.'},
+  stonegiant:  {name:'Petrified Giant',     rig:'giant',    family:'melee',  body:'#837d72', dark:'#34302a', glow:'#ff8a3d', alt:'#5a9a46', dmg:22, speed:66, armor:2,
+                patterns:['slam','avalanche','boulders','stompwave','charge','quake'], about:'Huge and slow. Rockfalls sweep the room; find the gap.'},
+  ruinguardian:{name:'Guardian of the Ruins', rig:'guardian', family:'ranged', body:'#9aa092', dark:'#2f352d', glow:'#7dff6a', alt:'#3f8a34', dmg:18, speed:80, armor:1,
+                phases:[{at:1,  patterns:['whip','roots','thornwave','aimed','vinewall']},
+                        {at:.6, patterns:['whip2','soldiers','vinewall','spiral','thornwave'], msg:'It calls its stone army'},
+                        {at:.3, patterns:['whip2','gaze','soldiers','vinewall','beams','thornwave','spiral'], msg:'It is enraged'}],
                 about:'Three phases: vine whips, roots and stone soldiers.'},
 });
 const DG_FAMILY = {revenant:'melee', crawler:'venom', archer:'ranged', soldier:'melee', minion:'venom'};
@@ -4365,325 +4550,556 @@ const DG_THEMES = [{id:'ruins', name:'Mossy Ruins', first:1, last:5, accent:'#8b
 // The loadout builder treats the dungeon like one more stage: one budget for the whole theme.
 const DG_STAGE = {id:'dg-ruins', dungeon:true, name:'Mossy Ruins', art:'forest', seed:37, budget:5, dur:0, spawn:0, hpMul:1, speedMul:1,
   bossHp:0, bossArmor:0, accent:'#8be36a', mote:'#c8ff8a', rise:0, desc:DG_THEMES[0].desc,
-  rules:['Death sends you back to base','Rewards are only kept at exit portals'], banned:[], forced:[],
-  skins:{revenant:'revenant', crawler:'stonespider', archer:'ruinarcher', soldier:'stonesoldier', minion:'spiderling'},
+  rules:['Your level resets on every floor','Death sends you back to base','Rewards are only kept at exit portals'], banned:[], forced:[],
+  skins:{revenant:'revenant', crawler:'stonespider', archer:'ruinarcher', soldier:'stonesoldier', minion:'spiderling', egg:'eggsac'},
   mix:[[0, {revenant:1}]], reward:{coins:0}};
 
 const DG_FLOORS = [
-  {n:1, name:'Crumbled Entrance Hall', boss:'mosssentinel', bossHp:900, hpMul:1, xpMul:1, coinMul:1,
-   trickle:{every:6, n:3, mix:{revenant:1}}, foes:['revenant'],
-   desc:'The broken gateway into the ruins. Few enemies, mostly revenants. A good place to learn the dodge roll.',
-   tags:['Few enemies'], reward:{coins:60, items:[]}, map:`
-####################################################
-###################bbbbbbbbbbbbbb###################
-################bbbbbbbbbbbbbbbbbbbb################
-#############bbbbbpbbbbbbXbbbbbbbpbbbbb#############
-############bbbbbbbbbbbbbbbbbbbbbbbbbbbb############
-###########bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###########
-##########bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb##########
-##########bbpbbbbbbbbbbbbBbbbbbbbbbbbbbpbb##########
-##########bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb##########
-###########bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###########
-############bbbbbbbbbbbbbbbbbbbbbbbbbbbb############
-#############bbbbbpbbbbbbbbbbbbbbpbbbbb#############
-################bbbbbbbbbbbbbbbbbbbb################
-###################bbbbbbbbbbbbbb###################
-#######################======#######################
-##############...............,,.......##############
-############.,,.....r............r......############
-############.,.o....................o...############
-############.............z..............############
-############.......,.................,,.############
-############...o....................o.,.############
-############.,,.......,,.......r........############
-#############...........,..............#############
-######################........######################
-######################........######################
-######,,.................,,.................,,######
-######,.r..............r.....................,#...r#
-#,..,#....p.....p.....r......p.....p.....p....#....#
-#.o..#...............r........................#....#
-#....#...............................z.,,..........#
-#................,,..............r...............Z.#
-#.$..........r.z..,................................#
-#...........................,,..........r.....#....#
-#....#.....,,.............z..,................#..$.#
-#.o..#..............................r.........#r...#
-#,.,.#....p.....p.....p......p.....r.....p....######
-######,....................r......r...........######
-######,,....................................,,######
-#######################......#######################
-#######################uuuuuu#######################
-#######################uuuuuu#######################
-#######################uuuuuu#######################
-#####################..........#####################
-####################.,,.......r.####################
-####################.,..........####################
-####################.....P....,.####################
-####################.r.......,,.####################
-#####################....,,....#####################
-####################################################
+  {n:1, name:'Crumbled Entrance Hall', boss:'mosssentinel', bossHp:2600, hpMul:1, xpMul:1, coinMul:1,
+   trickle:{every:13, n:3, mix:{revenant:1}}, foes:['revenant'],
+   desc:'The broken gateway into the ruins: a great hall, a chapel, a garden and a courtyard. Only revenants. A good place to learn the dodge roll.',
+   tags:['Revenants only'], reward:{coins:60, items:[]}, map:`
+#################################################################################################
+#################################################################################################
+########################################bbbbbbbbbbbbbbbbb########################################
+####################################bbbbbbbbbbbbbbbbbbbbbbbbb####################################
+#################################bbbbbbbbpbbbbbbXbbbbbbpbbbbbbbb#################################
+###############################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###############################
+#############################bbbbbpbbbbbbbbbbbbbbbbbbbbbbbbbbbpbbbbb#############################
+############################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb############################
+############################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb############################
+###########################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###########################
+############################bbbbbbbbbbbbbbbbbbbbBbbbbbbbbbbbbbbbbbbbb############################
+############################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb############################
+#############################bbbbbpbbbbbbbbbbbbbbbbbbbbbbbbbbbpbbbbb#############################
+###############################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###############################
+#################################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#################################
+####################################bbbbbbbbbbbbbbbbbbbbbbbbb####################################
+########################################bbbbbbbbbbbbbbbbb########################################
+#############################################=======#############################################
+###############################...................................###############################
+##############################..,..................................##############################
+##############################.,...,...............................##############################
+###...................########.,,p......p...........,..,p,.....p...##############################
+##......,r...,.........#######............,...,....................######.....................###
+##.r.......o.o.....r...#######........,............................#####..,....................##
+##.....................#######.............,.......................#####....,....,........,....##
+##...,.p,.r......p.....#######...,....z.....,......................#####...o...o...o...o...o...##
+##.....................#######...............,,,,,,,...............#####......,................##
+##.....,...............#######......,......,.,,,,,,,.........r.....#####.....................,.##
+##...............,.....#.............,.......,,ooo,,.......,...,...............,.,.,...........##
+##.....p.........p.....#.....................,,ooo,,...........................................##
+##...,,..,,...,....,,..#.......r.............,,ooo,,............r..........,.,..z..............##
+##.........,z.....,....#.............,..r....,,,,,,,...,.........................,....,....,...##
+##........,............#######.,.............,,,,,,,...............#####.............,...,z....##
+##.....p.........p...,.#######..,..................,....,...,......#####..,........,...........##
+##.......,.....,.......#######....,..............,........z.,..,...#####.....................,.##
+##.....................#######.,........Z..,.......................#####.......................##
+##...,......,..........#######............,..r.............,.......#####...o..,o..,o...o.,,o...##
+##.....p.........p.....#######...p.............................p...#####.,.....................##
+##....,.......,...,....#######...,.......,....,.............r......#####.......................##
+##.....................#######...............,..............,....,.######.....................###
+##....,........,.......########...................................#####################.....#####
+###...................########################.....####################################.....#####
+#####.....####################################.....####################################.....#####
+#####.....####################################.....####################################.....#####
+#####.....#############################...................#############################.....#####
+#####.....############################.....,...............############################.....#####
+#####.....############################.....................############################.....#####
+#####.....############################...r..,r.,.r...r.....############################.....#####
+#####.....############################.....,,.....,........############################.....#####
+#####.....############################...,.,.,.,z..........############################.....#####
+#####.....############################.....................############################.....#####
+#####.....############################.,.r...r...r...r.....############################.....#####
+#####.....############################.....................############################.....#####
+#####.....############################...,...............$.############################.....#####
+#####.....#############################...................##########################,.....,...###
+#####.....#########################################################################..,.r.....,.##
+###..........######################################################################,..,,..,..$,##
+##....,...,...#####################################################################,...,.,,,,.,##
+##............#####################################################################.,.,....,,,.##
+##..r......r..#####################################################################,.......,..,##
+##............#######.......................................................#######.,......,,o.##
+##......,.....######......r.....r....r......r................r...........r...######,.....,.....##
+##..r......r..######...p.....p..,..p.....p.....p.....p.....p.....p.....p.....######.,.,.,...,,.##
+##............######.................................................,.......######...,,,,.,.,,##
+##.......,.....................,.....,....,...,......,..................,................,.,.,.##
+##..r....,.r..........................,.,..........................................,.o..,,.....##
+##.....,z.,.,........,......,.....................................z................,..,.z.,...,##
+##............................z.....................................................,,..,......##
+##..r......r....................,,.....,.....................,.,.....,..............o,r,.,,,..,##
+##............######....................,.....,..........,...................######..,...,,,,..##
+##............######.......................,,................................######....r,.,.,,.##
+##..r......r..######...p.....p.....p.....p.....p.....p,....p.....p.....p,....######.,..,....r..##
+##......,.....######.............,,..,.....................,..........,......######,.......,...##
+##............#######.......................................................#######......,.....##
+##..r......r..###############################uuuuuuu###############################.,,.,.,..,..##
+##............###############################uuuuuuu###############################.......,..,.##
+##............###############################uuuuuuu###############################........,.,.##
+##.$..,.......###############################uuuuuuu###############################.....,...,,,##
+###..........################################uuuuuuu################################.....,...,###
+#############################################uuuuuuu#############################################
+#########################################...............#########################################
+########################################..r........,.....########################################
+########################################...,.............########################################
+########################################..........r.,....########################################
+########################################.,..........,....########################################
+########################################........P.....,..########################################
+########################################...,.............########################################
+########################################...,.r..,...,....########################################
+#########################################...............#########################################
+#################################################################################################
+#################################################################################################
+#################################################################################################
 `},
-  {n:2, name:'Vine Corridors', boss:'vinebrood', bossHp:1350, hpMul:1.15, xpMul:1.15, coinMul:1.2,
-   trickle:{every:6.5, n:3, mix:{revenant:1, crawler:1}}, foes:['revenant','stonespider'],
+  {n:2, name:'Vine Corridors', boss:'vinebrood', bossHp:3800, hpMul:1.15, xpMul:1.15, coinMul:1.2,
+   trickle:{every:12, n:3, mix:{revenant:1, crawler:1}}, foes:['revenant','stonespider'],
    desc:'Winding halls choked with vines. Stone-eater spiders wait in the side passages, and their webs slow you down.',
    tags:['Webs slow you','Poison bites'], reward:{coins:80, items:['poison']}, map:`
-########################################################
-###########################bbbbbbb######################
-#######################bbbbbwbbbwwbbbb##################
-#####################bbwbbbbbbbbbbbbbwbb################
-###################bbbwbbpbbbbBbbbbbbbwbbb####.....#####
-###################bbbbbbbbbbbbbbbbbbbbwbbb=.....,,.####
-##################bbbbbXbbbbbbbbbbbpbbbbbbb=......ww####
-###################bwbbbbbbbbbbbbbbbbbbbbbb=.......w####
-###################bbwbbbbbbbbbbbbbwbbbbbb###.p...p.####
-#####################bbbbbwwbbbbbbwbbbbb#####...s...####
-#######################bbbbbbbbbbbbbbb#######,......####
-###########################bbbbbbb###########,......####
-#############################################.......####
-#############################################.p...p.####
-#############################################......,####
-#####################....,,.......###########......,####
-####################.ww.....,,..ww.##########...z..,####
-####################.w.p.......p...##########.......####
-####################....z...........,..,..,...p...p.####
-##ww.........#######,......o......,.................####
-##w..........#######,.............,..........,......####
-##..p.....p........................##########.......####
-##.....s...............p......sp...##########.......####
-##............,.,.,..w.....,,...ww.##########.p...p.####
-##..p.....p..########.....w.......###########..,,...####
-##...........##################...###########.......####
-##w........ww##################...#############...######
-#####...#######################,..#############...######
-#####,..#######################...#############...######
-#####...#######################...#############...######
-#####...#######################..,############.....#####
-#####...#######################...###########.ww....####
-#####,..#######################...###########.w.....####
-#####....w.w..$##############........########..p....####
-#####.....w.sw.#############..........#######.......####
-#####...####################..r....r..#######...S...####
-#####,..####################........................####
-#####.z.####################....z...................####
-#####...####################......................w.####
-#####...####################..r....r..#######......w####
-#####,..####################..........#######.......####
-#####...#####################........########....p..####
-#####...############w.w#######...############.......####
-#####...############ws.#######...############.......####
-###.........########...#######...############.....$.####
-##.,.........#######...#######...############.......####
-##.,r..........,....,....,....,....,....,....w......####
-##.....P..r...................................w...ww####
-##.........,.......................................w####
-###...,,...,############################################
-########################################################
-########################################################
+##################################################################################################
+##################bbbbbbbbbbbbb###################################################################
+##############bbbbbbbbbbbbbbbbbbbbb###############################################################
+############bbbbbbbbbbbbbbbbbwbbbbbbb#############################################################
+##########bbbbpbbbbbbbbbBbbbbwbbbbpbbbw###########################################################
+#########bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb##########################################################
+#########bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###########################...........................####
+########bbbbbbbXbbbbbwbbbwbbbbbbbbbbbbbbb#########################...w.......w.w.....r....w.$..###
+#########bbwbbbbbbbbbbbbbbbbbbbbbbbbbbbb##########################.w..w....................w...###
+#########wbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb##########################..w....w....r...w..w..w......###
+##########bbbbwbbbpbbbbbbbbbbbpbbbbbbbb###########################...ws.w............w.ww......###
+############bbbbbbbbbbbbbbbbbbbbbbbwb#############################...w.........................###
+##############bbbbbbbbbbbbbbbbbbbbb###############################.............w..w..ww......w.###
+##################bbbbbbbbwbbbb###################################.......w....w................###
+#####################=======######################################....w......w..S......w...w.r.###
+###################.....................................##########...w..........ww.w.........w.###
+##################....,....................w..........w......................ww.rw....w.....w..###
+##################...,..w...............,......,......................w.w....w..w......w..w.w..###
+##################...wp....w..p..,....z.....w.p...,.................w..............r...w..www..###
+##################.....,...w...w..w..,.......w.....................r.....w.....w....w......w...###
+##################..........,...................,........#########..w.......w...w....w.......w.###
+##################............w......,......w....,....,..#########.w.................w.........###
+##################..,.........z.w.......w................#########.w......www....ww...w.w......###
+##################.w.........,....,......................##########...........................####
+##################.,.,,...w,.....w.....,.......w.........#######################w...##############
+##################...,................,...w...s........,.#######################..w.##############
+##################...w...................................#######################....##############
+##################..,.p.w.,...p..w....p.......p..........#######################....##############
+##################..w...,.w..............................#######################..w.##############
+##################....w.....w..,........,............,...#######################....##############
+###################.....................................########################....##############
+################################################################################....##############
+###.............################################################################....##############
+##......w........###############################################################....##############
+##.............,.###############################################################....##############
+##.,........w....###############################################################w.w.##############
+##.ws............###############################################################....##############
+##.,....,..,.....###############################################################..w.##############
+##...............###############################################################....##############
+##...............###############################################################....##############
+##....~~~~~~~....##########################################.................................######
+##...w~~~~~~~....#########################################..,..,w............................#####
+##..w.~~~~~~~....#########################################......,...,...........w.,..........#####
+##....~~~~~~~..,.#########################################...p......p.....,pw.....p....w.p...#####
+##....~~~~~~~....##########.......................########.............................,.....#####
+##..,.~~~~~~~....#########....,...............w....#######.............................,.,w..#####
+##....~~~~~~~....#########..w......................#######.....................w.,..w......w.#####
+##..,.~~~~~~~....#########....p.......,w......p....#######..................,.....w..........#####
+##..w.~~~~~~~.,..#########..w..w.......,,....,..w..#######...w.,..z.................w........#####
+##....~~~~~~~....#########.......................w.........,............,.w...............w..#####
+##....~~~~~~~.................,.z......w.....w,.............w,.,........w,..........s......w.#####
+##.,..~~~~~~~....................,...,,,....................,................................#####
+##....~~~~~~~..............,.........,o,...................,....................,..w..w......#####
+##....~~~~~~~.w......................,,,......w....#######.w.................,...............#####
+##....~~~~~~~....#########..w.,...,..,.....,.......#######...p..,...p...w..p......p......p...#####
+##...............#########.........,.............,.#######....,..,................,...,....w.#####
+##...............#########..,............w..sw.....#######........w...w..............w.......#####
+##.......z....,..#########....ww,............,...,.########.................................######
+##.....w.........#########....p............w..p....###################....########################
+##.,.........,...#########.........................###################....########################
+##..........,.$..#########......w........w,........###################....########################
+##.w...........w.##########.......................####################....########################
+###.............####################w...##############################....########################
+####################################....##############################....########################
+####################################....##############################....########################
+####################################....##############################....########################
+####################################.w..##############################....########################
+####################################....##############################....########################
+####################################....##############################....########################
+####################################..w.##############################....########################
+####################################....##############################....########################
+####################################....##############################....########################
+####################################....##############################....########################
+####################################....##############################....########################
+####################################....##############################....########################
+####################################....##############################....########################
+####################################....##############################....########################
+####################################....##############################....########################
+####################################....######################....................################
+####################################....#####################...w...............w..###############
+####################################w...#####################....w....w..w..ww...w.###############
+####################################....#####################.w.w.....w...ww.......###############
+####################################....#####################.....p...w......pw.w..###############
+###########################w..w#####w...#####w..w############.......w.....ww.......###############
+####...........############.s..#####....#####.s..############..w...w.....w..w......###############
+###...,..,,.....###########....#####....#####....############.w...w..w.....w....w..###############
+###..r..,.......###########....#####....#####....############...w......wS..w..w....###############
+###.............###########....#####....#####....############..w.....w...........w.###############
+###....,...............,,....,.,........,....w...........,.....w...w....w........w.###############
+###....,.P....,..w.w..........,.............,.............w.......w...ww.......ww..###############
+###...........,........ww,,....w........,..,.......,..w...........pw..ww.w...p.....###############
+###..........r...................w.....,...............w......w..w...w......w......###############
+###.............#############################################............w....w....###############
+####...........##############################################.....w..w.....ww..ww$.###############
+##############################################################....................################
+##################################################################################################
 `},
-  {n:3, name:'Collapsed Library', boss:'archcaptain', bossHp:1800, hpMul:1.3, xpMul:1.3, coinMul:1.4,
-   trickle:{every:6, n:3, mix:{revenant:2, crawler:1, archer:2}}, foes:['revenant','stonespider','ruinarcher'],
+  {n:3, name:'Collapsed Library', boss:'archcaptain', bossHp:4800, hpMul:1.3, xpMul:1.3, coinMul:1.4,
+   trickle:{every:12, n:3, mix:{revenant:2, crawler:1, archer:2}}, foes:['revenant','stonespider','ruinarcher'],
    desc:'Shelves of rotting books over a chasm. Cracked floor gives way a moment after you step on it. Archers shoot from across the gaps.',
    tags:['Crumbling floor','Archers'], reward:{coins:100, items:['precision']}, map:`
-########################################################
-#######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#######
-######bbbbbbbbbbbbbbbbbbbbbbXbbbbbbbbbbbbbbbbbbbbb######
-######bbbbbbkbbbbbbbkbbbbbbbbbbbbbbkbbbbbbbkbbbbbb######
-######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb######
-######bbpbbbbbbbbbbbbbbbbbb~~bbbbbbbbbbbbbbbbbbbbb######
-######bbbbbbbbbbbbbbbbbbbbb~~bbbbbbbbbbbbbbbbbbpbb######
-######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb######
-######bbbbbbkbbbbbbbkbbbbbbBbbbbbbbkbbbbbbbkbbbbbb######
-######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb######
-#######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#######
-#########################======#########################
-#########################......#########################
-#########################......#########################
-#############..............................#############
-############.....................c~~~c......############
-############.....c...c.....a.....~~~~~......############
-############...cc~~~~~c.........c~~~~~c.....############
-############...c~~~~~~~c........c~~~~~c.....############
-############...c~~~~~~~c.........~~~~~......############
-##..............c~~~~~c..........c~~~c................##
-##........$......c...c.............c....s....k......$.##
-##..kkkkk.....kz..........k..k...........k............##
-##.............................................cccc...##
-##..........#..............................#...c~~c...##
-##..kkkkk...#############......#############...c~~c...##
-##.a........#############......#############...c~~c...##
-##..........#############k.....#############...cccc...##
-##..kkkkk...#############......#############..A.......##
-##..........#############.....k#############........k.##
-##..........#############......#############..........##
-#######...###############......###############...#######
-#########......................................#########
-########.,.........kkkkkkk.z..kkkkkkk...........########
-########.,kkkkk..............,...........kkkkk..########
-########..........~~~~~~~~~cc~~~~~~~~~..........########
-########........s.~~~~~~~~~cc~~~~~~~~~.....a....########
-########.........~~~~~~~~~~cc~~~~~~~~~~.........########
-########..kkkkk..~~~~~~~~~~cc~~~~~~~~~~..kkkkk..########
-########.........~~~~~~~~~~cc~~~~~~~~~~.........########
-########....a.....~~~~~~~~~cc~~~~~~~~~..z.......########
-########..........~~~~~~~~~cc~~~~~~~~~..........########
-########..kkkkk...........,..............kkkkk,.########
-########...........kkkkkk......kkkkkk.........,.########
-#########......................................#########
-#######################..........#######################
-######################.,,.........######################
-######################............######################
-######################............######################
-######################.k...P....k.######################
-######################.........,,.######################
-#######################..........#######################
-########################################################
-########################################################
+####################################################################################################
+####################################################################################################
+#############bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb############
+############bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###########
+############bbbbbbbbkbbbbbbbbbkbbbbbbbbbbbbbbbbbbbXbbbbbbbbbbbbbbbbbbbkbbbbbbbbbkbbbbbbbb###########
+############bbbbbbbbkbbbbbbbbbkbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbkbbbbbbbbbkbbbbbbbb###########
+############bbbbbbbbkbbbbbbbbbkbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbkbbbbbbbbbkbbbbbbbb###########
+############bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###########
+############bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcc~~~~~~~ccbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###########
+############bbbbbbbbbbbbbbbbbbBbbbbbbbbbbbbbbcc~~~~~~~ccbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###########
+############bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###########
+############bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###########
+############bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###########
+############bbbbbbbbkbbbbbbbbbkbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbkbbbbbbbbbkbbbbbbbb###########
+############bbbbbbbbkbbbbbbbbbkbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbkbbbbbbbbbkbbbbbbbb###########
+############bbbbbbbbkbbbbbbbbbkbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbkbbbbbbbbbkbbbbbbbb###########
+############bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###########
+#############bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb############
+##############################################=========#############################################
+##############################################.........#############################################
+###.........##################################.........#############################################
+##.$.........#################################.........#############################################
+##...........#################################.........#############################################
+##..kkkkkkk..#################################.........#############################################
+##...........#################################.........#############################################
+##...........#################################.........#############################################
+##...........#################################.........#############################################
+##..kkkkkkk..#################################.........#############################################
+##...........##.......................................................................##############
+##...........#........................................................,................#############
+##........................,............,...ccccccccccccccc....a........................#############
+##.....a...............ccccccccc...........cc~~~~~~~~~~~cc...............,.......,.....#############
+##.....................ccccccccc...........cc~~~~~~~~~~~cc...........cccccccccc........#############
+##.....................cc~~~~~cc...........cc~~~~~~~~~~~cc...........cccccccccc..,.....#############
+##...........#.,.......cc~~~~~cc...........cc~~~~~~~~~~~cc...........cc~~~~~~cc....,...#############
+###.........##.........cc~~~~~cc...........ccccccccccccccc...........cc~~~~~~cc........#############
+########....##.........cc~~~~~cc...........ccccccccccccccc.........,.cc~~~~~~cc.....,..#############
+########....##.........cc~~~~~cc.........,...........................cc~~~~~~cc........#############
+########....##..,......ccccccccc.................,.......,...........cc~~~~~~cc........#############
+########....##.........ccccccccc...........,.........................cccccccccc........#############
+########....##......a.................z.......,...Z..................cccccccccc........#############
+########....##...................................,.......,....,............,.....s.,...#############
+########....##...kkkk.....,.kkkk.......kkkk.......kkkk.....,.kkkk.......kkkk..,....kkkk#############
+########....###.......................................................................##############
+########....####################....#############################....###############################
+########....####################....#############################....###############################
+########....####################....#############################....###############################
+########....####################....#############################....###############################
+########....####################....#############################....###############################
+########....####################....#############################....###############################
+####.............###############....#############################....###############################
+###...............##############....#############################....###############################
+###...............##############....#############################....###############............####
+###..kkkkk.kkkkk..##############....#############################....##############............$.###
+###...............##############....#############################....##############..............###
+###.....a.........##############....#############################....##############..a...........###
+###...............##############....#############################....##############..............###
+###..kkkkk.kkkkk..##############....#############################....##############..............###
+###...............##############....#############################....##############...cccccccc...###
+###...............##############....#############################....##############...cccccccc...###
+###...............###########...........................................###########...cc~~~~cc...###
+###..kkkkk.kkkkk..##########........,.................,...............,..##########...cc~~~~cc...###
+###...............##########.,....................z......................##########...cccccccc...###
+###..z............##########.............................................##########...cccccccc...###
+###...............##########........~~~~~~~~~~~~~ccc~~~~~~~~~~~~~........##########..............###
+###..kkkkk.kkkkk..##########.kkk....~~~~~~~~~~~~~ccc~~~~~~~~~~~~~....kkk.##########..............###
+###...............##########.......,~~~~~~~~~~~~~ccc~~~~~~~~~~~~~........##########.k.....z....k.###
+###...............##########........~~~~~~~~~~~~~ccc~~~~~~~~~~~~~.....,..##########..............###
+###...............##########........~~~~~~~~~~~~~ccc~~~~~~~~~~~~~........##########..............###
+###..kkkkk.kkkkk..##########....a...~~~~~~~~~~~~~ccc~~~~~~~~~~~~~........##########..............###
+###..........................kkk....~~~~~~~~~~~~~ccc~~~~~~~~~~~~~...,kkk.............cccccccccc..###
+###.........A.......................~~~~~~~~~~~~~ccc~~~~~~~~~~~~~...a................cccccccccc..###
+###.................................~~~~~~~~~~~~~ccc~~~~~~~~~~~~~.,..................ccc~~~~ccc..###
+###..kkkkk.kkkkk....................~~~~~~~~~~~~~ccc~~~~~~~~~~~~~....................ccc~~~~ccc..###
+###...............##########..,.....~~~~~~~~~~~~~ccc~~~~~~~~~~~~~........##########..ccc~~~~ccc..###
+###...............##########.kkk....~~~~~~~~~~~~~ccc~~~~~~~~~~~~~....kkk.##########..cccccccccc..###
+###...............##########...,....~~~~~~~~~~~~~ccc~~~~~~~~~~~~~........##########..cccccccccc..###
+###..kkkkk.kkkkk..##########.........kk.....,..kk....kk........kk........##########..............###
+###...............##########..........................,.,.,.,............##########..............###
+###...............##########.......,....s................................##########..........s...###
+###...............###########...........................................###########..............###
+###.............$.#############################.......#############################..............###
+####.............##############################.......##############################............####
+###############################################.......##############################################
+###########################################...............##########################################
+##########################################.....,.,.........#########################################
+##########################################.k.............k.#########################################
+##########################################..............,,.#########################################
+##########################################.................#########################################
+##########################################........P........#########################################
+##########################################..............,..#########################################
+##########################################.k.,...........k.#########################################
+##########################################......,........,.#########################################
+###########################################...............##########################################
+####################################################################################################
+####################################################################################################
 `},
-  {n:4, name:'Stairway to the Altar', boss:'altarkeeper', bossHp:3400, hpMul:1.5, xpMul:1.45, coinMul:1.6,
-   trickle:{every:5, n:4, mix:{revenant:2, crawler:2, archer:1}}, foes:['revenant','stonespider','ruinarcher'],
+  {n:4, name:'Stairway to the Altar', boss:'altarkeeper', bossHp:7000, hpMul:1.5, xpMul:1.45, coinMul:1.6,
+   trickle:{every:11, n:4, mix:{revenant:2, crawler:2, archer:1}}, foes:['revenant','stonespider','ruinarcher'],
    desc:'Great stairs climb toward the altar. Pools of toxic moss narrow the way, and all three enemy types attack together.',
    tags:['Moss pools poison you','Mixed hordes'], reward:{coins:120, items:['stillness']}, map:`
-##################################################
-##################################################
-###########bbbbbbbbbbbbboobbbbbbbbbbbbb###########
-#########bmmbbbbbbbbbbbbbbbbbbbbbbbbbbmmb#########
-#########bmbbbbbbbbbbbbbbXbbbbbbbbbbbbbmb#########
-#########bbbbbpbbbbbbbbbbbbbbbbbbbbpbbbbb#########
-#########bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#########
-#########bbbbbbbbbbbbbbbBbbbbbbbbbbbbbbbb#########
-#########bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#########
-#########bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#########
-#########bbbbbpbbbbbbbbbbbbbbbbbbbbpbbbbb#########
-#########bmbbbbbbbbbbbbbbbbbbbbbbbbbbbbmb#########
-#########bmmbbbbbbbbbbbbbbbbbbbbbbbbbbmmb#########
-##########bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb##########
-######################======######################
-####################puuuuuuuup####################
-####################uuuuuuuuuu####################
-####################uuuuuuuuuu####################
-####################puuuuuuuup####################
-####################uuuuuuuuuu####################
-####################uuuuuuuuuu####################
-####################uuuuuuuuuu####################
-######mmmm..............................mmmm######
-######mmmm...............S..............mmmm######
-######mmmm..x.........................r.mmmm######
-######.........................mmmm.........######
-######.........mmmm.....x......mmmm.........######
-######.....r...mmmm............mmmm.........######
-######.........mmmm...r..............x......######
-######......................................######
-##########uuuuuu#####mmmmmmmm#####uuuuuu##########
-##########uuuuuu#mmmmmmmmmmmmmmmm#uuuuuu##########
-##########uuuuuu#mmmmmmmmmmmmmmmm#uuuuuu##########
-##########uuuuuu#mmmmmmmmmmmmmmmm#uuuuuu##########
-##########uuuuuu#mmmmmmmmmmmmmmmm#uuuuuu##########
-##########uuuuuu#mmmmmmmmmmmmmmmm#uuuuuu##########
-##########uuuuuu#mmmmmmmmmmmmmmmm#uuuuuu##########
-##########uuuuuu#mmmmmmmmmmmmmmmm#uuuuuu##########
-######mmm...................................######
-######mmm..............................r........o#
-#o....mmm..................mmm...................#
-#...................mmmm...mmm......x..........$.#
-#.$..........x......mmmm...mmm...................#
-#...................mmmm........................o#
-#o........r....................r.........mmm######
-######...................z...............mmm######
-######...................................mmm######
-##################mmuuuuuuuuuumm##################
-##################mmuuuuuuuuuumm##################
-##################mmuuuuuuuuuumm##################
-##################mmuuuuuuuuuumm##################
-##################mmuuuuuuuuuumm##################
-##################mmuuuuuuuuuumm##################
-##################..............##################
-#################.,...........r..#################
-#################.,r...........,.#################
-#################.......P......,.#################
-##################.....,..,.....##################
-##################################################
-##################################################
+################################################################################################
+################################################################################################
+#######################bbbbbbbbbbbbbbbbbbbbbbbbobobbbbbbbbbbbbbbbbbbbbbbbb######################
+######################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####################
+######################bbbbbbbbbbbbbbbbbbbbbbbbbbXbbbbbbbbbbbbbbbbbbbbbbbbbb#####################
+######################bbbbbbpbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbpbbbbbb#####################
+######################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####################
+######################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####################
+######################bbbbbbbbbbbbbbbbbbbbbbbbbbBbbbbbbbbbbbbbbbbbbbbbbbbbb#####################
+######################bbbbbbbbbbbbbbbbpbbbbbbbbbbbbbbbbbbbpbbbbbbbbbbbbbbbb#####################
+######################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####################
+######################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####################
+######################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####################
+######################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####################
+######################bbbbbbpbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbpbbbbbb#####################
+######################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####################
+######################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####################
+#######################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb######################
+############################################=========###########################################
+##########mmmm.....................................................................mmmm#########
+##########mmmm......................................,r.............................mmmm#########
+##########mmmm..........................................,..................,.......mmmm#########
+##########......mmmmmmm....,.,..................s....,....,...............mmmmmmm...r..#########
+##########......mmmmmmm.....................r..................,..........mmmmmmm.,....#########
+##########......mmmmmmm.......x...................r.,.........,...........mmmmmmm......#########
+##########......mmmmmmm..........,..............,.................A,.....,mmmmmmm......#########
+##########....,.mmmmmmm.......r.............,.............................mmmmmmm......#########
+##########................................................,...,.........r..............#########
+##########........,....................................................................#########
+##########.............................................................................#########
+######################################mmuuuuuuuuuuuuuuuuumm#####################################
+######################################mmuuuuuuuuuuuuuuuuumm#####################################
+######################################mmuuuuuuuuuuuuuuuuumm#####################################
+######################################mmpuuuuuuuuuuuuuuupmm#####################################
+######################################mmuuuuuuuuuuuuuuuuumm#####################################
+######################################mmuuuuuuuuuuuuuuuuumm#####################################
+######################################mmuuuuuuuuuuuuuuuuumm#####################################
+######################################mmuuuuuuuuuuuuuuuuumm#####################################
+######################################mmuuuuuuuuuuuuuuuuumm#####################################
+######################################mmuuuuuuuuuuuuuuuuumm#####################################
+######################################mmpuuuuuuuuuuuuuuupmm#####################################
+######################################mmuuuuuuuuuuuuuuuuumm#####################################
+######################################mmuuuuuuuuuuuuuuuuumm#####################################
+######################################mmuuuuuuuuuuuuuuuuumm#####################################
+######..............mmmmm..................................................................#####
+######....,,........mmmmm..r..........................,........,.....................,.....#####
+######...........,...............,........................mmmmmmm.....................z....#####
+######....mmmmmm....................................r.....mmmmmmm.......r.......r..........#####
+######....mmmmmm...........,....................a.........mmmmmmm..........................#####
+######....mmmmmm,...............,....,......,.............mmmmmmm......................,...#####
+######....mmmmmm.......,x.................................mmmmmmm.......................,..#####
+######....mmmmmm..,................................,.........,..................mmmmmmm....#####
+######........................mmmmmmmr.........................,................mmmmmmm....#####
+######........................mmmmmmm...........................................mmmmmmm....#####
+######........................mmmmmmm.............,...................S.........mmmmmmm....#####
+######........................mmmmmmm...r.....r.....................,...........mmmmmmm....#####
+######......s.................mmmmmmm.......mmmmmmmmm................,..........mmmmmmm....#####
+######......................................mmmmmmmmm......................................#####
+######.........r,...........................mmmmmmmmm....,.................................#####
+######.....................................................................................#####
+##############uuuuuuuuu###mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm###uuuuuuuuu#############
+##############uuuuuuuuu###mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm###uuuuuuuuu#############
+##############uuuuuuuuu###mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm###uuuuuuuuu#############
+##############puuuuuuup###mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm###puuuuuuup#############
+##############uuuuuuuuu###mmmmmmmmmmommmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm###uuuuuuuuu#############
+##############uuuuuuuuu###mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm###uuuuuuuuu#############
+##############uuuuuuuuu###mmmmmmmmmmmmmmmmmmmmmmommmmmmmmmmmmmmmmmmmmmm###uuuuuuuuu#############
+##############uuuuuuuuu###mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm###uuuuuuuuu#############
+##############uuuuuuuuu###mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm###uuuuuuuuu#############
+##############uuuuuuuuu###mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmommmmmmmmmm###uuuuuuuuu#############
+##############puuuuuuup###mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm###puuuuuuup#############
+##############uuuuuuuuu###mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm###uuuuuuuuu#############
+##############uuuuuuuuu###mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm###uuuuuuuuu#############
+##############uuuuuuuuu###mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm###uuuuuuuuu#############
+########.................................................................................#######
+########...................................,.............................................#######
+########....mmmmmm.........r............mmmmm.......mmmmm.....mmmmmmmr...................#######
+########....mmmmmm.....,,...............mmmmm.......mmmmm.....mmmmmmm....................#######
+##o........rmmmmmm......................mmmmm.......mmmmm.....mmmmmmm.........................o#
+##..........mmmmmm.................................,..........mmmmmmm..........................#
+##..........mmmmmm..x................................,....................s....................#
+##.$..................................,................................................r.....$.#
+##...................................,........................r...,...........mmmmmmm..........#
+##................,.......mmmmmm..........,..,...................,.,..........mmmmmmm..........#
+##........................mmmmmm.......................,.............,........mmmmmmm..........#
+##o.......................mmmmmm..,..........................................rmmmmmmm.........o#
+########.......,..........mmmmmm..r.z......r................z...............,.mmmmmmm....#######
+########...,..............mmmmmm.................,.......................................#######
+########..............................,.............,....................................#######
+########.................................................................................#######
+########################################mmuuuuuuuuuuuuumm#######################################
+########################################mmuuuuuuuuuuuuumm#######################################
+########################################mmuuuuuuuuuuuuumm#######################################
+########################################mmuuuuuuuuuuuuumm#######################################
+########################################mmuuuuuuuuuuuuumm#######################################
+########################################mmuuuuuuuuuuuuumm#######################################
+########################################mmuuuuuuuuuuuuumm#######################################
+########################################mmuuuuuuuuuuuuumm#######################################
+########################################mmuuuuuuuuuuuuumm#######################################
+########################################mmuuuuuuuuuuuuumm#######################################
+#######################################...................######################################
+######################################...,.................#####################################
+######################################..,......,....r,.....#####################################
+######################################...r..,.......,......#####################################
+######################################....,.........,......#####################################
+######################################..........P..........#####################################
+######################################..,.,................#####################################
+######################################.........r...........#####################################
+#######################################...................######################################
+################################################################################################
 `},
-  {n:5, name:'Heart of the Ruins', boss:'stonegiant', bossHp:3800, boss2:'ruinguardian', boss2Hp:7000, hpMul:1.7, xpMul:1.6, coinMul:1.8, themeEnd:true,
+  {n:5, name:'Heart of the Ruins', boss:'stonegiant', bossHp:6500, boss2:'ruinguardian', boss2Hp:6500, hpMul:1.7, xpMul:1.6, coinMul:1.8, themeEnd:true,
    trickle:null, foes:['revenant','stonespider','ruinarcher'],
-   desc:'One long sealed corridor. Iron gates drop in front of you and behind you, and waves pour in. At the end, two bosses back to back.',
+   desc:'Ruined halls lead to one long sealed corridor. Iron gates drop in front of you and behind you, and four waves pour into each section. At the end, two bosses back to back.',
    tags:['Sealed corridor','No turning back','2 bosses'], reward:{coins:300, items:['static']},
    zones:{
-     1:{waves:[{revenant:14}, {revenant:18}, {revenant:14, elite:'revenant'}]},
-     2:{waves:[{revenant:10, crawler:8}, {crawler:12, revenant:8}, {revenant:10, crawler:10, elite:'crawler'}]},
-     3:{waves:[{revenant:10, crawler:6, archer:5}, {revenant:12, crawler:8, archer:6}, {revenant:12, crawler:10, archer:8, elite:'archer'}]},
+     1:{waves:[{revenant:14}, {revenant:18}, {revenant:22}, {revenant:18, elite:'revenant'}]},
+     2:{waves:[{revenant:10, crawler:8}, {crawler:12, revenant:10}, {revenant:12, crawler:14}, {revenant:12, crawler:12, elite:'crawler'}]},
+     3:{waves:[{revenant:10, crawler:6, archer:5}, {revenant:12, crawler:8, archer:6}, {revenant:12, crawler:10, archer:8}, {revenant:14, crawler:10, archer:8, elite:'archer'}]},
    }, map:`
-##################################
-######bbbbbbbbboooobbbbbbbbb######
-####bmmbbbbbbbbbbbbbbbbbbbbmmb####
-####bmbbbbbbbbbbXbbbbbbbbbbbmb####
-####bbbbpbbbbbbbbbbbbbbbbpbbbb####
-####bbbbbbbbbbbbbbbbbbbbbbbbbb####
-####bbbbbbbbbbbbbbbbbbbbbbbbbb####
-####bbbbbbbbbbbbbbbbbbbbbbbbbb####
-####bbbbbbbbbbbbBbbbbbbbbbbbbb####
-####bbbbbbbbbbbbbbbbbbbbbbbbbb####
-####bbbbbbbbbbbbbbbbbbbbbbbbbb####
-####bbbbbbbbbbbbbbbbbbbbbbbbbb####
-####bbbbpbbbbbbbbbbbbbbbbpbbbb####
-####bbbbbbbbbbbbbbbbbbbbbbbbbb####
-####bmbbbbbbbbbbbbbbbbbbbbbbmb####
-####bmmbbbbbbbbbbbbbbbbbbbbmmb####
-#####bbbbbbbbbbbbbbbbbbbbbbbb#####
-##########==============##########
-##########33333333333333##########
-##########33333333333333##########
-##########3p3333333333p3##########
-##########33333333333333##########
-##########33333333333333##########
-##########33333333333333##########
-##########3p33r3333333p3##########
-##########33333333333333##########
-##########33333333333333##########
-##########33333333333333##########
-##########3p3333333333p3##########
-##########33333333333333##########
-##########==============##########
-##########22222222222222##########
-##########22222222222222##########
-##########2p2222222222p2##########
-##########22222222222222##########
-##########22222222222222##########
-##########22222222222222##########
-##########2p2222222r22p2##########
-##########22222222222222##########
-##########22222222222222##########
-##########22222222222222##########
-##########2p2222222222p2##########
-##########22222222222222##########
-##########==============##########
-##########11111111111111##########
-##########11111111111111##########
-##########1p1111111111p1##########
-##########11111111111111##########
-##########11111111111111##########
-##########11111111111111##########
-##########1p1111111111p1##########
-##########11111r11111111##########
-##########11111111111111##########
-##########11111111111111##########
-##########1p1111111111p1##########
-##########11111111111111##########
-##########==============##########
-############..........############
-############..........############
-############..........############
-############..........############
-############.,......,.############
-##########..............##########
-#########.,............,.#########
-#########..o..........o..#########
-#########.......P........#########
-#########.,.........$..,.#########
-##########..............##########
-##################################
-##################################
+####################################################
+####################################################
+#######bbbbbbbbbbbbbbbbbobbbobbbbbbbbbbbbbbbbb######
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####
+######bbbbbbbbbbbbbbbbbbbbXbbbbbbbbbbbbbbbbbbbb#####
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####
+######bbbbbpbbbbbbbbbbbbbbbbbbbbbbbbbbbbbpbbbbb#####
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####
+######bbbbbbbbbbbbpbbbbbbbBbbbbbbbpbbbbbbbbbbbb#####
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####
+######bbbbbpbbbbbbbbbbbbbbbbbbbbbbbbbbbbbpbbbbb#####
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####
+######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#####
+#######bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb######
+##############=========================#############
+##############3333333333333333333333333#############
+##############3333333333333333333333333#############
+##############3333333333333333333333333#############
+##############33p3333333333333333333p33#############
+##############3333333333333333333333333#############
+##############3333333333333333333333333#############
+##############3333333333333333333333333#############
+##############3333333333333333333333333#############
+##############3333333333333333333333333#############
+##############33p33333r3333333333333p33#############
+##############3333333333333333333333333#############
+##############3333333333333333333333333#############
+##############3333333333333333333333333#############
+##############3333333333333333333333333#############
+##############3333333333333333333333333#############
+##############33p33333333333333r3333p33#############
+##############3333333333333333333333333#############
+##############3333333333333333333333333#############
+##############3333333333333333333333333#############
+##############3333333333333333333333333#############
+##############33p3333333333333333333p33#############
+##############3333333333333333333333333#############
+##############=========================#############
+##############2222222222222222222222222#############
+##############2222222222222222222222222#############
+##############2222222222222222222222222#############
+##############22p2222222222222222222p22#############
+##############2222222222222222222222222#############
+##############2222222222222222222222222#############
+##############2222222222222222222222222#############
+##############2222222222222222222222222#############
+##############2222222222222222222222222#############
+##############22p2222222r22222222222p22#############
+##############2222222222222222222222222#############
+##############2222222222222222222222222#############
+##############2222222222222222222222222#############
+##############2222222222222222222222222#############
+##############2222222222222222222222222#############
+##############22p222222222222r222222p22#############
+##############2222222222222222222222222#############
+##############2222222222222222222222222#############
+##############2222222222222222222222222#############
+##############2222222222222222222222222#############
+##############22p2222222222222222222p22#############
+##############2222222222222222222222222#############
+##############=========================#############
+##############1111111111111111111111111#############
+##############1111111111111111111111111#############
+##############1111111111111111111111111#############
+##############11p1111111111111111111p11#############
+##############1111111111111111111111111#############
+##############1111111111111111111111111#############
+##############1111111111111111111111111#############
+##############111111111111111111r111111#############
+##############1111111111111111111111111#############
+##############11p1111111111111111111p11#############
+##############1111111111111111111111111#############
+##############1111111111111111111111111#############
+##############1111111r11111111111111111#############
+##############1111111111111111111111111#############
+##############1111111111111111111111111#############
+##############11p1111111111111111111p11#############
+##############1111111111111111111111111#############
+##############1111111111111111111111111#############
+##############1111111111111111111111111#############
+##############1111111111111111111111111#############
+##############11p1111111111111111111p11#############
+##############1111111111111111111111111#############
+##############=========================#############
+##################.................#################
+##################.................#################
+##################.................#################
+##################.................#################
+##################.................#################
+#########...................................########
+########..........................,......,...#######
+########.....................................#######
+########.................,x..................#######
+##..........p,......p...,.......p....,..p..........#
+##.............r..,..,.....,..........,............#
+##.............................,...................#
+##..........,.....,............,...................#
+##.$......,.....z................r..s............$.#
+##.......,,........................................#
+##..............r..............,...................#
+##.................................................#
+##.........,..............................,........#
+########..,..................................#######
+########....p.......p.r......,..p.......p....#######
+########..............................r......#######
+########..................P........,.........#######
+########.............,..,....,...............#######
+#########...................................########
+####################################################
+####################################################
+####################################################
 `},
 ];
 
@@ -4693,6 +5109,12 @@ Object.assign(ICONS, {
   roll: 'M20 12a8 8 0 1 1-2.4-5.7M20 4v4.5h-4.5',
 });
 Object.assign(PICKUPS, {relic:'#c77dff'});
+// names shown above a boss when it starts an attack
+const ATK_NAME = {charge:'Charge', stompwave:'Shockwave', hurl:'Boulder', mossburst:'Moss Burst', web:'Web Shot', eggs:'Egg Sacs', pounce:'Pounce',
+  webfield:'Web Field', venom:'Venom Spray', brood:'Spiderlings', volley:'Volley', snipe:'Snipe', rain:'Arrow Rain', lunge:'Lunge', squad:'Squad',
+  arrowstorm:'Arrow Storm', slam:'Slam', spin:'Hammer Spin', runes:'Rune Cross', quake:'Quake', avalanche:'Rockfall', boulders:'Boulders',
+  whip:'Vine Whip', whip2:'Twin Whips', roots:'Roots', thornwave:'Thorn Wave', vinewall:'Vine Wall', gaze:'Stone Gaze', soldiers:'Stone Army',
+  spiral:'Spore Spiral', aimed:'Thorns', beams:'Rays'};
 Object.assign(SFX, {
   gate:   {gap:.3,  play(){ tone(70, .5, {type:'sawtooth', vol:.09, to:40, lp:600}); noise(.45, {filter:'lowpass', f:900, fto:150, vol:.15}); }},
   crack:  {gap:.12, play(){ noise(.14, {filter:'highpass', f:1800, vol:.07}); tone(240, .08, {type:'square', vol:.02, to:120}); }},
@@ -4869,11 +5291,26 @@ function dgLoadFloor(n){
   p.rootT = 0; p.poisonT = 0; p.poisonDps = 0;
   D.safe = {x:p.x, y:p.y};
   D.roll.t = 0; D.roll.cd = 0;
+  dgResetBuild();
   G.state = 'play';
   d3BuildLevel();
   setMusic('ruins', 0); setDuck(false);
-  showBanner(`FLOOR ${n}`, '', def.name);
+  showBanner(`FLOOR ${n}`, '', n > D.start ? `${def.name} · back to level 1` : def.name);
   dgObjective();
+}
+// every floor starts from your bare loadout: level 1, every upgrade back to Lv 1, full HP
+function dgResetBuild(){
+  const g = G, p = g.p;
+  g.level = 1; g.xp = 0; g.xpNeed = needXp(1); g.pendingLevels = 0; g.pendingTreasure = 0;
+  g.weaponLvl = 1;
+  for(const id in g.ab) g.ab[id] = 1;
+  for(const id in g.pos) g.pos[id] = 1;
+  for(const id in g.neg) g.neg[id] = 0;
+  g.rerolls = 2 + (g.combos.has('gambler') ? 3 : 0);
+  g.cd = {}; g.frenzy = 0; g.frenzyT = 0; g.revived = false; g.chain = 0; g.chainT = 0;
+  p.maxHp = 0; recalcStats(); p.hp = p.maxHp;
+  p.shield = !!g.ab.shield; p.shieldT = 0; p.inv = 1; p.slowT = 0; p.webT = 0;
+  renderIcons();
 }
 function dgSpot(cx, cy, rad){
   const L = G.dg.L;
@@ -4926,8 +5363,6 @@ function dgTick(dt){
   if(G.state !== 'play') return;
   if(pt !== TT.CRUMBLE && dgWalkable(pt)) D.safe = {x:(ptx + .5) * DT, y:(pty + .5) * DT};
   if(p.poisonT > 0){ p.poisonT -= dt; if(p.hp > 1) p.hp = Math.max(1, p.hp - p.poisonDps * dt); if(p.poisonT <= 0) p.poisonDps = 0; }
-  // gems fly to you on their own a moment after they drop, so exploring never means backtracking for XP
-  for(const gm of G.gems) if(!gm.mag){ gm.age = (gm.age || 0) + dt; if(gm.age > .7 && Math.abs(gm.x - p.x) < 700 && Math.abs(gm.y - p.y) < 700) gm.mag = true; }
   for(const pk of L.packs){
     if(pk.done) continue;
     const fd = D.flow[pk.y * L.W + pk.x], dd = Math.hypot((pk.x + .5) * DT - p.x, (pk.y + .5) * DT - p.y);
@@ -4935,6 +5370,8 @@ function dgTick(dt){
   }
   for(const c of L.chests) if(!c.open && Math.hypot((c.x + .5) * DT - p.x, (c.y + .5) * DT - p.y) < 42){ dgOpenChest(c); if(G.state !== 'play') return; }
   dgZones(dt, pi);
+  const bb = G.boss;
+  if(bb && bb.recoil && bb.recoil.t > 0 && !bb.noTouch){ bb.recoil.t -= dt; bb.x += bb.recoil.x * 380 * dt; bb.y += bb.recoil.y * 380 * dt; dgCollide(bb, bb.r); }
   if(D.bossQ){ D.bossQ.t -= dt; if(D.bossQ.t <= 0){ const q = D.bossQ; D.bossQ = null; dgSpawnBoss(q.skin, q.hp, q.second); } }
   if(def.trickle && !G.boss && !D.bossQ && !dgActiveZone() && !D.portal){
     D.trickT -= dt;
@@ -5021,7 +5458,7 @@ function dgTrickle(){
 function dgSpawnBoss(skin, hp, second){
   const D = G.dg, L = D.L, sk = SKINS[skin], rig = RIGS[sk.rig];
   const x = (L.boss.x + .5) * DT, y = (L.boss.y + .5) * DT, H = hp * G.s.enemyHp;
-  const b = {type:'boss', skin, boss:true, x, y, r:rig.r, hp:H, maxHp:H, speed:sk.speed, dmg:sk.dmg, xp:0, color:sk.body, armor:sk.armor,
+  const b = {type:'boss', skin, boss:true, x, y, r:rig.r, hp:H, maxHp:H, speed:sk.speed, dmg:Math.round(sk.dmg * .6), xp:0, color:sk.body, armor:sk.armor,
     slow:0, flash:0, oT:-9, dead:false, seed:0, shape:SHAPE, atkT:2.2, rise:1.4, riseMax:1.4, zone:10};
   G.enemies.push(b); G.boss = b;
   $('#bossName').textContent = sk.name; $('#bossbar').hidden = false;
@@ -5038,8 +5475,7 @@ function dgBossDead(b){
   D.carried.coins += 25 + 15 * D.floor;
   G.pickups.push({kind:'relic', x:b.x, y:b.y, t:0, family:sk.family});
   G.ebullets.length = 0; G.hazards.length = 0;
-  for(const e of G.enemies) if(!e.dead && !e.boss){ e.dead = true; burst(e.x, e.y, e.color, 5, 160); G.gems.push({x:e.x, y:e.y, v:e.xp, mag:true}); }
-  for(const gm of G.gems) gm.mag = true;
+  for(const e of G.enemies) if(!e.dead && !e.boss){ e.dead = true; burst(e.x, e.y, e.color, 5, 160); G.gems.push({x:e.x, y:e.y, v:e.xp, mag:false}); }
   if(def.boss2 && b.skin === def.boss){
     showBanner('IT CRUMBLES', 'elite', 'The ground is shaking...'); sfx('clear');
     D.bossQ = {skin:def.boss2, hp:def.boss2Hp, t:3.4, second:true};
@@ -5104,7 +5540,8 @@ function dgMovePlayer(dt){
   else if(p.rootT > 0){ p.rootT -= dt; p.vx = p.vy = 0; }
   else {
     const t = L.t[tileAt(L, p.x, p.y)];
-    const m = t === TT.WEB ? .55 : t === TT.POOL ? .7 : 1;
+    if(p.webT > 0) p.webT -= dt;
+    const m = t === TT.WEB || p.webT > 0 ? .55 : t === TT.POOL ? .7 : 1;
     p.vx *= m; p.vy *= m;
   }
   p.x += p.vx * dt; p.y += p.vy * dt;
@@ -5122,7 +5559,9 @@ function dgRoll(){
 }
 // spider bites poison you; the poison can bring you down to 1 HP but never kills
 function dgContact(e){
-  const v = SKINS[e.skin].venom, p = G.p;
+  const v = e.venom || (SKINS[e.skin] && SKINS[e.skin].venom), p = G.p;
+  // a boss that bumps into you bounces back, so it can never pin you in a corner
+  if(e.boss){ const dx = e.x - p.x, dy = e.y - p.y, d = Math.hypot(dx, dy) || 1; e.recoil = {x:dx / d, y:dy / d, t:.3}; }
   if(!v) return;
   p.poisonT = Math.max(p.poisonT, v.dur); p.poisonDps = Math.max(p.poisonDps, v.dps);
 }
@@ -5164,7 +5603,7 @@ function dgFloorClear(){
   mbox.className = 'mbox res';
   mbox.innerHTML = `<h2 class="win">${def.themeEnd ? 'MOSSY RUINS CLEARED' : `FLOOR ${n} SECURED`}</h2>
     <div class="sub">${esc(def.name)}</div>
-    <p class="mnote" style="text-align:center">Everything you carried is now safe in your base. ${next ? 'You can also start from floor ' + next + ' next time.' : ''}</p>
+    <p class="mnote" style="text-align:center">Everything you carried is now safe in your base. ${next ? 'You can also start from floor ' + next + ' next time. On the next floor your level starts again from 1.' : ''}</p>
     <h3>Secured</h3>${lines.map(l => `<div class="row"><span>${l[0]}</span><b>+${l[1]}</b></div>`).join('')}
     <div class="row total"><span>Total</span><b>+${total} ${ico('coin')}</b></div>
     ${unlocked.length ? `<h3>Unlocked</h3><div class="unl">${unlocked.map(id => `<span class="rchip rew">${ico(id)} ${ITEMS[id].name}</span>`).join('')}</div>` : ''}
@@ -5175,9 +5614,7 @@ function dgFloorClear(){
 }
 function dgNext(){
   if(!G || !G.dg || G.state !== 'portal') return;
-  const p = G.p;
   modal.hidden = true;
-  p.hp = Math.min(p.maxHp, p.hp + p.maxHp * .35);
   dgLoadFloor(G.dg.floor + 1);
 }
 function dgEndRun(win){
@@ -5381,6 +5818,14 @@ const RIGS = {
     ['armR', [16, 44, 16], [35, 66, 0], [0, -22, 0], 'body', 'armR'],
     ['whipR', [6, 6, 62], [35, 66, 0], [0, -46, 24], 'alt', 'whip', {k:2}],
     ...[0, 1, 2, 3].map(i => ['stone', [12, 12, 12], [0, 62, 0], [0, 0, 0], 'body', 'orbit', {k:i * Math.PI / 2, R:52}]),
+  ]},
+  egg:{r:13, parts:[
+    ['web', [30, 1.5, 30], [0, 0, 0], [0, .8, 0], 'alt', 'body', {ry:.4}],
+    ['sac', [20, 18, 20], [0, 0, 0], [0, 9, 0], 'body', 'breathe'],
+    ['top', [13, 7, 13], [0, 0, 0], [0, 20.5, 0], 'body', 'breathe'],
+    ['veinA', [21, 2, 2], [0, 0, 0], [0, 12, 0], 'glow', 'breathe', {g:1, ry:.6}],
+    ['veinB', [2, 15, 21], [0, 0, 0], [0, 10, 0], 'glow', 'breathe', {g:1, ry:.2}],
+    ['shade', [16, 3, 16], [0, 0, 0], [0, 3, 0], 'dark', 'breathe'],
   ]},
   mage:{r:12, parts:[
     ['footL', [5, 4, 7], [-3.5, 4, 0], [0, -2, 1], '#2a3c7a', 'legL'],
@@ -6009,7 +6454,7 @@ function d3Characters(dt){
     const acting = e.boss ? !!e.act : (e.st === 'wind' || e.st === 'fuse' || e.aT < .35);
     e._pose = (e._pose || 0) + ((acting ? 1 : 0) - (e._pose || 0)) * Math.min(1, dt * 8);
     const scale = e.r / rig.r * VIS;
-    const yOff = e.rise > 0 ? -(e.rise / e.riseMax) * rig.r * 4.4 * scale : 0;
+    const yOff = (e.rise > 0 ? -(e.rise / e.riseMax) * rig.r * 4.4 * scale : 0) + (e.airH || 0);
     d3Entity(sk.rig, e.skin, e.x, e.y, e._fa, scale, {ph:e._ph, mv:e._mv, t:g.t, seed:e.seed || 0, pose:e._pose, cast:0, swing:0},
       e.flash > 0 ? (e.boss ? .35 : .75) : 0, e.elite ? RT.gold : null, yOff, 0);
   }
@@ -6443,6 +6888,7 @@ function dgBriefHtml(f){
     <div><div class="lbl">Enemies</div><div class="foes">${f.foes.map(foe).join('')}${boss(f.boss, f.boss2 ? 'Floor boss' : 'Boss')}${f.boss2 ? boss(f.boss2, 'Theme boss') : ''}</div>
       <div class="note" style="margin-top:6px">${SKINS[f.boss].about}${f.boss2 ? ' Then: ' + SKINS[f.boss2].about : ''}</div></div>
     <div><div class="lbl">Dungeon rules</div><ul class="dgrules">
+      <li>${ico('reroll')}<span>Your level <b>resets to 1 on every floor</b>, and each level needs twice the XP of the stages. XP gems stay where enemies fall, so go and collect them.</span></li>
       <li>${ico('coin')}<span>Coins and relics you pick up are <b>not safe yet</b>. Step into the exit portal after the boss to keep them.</span></li>
       <li>${ico('skull')}<span>If you die, you go back to base and lose only what you had not secured.</span></li>
       <li>${ico('portal')}<span>Every portal you reach lets you start from the next floor later.</span></li>

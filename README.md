@@ -19,8 +19,10 @@ A browser survivor-like game with a deckbuilding twist. Open `index.html` in any
 A 3D mode seen from behind and above, in the style of Minecraft Dungeons. It uses the same characters, loadouts, weapons and level-ups as the stages. It follows the dungeon design notes on floor structure, the death penalty, the first theme and enemy families:
 
 - 100 floors in 20 themes of 5 floors are planned. Theme 1, **Mossy Ruins** (floors 1–5), is built.
-- Every floor is a hand-made map with its own floor boss. Floor 5 ends with the floor boss and then the theme boss, back to back.
-- Floor 5 is a long sealed corridor: iron gates drop in front of you and behind you, and three waves attack in each section. There is no way back.
+- Every floor is a large hand-made map (about 6–8 minutes for a full clear) with its own floor boss. Floor 5 ends with the floor boss and then the theme boss, back to back.
+- Each floor starts you back at level 1 with your bare loadout, and a level needs twice the XP it does in the stages (`DG_XP_MUL`). XP gems stay where enemies fall.
+- Every boss has several attacks of its own (for example the Broodmother's web shots, egg sacs, web field, pounce, venom spray and spiderlings); the attack list is `patterns` in its `SKINS` entry, and the attacks live in `bossStep()`.
+- Floor 5 is a long sealed corridor: iron gates drop in front of you and behind you, and four waves attack in each section. There is no way back.
 - Floor gimmicks: spider webs slow you (floor 2), cracked floor falls away (floor 3), moss pools poison you (floor 4).
 - Enemy families: Ruin Revenants (melee), Stone-eater Spiders (poison), Ruin Archers (ranged). Elites and bosses drop **relics**, locked items that match their family.
 - Coins and relics you pick up are only kept when you step into the exit portal after the boss. If you die you go back to base and lose only what you had not secured.
