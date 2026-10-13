@@ -982,7 +982,6 @@ function loadoutCost(items){
   return t;
 }
 function abilityCount(items){ return items.filter(id => ITEMS[id].type === 'ability').length; }
-function stageUnlocked(i){ return i === 0 || !!save.cleared[STAGES[i - 1].id]; }
 function stageById(id){ return STAGES.find(s => s.id === id) || DG_STAGES.find(s => s.id === id); }
 function stageTypes(st){ const s = new Set(); for(const [, m] of st.mix) for(const k in m) s.add(k); return [...s]; }
 function validate(stage, charId, items){
@@ -2038,42 +2037,7 @@ function drawHero(charId, x, y, r, face, t, blink){
   ctx.restore();
 }
 
-/* =====================================================================
-   GENERATED ART FOR THE MENUS — stage thumbnails and enemy portraits
-   ===================================================================== */
-const PORTRAITS = {}, THUMBS = {};
 const SHAPE = [1, .9, 1.05, .85, 1, .95, 1.08, .88, 1];
-function portrait(skin){
-  if(PORTRAITS[skin]) return PORTRAITS[skin];
-  const S = 72, boss = STAGES.some(s => s.boss === skin);
-  const c = document.createElement('canvas'); c.width = c.height = S * 2;
-  const x = c.getContext('2d'); x.scale(2, 2);
-  withCtx(x, () => {
-    const g = ctx.createRadialGradient(S / 2, S / 2, 4, S / 2, S / 2, S * .7);
-    g.addColorStop(0, hexA(SKINS[skin].glow, .28)); g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, S, S);
-    const e = {x:S / 2, y:S / 2 + (boss ? 4 : 2), r:boss ? 19 : 14, skin, seed:1.3, shape:SHAPE, flash:0, slow:0};
-    drawEnemy(e, .35, S / 2, S * 2, true);
-  });
-  return PORTRAITS[skin] = c.toDataURL();
-}
-function stageThumb(st){
-  if(THUMBS[st.id]) return THUMBS[st.id];
-  const Wt = 400, Ht = 220;
-  const c = document.createElement('canvas'); c.width = Wt * 2; c.height = Ht * 2;
-  withCtx(c.getContext('2d'), () => {
-    ctx.save(); ctx.scale(2, 2); ctx.translate(Wt / 2, Ht / 2);
-    const cx = st.seed * 37 % 300, cy = st.seed * 53 % 300;
-    ctx.translate(-cx, -cy);
-    drawWorld(st, cx, cy, Wt / 2 + 20, Ht / 2 + 20, 1);
-    const types = stageTypes(st);
-    const spots = [[-120, 40], [-60, 70], [-150, -30], [10, 60]];
-    types.slice(0, 4).forEach((ty, i) => drawEnemy({x:cx + spots[i][0], y:cy + spots[i][1], r:ENEMIES[ty].r * 1.2, skin:st.skins[ty], seed:i + 1, shape:SHAPE, flash:0, slow:0}, 1 + i, cx + 120, cy, true));
-    drawEnemy({x:cx + 110, y:cy - 6, r:36, skin:st.boss, boss:true, seed:2, shape:SHAPE, flash:0, slow:0}, 1.2, cx - 60, cy + 40, true);
-    ctx.restore();
-  });
-  return THUMBS[st.id] = c.toDataURL('image/jpeg', .82);
-}
 
 /* =====================================================================
    AUDIO — every sound is synthesized with Web Audio, so nothing has to
@@ -2203,69 +2167,351 @@ function sfx(name, p){
   try{ d.play(p || 1); }catch(e){}
 }
 
-/* ---------- music: a small step sequencer playing generated songs ---------- */
-const SCALES = {
-  major:[0,2,4,5,7,9,11], minor:[0,2,3,5,7,8,10], dorian:[0,2,3,5,7,9,10], phrygian:[0,1,3,5,7,8,10],
-  lydian:[0,2,4,6,7,9,11], harmonic:[0,2,3,5,7,8,11], phrygdom:[0,1,4,5,7,8,10],
-};
-// bass: which 16th steps play the bass note; drums 0 none, 1 light, 2 driving
-const BASS = {half:[0,8], pulse:[0,6,8,14], drive:[0,3,6,8,11,14], eighth:[0,2,4,6,8,10,12,14]};
-const SONGS = {
-  title:   {bpm:104, root:57, scale:'minor',    prog:[0,5,3,4], bass:'sawtooth', bp:'pulse',  lead:'triangle', arp:'square',   drums:1, pad:1, density:.35, seed:3},
-  hub:     {bpm:84,  root:60, scale:'dorian',   prog:[0,3,4,3], bass:'triangle', bp:'half',   lead:'sine',     arp:null,       drums:0, pad:1, density:.22, seed:5},
-  meadow:  {bpm:116, root:62, scale:'major',    prog:[0,4,5,3], bass:'triangle', bp:'pulse',  lead:'square',   arp:'triangle', drums:1, pad:0, density:.4,  seed:11},
-  cave:    {bpm:100, root:52, scale:'phrygian', prog:[0,1,0,6], bass:'sawtooth', bp:'half',   lead:'triangle', arp:'sine',     drums:1, pad:1, density:.3,  seed:23},
-  forest:  {bpm:92,  root:55, scale:'dorian',   prog:[0,6,3,4], bass:'triangle', bp:'pulse',  lead:'sine',     arp:'triangle', drums:1, pad:1, density:.3,  seed:37},
-  fortress:{bpm:124, root:50, scale:'minor',    prog:[0,0,5,6], bass:'square',   bp:'drive',  lead:'square',   arp:'sawtooth', drums:2, pad:0, density:.35, seed:53},
-  abyss:   {bpm:132, root:48, scale:'harmonic', prog:[0,5,6,4], bass:'sawtooth', bp:'drive',  lead:'sawtooth', arp:'square',   drums:2, pad:0, density:.4,  seed:71},
-  ice:     {bpm:96,  root:64, scale:'lydian',   prog:[0,1,5,4], bass:'triangle', bp:'half',   lead:'sine',     arp:'sine',     drums:1, pad:1, density:.32, seed:83},
-  desert:  {bpm:108, root:57, scale:'phrygdom', prog:[0,1,0,6], bass:'sawtooth', bp:'pulse',  lead:'triangle', arp:'square',   drums:1, pad:0, density:.38, seed:97},
-  swamp:   {bpm:90,  root:50, scale:'minor',    prog:[0,3,0,4], bass:'sawtooth', bp:'pulse',  lead:'triangle', arp:'triangle', drums:1, pad:1, density:.28, seed:113},
-  cyber:   {bpm:136, root:57, scale:'minor',    prog:[0,5,2,6], bass:'sawtooth', bp:'eighth', lead:'square',   arp:'sawtooth', drums:2, pad:0, density:.42, seed:131},
-  void:    {bpm:78,  root:53, scale:'lydian',   prog:[0,4,1,5], bass:'sine',     bp:'half',   lead:'sine',     arp:'triangle', drums:0, pad:1, density:.2,  seed:149},
-};
-const MUSIC = {name:null, intensity:0, step:0, next:0, pattern:null, ducked:false};
+/* ---------- music: a small arranger playing hand-written songs ----------
+   Every song is written out by hand: chords (one per bar, or two in a bar split by a space), melodies
+   as note:length in 16th notes ('-' is a rest, '_' holds the note before) and named drum grooves.
+   A song plays a short intro, then loops its form, e.g. A A+ B B+ A~ A+: '+' adds the arpeggio, a
+   harmony line and busier drums, '~' is a breather without drums or melody. Everything runs through
+   a small mixer with reverb and an echo synced to the tempo. */
+const NOTE_PC = {C:0, D:2, E:4, F:5, G:7, A:9, B:11};
+const pcOf = n => (NOTE_PC[n[0]] + (n[1] === '#' ? 1 : n[1] === 'b' ? -1 : 0) + 12) % 12;
+const midiOf = n => { const m = /^([A-G][#b]?)(\d)$/.exec(n); if(!m) throw new Error('note ' + n); return 12 * (+m[2] + 1) + pcOf(m[1]); };
 const midiF = m => 440 * Math.pow(2, (m - 69) / 12);
-function setMusic(name, intensity){
-  intensity = intensity || 0;
-  if(MUSIC.name === name && MUSIC.intensity === intensity) return;
-  const sameSong = MUSIC.name === name;
-  MUSIC.name = name; MUSIC.intensity = intensity;
-  if(!name) return;
-  if(!sameSong){
-    const song = SONGS[name], rnd = mulberry(song.seed * 7919);
-    MUSIC.pattern = Array.from({length:64}, (_, i) => {
-      const onBeat = i % 4 === 0 ? 1.6 : i % 2 === 0 ? 1 : .45;
-      return rnd() < song.density * onBeat ? [0, 2, 4, 1, 3, 5, -1, 7][Math.floor(rnd() * 8)] : null;
-    });
-    MUSIC.step = 0; MUSIC.next = 0;
+const CHORD_Q = {'':[0,4,7], m:[0,3,7], 7:[0,4,7,10], m7:[0,3,7,10], maj7:[0,4,7,11], m9:[0,3,7,10,14], maj9:[0,4,7,11,14], add9:[0,4,7,14],
+  madd9:[0,3,7,14], sus2:[0,2,7], sus4:[0,5,7], dim:[0,3,6], 5:[0,7], m6:[0,3,7,9], 6:[0,4,7,9], 9:[0,4,7,10,14]};
+function chordOf(c){
+  const m = /^([A-G][#b]?)([^/]*)(?:\/([A-G][#b]?))?$/.exec(c);
+  if(!m || !CHORD_Q[m[2]]) throw new Error('chord ' + c);
+  const pc = pcOf(m[1]), iv = CHORD_Q[m[2]];
+  return {pc, iv, bass:m[3] ? pcOf(m[3]) : pc, pcs:iv.map(i => (pc + i) % 12)};
+}
+
+// drum grooves: one 16-step line per drum. k kick, s snare, r rim, h hat, o open hat, p shaker, t tom, c crash
+// X loud, x normal, g ghost, . nothing
+const GROOVES = {
+  none:    {},
+  hats:    {h:'x.g.x.g.x.g.x.g.'},
+  shaker:  {p:'x.g.x.g.x.g.x.g.', k:'X...............'},
+  build:   {k:'X...X...X...X...', s:'........x.x.xxXX', t:'x...x...........'},
+  half:    {k:'X.........x.....', s:'........X.......', h:'x.x.x.x.x.x.x.x.'},
+  rock:    {k:'X.....x.X.x.....', s:'....X.......X...', h:'x.x.x.x.x.x.x.x.', o:'..............x.'},
+  lofi:    {k:'X......x..X.....', r:'....X.......X...', h:'x.gxx.gxx.gxx.gx'},
+  lofiFull:{k:'X......x..X...x.', s:'....X.......X...', h:'x.gxx.gxx.gxx.gx', p:'..g...g...g...g.'},
+  adv:     {k:'X.....x.X.....x.', s:'....X.......X...', h:'x.x.x.x.x.x.x.x.'},
+  advFull: {k:'X.....x.X..x..x.', s:'....X.......X..g', h:'xgxgxgxgxgxgxgxg', o:'......x.........'},
+  dub:     {k:'X.........X.....', s:'........X.......', p:'g.x.g.x.g.x.g.x.'},
+  dubFull: {k:'X.......x.X.....', s:'........X.....g.', h:'..x...x...x...x.', p:'gxgxgxgxgxgxgxgx', o:'..............x.'},
+  boss:    {k:'X...X...X...X...', s:'....X.......X...', o:'..x...x...x...x.'},
+  bossFull:{k:'X.x.X...X.x.X..x', s:'....X.......X.gg', h:'xxxxxxxxxxxxxxxx', o:'..x.......x.....'},
+  tribal:  {k:'X..X..X.X..X..X.', s:'....X.......X...', t:'..x.....x.x.....', h:'x.x.x.x.x.x.x.x.'},
+  tribalF: {k:'X..X..X.X..X..X.', s:'....X.......X..g', t:'..x..x..x.x..x..', h:'xgxgxgxgxgxgxgxg'},
+  blast:   {k:'X.x.X.x.X.x.X.x.', s:'....X.......X...', h:'x.x.x.x.x.x.x.x.', o:'..x...x...x...x.'},
+  blastF:  {k:'XxX.XxX.XxX.XxXx', s:'....X.......X.xx', h:'xxxxxxxxxxxxxxxx'},
+};
+// the second half of a section's last bar
+const FILLS = {
+  roll: {k:'X.......X.......', s:'....X...x.x.xxXX', h:'x.x.x.x.........'},
+  toms: {k:'X.......X.......', s:'....X...........', t:'........xxx.x.xX'},
+  soft: {k:'X...............', s:'............g.gx', h:'x.x.x.x.x.x.....'},
+};
+// arpeggio orders over the chord tones of two octaves
+const ARPS = {up:[0,1,2,3,4,5], updown:[0,1,2,3,4,3,2,1], broken:[0,2,1,3,2,4,3,5], low:[0,1,2,1]};
+
+// synth presets. w wave, v volume, a attack, d decay to s (sustain level), r release, det detuned twin (cents),
+// vib vibrato (cents), lp low-pass with env (start cutoff) falling over et, part: extra partials [ratio, volume, wave]
+const INST = {
+  saw:    {w:'sawtooth', det:7, v:.15, a:.012, d:.35, s:.65, r:.14, lp:2400, env:4800, et:.12, vib:12},
+  square: {w:'square', v:.11, a:.006, d:.25, s:.6, r:.09, lp:3400, vib:9},
+  bell:   {w:'sine', v:.26, a:.003, d:.45, s:.14, r:.7, part:[[2, .28], [3.01, .1]]},
+  flute:  {w:'triangle', v:.2, a:.045, d:.4, s:.8, r:.16, vib:16, lp:2600},
+  pluck:  {w:'sawtooth', v:.15, a:.003, d:.16, s:0, r:.12, lp:420, env:3600, et:.07},
+  drop:   {w:'triangle', v:.22, a:.002, d:.14, s:0, r:.18, part:[[2, .2]]},
+  epiano: {w:'sine', v:.15, a:.004, d:.8, s:.35, r:.35, part:[[2, .25], [4, .05]]},
+  strings:{w:'sawtooth', det:11, v:.045, a:.4, s:1, r:.9, lp:1250},
+  warm:   {w:'triangle', det:8, v:.085, a:.5, s:1, r:1.1, lp:1600},
+  glass:  {w:'sine', det:6, v:.075, a:.6, s:1, r:1.4, part:[[2, .3]]},
+  choir:  {w:'triangle', det:14, v:.075, a:.3, s:1, r:.8, vib:10, lp:2000},
+  pbass:  {w:'sawtooth', v:.24, a:.004, d:.25, s:.45, r:.07, lp:320, env:1500, et:.06, part:[[1, .6, 'sine']]},
+  sub:    {w:'sine', v:.36, a:.01, d:.6, s:.7, r:.12, part:[[2, .16, 'triangle']]},
+  dbass:  {w:'square', v:.15, a:.004, d:.18, s:.5, r:.05, lp:520, env:2400, et:.05, part:[[1, .7, 'sine']]},
+};
+
+/* songs. inst: lead, harm (the second line in '+' sections), pad, keys (comp), arp, bass.
+   bass/comp lines: R root (or the slash bass), 5 fifth, 3 third, O octave, - hold, . rest */
+const SONGS = {
+  title:{bpm:96, intro:4, form:['A', 'A+', 'B+', 'A~', 'B+', 'A+'], groove:'half', grooveFull:'rock', fill:'toms',
+    inst:{lead:'saw', harm:'square', pad:'strings', arp:'pluck', bass:'pbass'}, arp:'updown', arpRate:2, arpLo:64,
+    bass:'R-------R---5---', bassFull:'R-.R-.R-R-.R-.5-',
+    A:{ch:'Am | F | C | G | F | C | Dm | E',
+       mel:'A4:4 C5:4 E5:6 D5:2 | C5:8 A4:4 C5:4 | G4:4 C5:4 E5:4 G5:4 | D5:12 B4:4 | A5:6 G5:2 F5:4 E5:4 | E5:6 D5:2 C5:4 G4:4 | F5:4 E5:2 D5:2 A4:8 | B4:8 G#4:4 E4:4'},
+    B:{ch:'F | G | Em | Am | Dm | G | E | E7',
+       mel:'C5:4 F5:4 A5:8 | B5:4 A5:4 G5:8 | G5:4 E5:4 B4:8 | C5:4 E5:4 A5:8 | F5:6 E5:2 D5:4 A5:4 | G5:6 F5:2 D5:4 B4:4 | G#5:8 E5:4 B4:4 | D5:4 B4:4 G#4:4 E4:4'}},
+  hub:{bpm:78, gain:.85, swing:.2, intro:2, form:['A', 'A+', 'B', 'B+', 'A~'], groove:'lofi', grooveFull:'lofiFull', fill:'soft', lp:7000, verb:1.2,
+    inst:{lead:'bell', harm:'flute', pad:'warm', keys:'epiano', bass:'sub'}, harmOct:-12,
+    bass:'R-----R-5---3---', comp:'x-----x---x-----',
+    A:{ch:'Fmaj7 | Em7 | Dm7 | Cmaj7 | Fmaj7 | Em7 | Dm7 G7 | Cadd9',
+       mel:'-:4 A4:2 C5:2 E5:6 -:2 | D5:4 B4:4 G4:8 | -:4 F4:2 A4:2 C5:6 -:2 | B4:4 G4:4 E4:8 | -:4 E5:2 F5:2 A5:6 G5:2 | E5:4 D5:4 B4:8 | C5:4 A4:4 B4:4 D5:4 | C5:12 -:4'},
+    B:{ch:'Am7 | Dm7 | G7 | Cmaj7 | Fmaj7 | Em7 | Dm7 | G',
+       mel:'E5:6 D5:2 C5:4 A4:4 | F5:6 E5:2 D5:4 A4:4 | B4:4 D5:4 F5:4 E5:4 | E5:8 -:8 | -:2 A4:2 C5:2 E5:2 A5:8 | G5:6 E5:2 D5:4 B4:4 | C5:4 D5:4 F5:4 A5:4 | G5:8 F5:4 D5:4'}},
+  ruins:{bpm:108, gain:1.1, intro:4, form:['A', 'A+', 'B', 'B+', 'A~', 'A+'], groove:'adv', grooveFull:'advFull', fill:'roll',
+    inst:{lead:'square', harm:'pluck', pad:'strings', arp:'pluck', bass:'pbass'}, arp:'broken', arpRate:1, arpLo:62,
+    bass:'R-.R-.R-R-.R-.5-',
+    A:{ch:'Dm | G | C | Dm | Bb | F | C | A',
+       mel:'D5:3 F5:3 A5:2 G5:2 F5:2 E5:2 F5:2 | D5:6 B4:2 G4:4 B4:4 | C5:3 E5:3 G5:2 F5:2 E5:2 D5:2 E5:2 | A4:8 -:4 D5:2 E5:2 | F5:6 D5:2 Bb4:4 D5:4 | C5:6 A4:2 F4:4 A4:4 | G4:3 C5:3 E5:2 G5:4 F5:2 E5:2 | E5:8 C#5:4 A4:4'},
+    B:{ch:'Gm | C | F | Dm | Gm | Bb | A | A7',
+       mel:'G5:8 F5:4 D5:4 | E5:8 C5:4 G4:4 | A5:8 G5:4 F5:4 | D5:12 -:4 | Bb4:4 D5:4 G5:6 F5:2 | F5:4 D5:4 Bb4:4 D5:4 | E5:6 C#5:2 E5:4 A5:4 | G5:4 F5:4 E5:4 C#5:4'}},
+  aqueduct:{bpm:88, gain:.95, swing:.08, intro:4, form:['A', 'A+', 'B', 'B+', 'A~', 'A+'], groove:'dub', grooveFull:'dubFull', fill:'soft', lp:6000, verb:1.3, echo:1.4,
+    inst:{lead:'bell', harm:'flute', pad:'glass', arp:'drop', bass:'sub'}, harmOct:-12, arp:'up', arpRate:2, arpLo:64, arpAlways:true,
+    bass:'R-----.R-.R-5---',
+    A:{ch:'Em9 | Cmaj7 | G | D | Em | Cmaj7 | Am7 | B7',
+       mel:'-:4 B4:2 E5:2 G5:4 F#5:4 | E5:8 -:4 B4:4 | D5:4 G5:4 B5:4 A5:2 G5:2 | F#5:8 -:4 A4:4 | G5:4 F#5:2 E5:2 B4:8 | C5:4 E5:4 G5:4 B5:4 | A5:6 G5:2 E5:4 C5:4 | D#5:8 F#5:4 B4:4'},
+    B:{ch:'Cmaj7 | D | Bm7 | Em | Am7 | D | Cmaj7 | B7',
+       mel:'G5:6 E5:2 B4:8 | A5:6 F#5:2 D5:8 | F#5:4 D5:4 B4:4 D5:4 | E5:12 -:4 | C5:4 E5:4 A5:6 G5:2 | F#5:6 E5:2 D5:4 A4:4 | B4:4 C5:4 E5:4 G5:4 | F#5:8 D#5:4 A5:4'}},
+  bossRuins:{bpm:140, gain:.9, intro:1, introGroove:'build', form:['A', 'A+', 'B+', 'A+'], groove:'boss', grooveFull:'bossFull', fill:'roll',
+    inst:{lead:'saw', harm:'square', pad:'strings', arp:'pluck', bass:'dbass'}, arp:'up', arpRate:1, arpLo:60,
+    bass:'R-R-R-R-R-R-R-O-', bassBrk:'R-R-R-R-R-R-R-R-',
+    A:{ch:'Cm | Cm | Ab | Bb | Cm | Cm | Ab | G',
+       mel:'C5:2 C5:2 Eb5:2 G5:4 F5:2 Eb5:2 D5:2 | Eb5:4 C5:4 G4:8 | Ab4:2 C5:2 Eb5:2 Ab5:4 G5:2 F5:2 Eb5:2 | F5:6 D5:2 Bb4:8 | G5:4 Eb5:2 G5:2 C6:6 Bb5:2 | G5:4 Eb5:4 C5:8 | Ab5:4 G5:4 F5:4 Eb5:4 | D5:6 B4:2 G4:4 B4:4'},
+    B:{ch:'Fm | Fm | Cm | Cm | Ab | Bb | G | G',
+       mel:'F5:6 G5:2 Ab5:8 | G5:4 F5:4 Eb5:4 C5:4 | Eb5:6 D5:2 C5:8 | G4:4 C5:4 Eb5:4 G5:4 | Ab5:8 G5:4 Eb5:4 | F5:8 D5:4 Bb4:4 | B4:4 D5:4 G5:4 F5:4 | D5:4 B4:4 G4:4 B4:2 D5:2'}},
+  bossDeep:{bpm:132, gain:.9, intro:1, introGroove:'build', form:['A', 'A+', 'B+', 'A+'], groove:'tribal', grooveFull:'tribalF', fill:'toms', lp:9000, echo:1.2,
+    inst:{lead:'square', harm:'bell', pad:'choir', arp:'pluck', bass:'dbass'}, arp:'broken', arpRate:1, arpLo:59,
+    bass:'R-.R-.R-R-.R-.R-', bassBrk:'R-.R-.R-R-.R-.R-',
+    A:{ch:'Em | F | Em | D | C | B | Em | B7',
+       mel:'E5:2 F5:2 E5:2 B4:6 G4:2 B4:2 | C5:4 A4:4 F5:6 E5:2 | E5:2 G5:2 B5:4 A5:2 G5:2 F#5:4 | A5:6 F#5:2 D5:8 | E5:4 G5:4 C6:6 B5:2 | B5:4 F#5:4 D#5:8 | E5:4 F#5:2 G5:2 B5:4 G5:4 | A5:4 F#5:4 D#5:4 B4:4'},
+    B:{ch:'Am | B | C | B | Am | F | B | B7',
+       mel:'A4:4 C5:4 E5:8 | D#5:4 F#5:4 B5:8 | G5:4 C6:6 B5:2 G5:4 | F#5:12 -:4 | E5:2 F5:2 E5:2 C5:2 A4:8 | F5:2 G5:2 F5:2 C5:2 A4:8 | B4:4 D#5:4 F#5:4 A5:4 | B5:8 -:8'}},
+  // the theme bosses (floors 5 and 10). Its B section quotes the title theme
+  finale:{bpm:150, gain:.8, intro:1, introGroove:'build', form:['A', 'A+', 'B+', 'A+'], groove:'blast', grooveFull:'blastF', fill:'toms', leadOct:-12,
+    inst:{lead:'saw', harm:'square', pad:'choir', arp:'pluck', bass:'dbass'}, arp:'up', arpRate:1, arpLo:69, harmOct:12,
+    bass:'R-R-R-R-R-R-O-R-', bassBrk:'R-R-R-R-R-R-R-R-',
+    A:{ch:'Am | F | G | E | Am | F | Dm | E',
+       mel:'A5:6 E5:2 A5:4 B5:2 C6:2 | C6:4 B5:2 A5:2 F5:8 | G5:6 D5:2 G5:4 A5:2 B5:2 | G#5:8 E5:4 B4:4 | A5:4 C6:4 B5:2 A5:2 E5:4 | F5:4 A5:4 C6:6 B5:2 | A5:4 F5:4 D5:4 F5:4 | E5:8 G#5:4 B5:4'},
+    B:{ch:'F | G | Em | Am | F | G | E | E7',
+       mel:'C5:4 F5:4 A5:8 | B5:4 A5:4 G5:8 | G5:4 E5:4 B4:8 | C5:4 E5:4 A5:8 | A5:6 G5:2 F5:4 A5:4 | B5:6 A5:2 G5:4 B5:4 | B5:4 G#5:4 E5:4 D5:4 | E5:4 G#5:4 B5:4 D6:4'}},
+};
+
+function melOf(str, bars){
+  const out = Array.from({length:bars}, () => new Array(16).fill(null));
+  const rows = str.split('|');
+  if(rows.length !== bars) throw new Error(`melody has ${rows.length} bars, chords have ${bars}`);
+  let last = null;
+  rows.forEach((row, b) => {
+    let s = 0;
+    for(const tok of row.trim().split(/\s+/)){
+      const [n, d] = tok.split(':'), len = +d;
+      if(n === '_'){ if(last) last.d += len; }
+      else if(n === '-') last = null;
+      else { last = {m:midiOf(n), d:len}; out[b][s] = last; }
+      s += len;
+    }
+    if(s !== 16) throw new Error(`bar ${b + 1} is ${s} steps long: ${row}`);
+  });
+  return out;
+}
+function songCompile(name){
+  const S = SONGS[name];
+  if(S._c) return S._c;
+  const C = {name, bpm:S.bpm, gain:S.gain || 1, swing:S.swing || 0, lp:S.lp || 16000, verb:S.verb || 1, echo:S.echo || 1, echoT:S.echoT || 3, inst:S.inst,
+    leadOct:S.leadOct || 0, harmOct:S.harmOct || 0, arp:ARPS[S.arp || 'up'], arpRate:S.arpRate || 2, arpLo:S.arpLo || 62, arpAlways:!!S.arpAlways,
+    bass:S.bass, bassFull:S.bassFull || S.bass, bassBrk:S.bassBrk || 'R---------------', comp:S.comp, padLo:S.padLo || 55, sec:{}};
+  const gv = k => { if(!GROOVES[k]) throw new Error('groove ' + k); return GROOVES[k]; };
+  C.groove = gv(S.groove); C.grooveFull = gv(S.grooveFull || S.groove); C.introGroove = gv(S.introGroove || 'hats'); C.brkGroove = gv(S.brkGroove || 'shaker');
+  C.fill = FILLS[S.fill || 'roll'];
+  for(const k of ['A', 'B']){
+    if(!S[k]) continue;
+    const ch = S[k].ch.split('|').map(b => b.trim().split(/\s+/).map(chordOf));
+    C.sec[k] = {ch, mel:S[k].mel ? melOf(S[k].mel, ch.length) : null, bars:ch.length};
+  }
+  const bars = [];
+  const add = (k, mode) => { const sec = C.sec[k]; if(!sec) throw new Error('section ' + k); for(let b = 0; b < sec.bars; b++) bars.push({sec, b, mode, first:b === 0, last:b === sec.bars - 1}); };
+  for(const f of S.form) add(f[0], f[1] || '');
+  bars.forEach((B, i) => { B.fill = B.last && bars[(i + 1) % bars.length].mode !== '~'; });
+  C.loop = bars;
+  C.introBars = Array.from({length:S.intro || 0}, (_, b) => ({sec:C.sec.A, b:b % C.sec.A.bars, mode:'i', first:b === 0, last:b === S.intro - 1, fill:b === S.intro - 1}));
+  return S._c = C;
+}
+
+/* ---------- the mixer: a channel per part, with reverb and echo sends ---------- */
+const MIX = {ctx:null};
+const MCH = [   // name, volume, pan, reverb send, echo send
+  ['kick', .9, 0, .04, 0], ['snare', .6, .06, .24, 0], ['hat', .34, .3, .08, 0], ['perc', .45, -.32, .2, .1],
+  ['bass', .8, 0, .03, 0], ['pad', .55, 0, .55, 0], ['keys', .5, .18, .32, .1], ['lead', .6, -.06, .3, .26],
+  ['harm', .34, .24, .4, .18], ['arp', .32, -.3, .3, .34]];
+function mixInit(){
+  const a = AUDIO.ctx;
+  if(!a || MIX.ctx === a) return;
+  MIX.ctx = a;
+  MIX.trim = a.createGain(); MIX.trim.gain.value = .38; MIX.trim.connect(AUDIO.music);   // keeps the music under the sound effects
+  MIX.duck = a.createBiquadFilter(); MIX.duck.type = 'lowpass'; MIX.duck.frequency.value = 16000; MIX.duck.connect(MIX.trim);
+  const len = a.sampleRate * 2.4 | 0, ir = a.createBuffer(2, len, a.sampleRate);
+  for(let c = 0; c < 2; c++){ const d = ir.getChannelData(c); for(let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.4); }
+  const verb = a.createConvolver(); verb.buffer = ir;
+  MIX.verbIn = a.createGain(); MIX.verbIn.gain.value = .5; MIX.verbIn.connect(verb); verb.connect(MIX.duck);
+  MIX.delay = a.createDelay(2); MIX.delay.delayTime.value = .4;
+  const fb = a.createGain(); fb.gain.value = .36;
+  const tone = a.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 2600;
+  MIX.echoIn = a.createGain(); MIX.echoIn.connect(MIX.delay); MIX.delay.connect(tone); tone.connect(fb); fb.connect(MIX.delay); tone.connect(MIX.duck);
+  MIX.ch = {};
+  for(const [k, vol, pan, rv, ec] of MCH){
+    const g = a.createGain(); g.gain.value = vol;
+    let out = g;
+    if(a.createStereoPanner){ const p = a.createStereoPanner(); p.pan.value = pan; g.connect(p); out = p; }
+    out.connect(MIX.duck);
+    const sv = a.createGain(), se = a.createGain(); sv.gain.value = rv; se.gain.value = ec;
+    out.connect(sv); sv.connect(MIX.verbIn); out.connect(se); se.connect(MIX.echoIn);
+    MIX.ch[k] = g; MIX.ch[k].sends = [sv, se, rv, ec];
   }
 }
-function setDuck(on){ MUSIC.ducked = on; applyVolumes(); }
-function musicNote(f, dur, type, vol, t, lp){ tone(f, dur, {type, vol, t, dest:AUDIO.music, attack:.008, lp}); }
-function playStep(song, step, t, sp){
-  const I = MUSIC.intensity, bar = Math.floor(step / 16), s = step % 16, deg = song.prog[bar % song.prog.length], sc = SCALES[song.scale];
-  const note = (d, oct) => song.root + sc[((d % 7) + 7) % 7] + 12 * (Math.floor(d / 7) + oct);
-  if(BASS[I >= 2 ? 'drive' : song.bp].includes(s)) musicNote(midiF(note(deg, -1)), sp * 1.7, song.bass, .15, t, 700);
-  if(s === 0 && song.pad) for(const k of [0, 2, 4]) musicNote(midiF(note(deg + k, 0)), sp * 15, 'sine', .028, t);
-  const every = I >= 2 ? 1 : 2;
-  if(song.arp && s % every === 0){ const k = [0, 2, 4, 7][Math.floor(s / every) % 4]; musicNote(midiF(note(deg + k, 1)), sp * .8, song.arp, .03, t, 3000); }
-  const L = MUSIC.pattern[(bar % 4) * 16 + s];
-  if(L !== null) musicNote(midiF(note(deg + L, 1 + (I >= 2 ? 1 : 0))), sp * 1.6, song.lead, .045, t, 4000);
-  const drums = Math.max(song.drums, I >= 2 ? 2 : 0);
-  if(drums){
-    if(s % (drums >= 2 ? 4 : 8) === 0) tone(150, .14, {type:'sine', vol:.28, to:40, t, dest:AUDIO.music});
-    if(s === 4 || s === 12) noise(.12, {filter:'bandpass', f:1800, q:.8, vol:.09, t, dest:AUDIO.music});
-    if(drums >= 2 ? s % 2 === 1 : s % 4 === 2) noise(.03, {filter:'highpass', f:7000, vol:.035, t, dest:AUDIO.music});
+// a new song sets the echo time, the sends and the overall tone
+function mixSong(C, sp){
+  const a = AUDIO.ctx, t = a.currentTime;
+  MIX.delay.delayTime.setTargetAtTime(Math.min(1.9, C.echoT * sp), t, .05);
+  for(const k in MIX.ch){ const [sv, se, rv, ec] = MIX.ch[k].sends; sv.gain.setTargetAtTime(rv * C.verb, t, .1); se.gain.setTargetAtTime(ec * C.echo, t, .1); }
+  MIX.duck.frequency.setTargetAtTime(MUSIC.ducked ? 900 : C.lp, t, .1);
+  MIX.trim.gain.setTargetAtTime(.38 * C.gain, t, .1);
+}
+
+/* ---------- voices ---------- */
+function mVoice(ch, f, t, dur, o){
+  const a = AUDIO.ctx, out = MIX.ch[ch];
+  const g = a.createGain(), A = o.a || .006, R = o.r || .08, v = o.v || .2, hold = Math.max(dur, A), end = t + hold + R + .05;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + A);
+  if(o.d) g.gain.setTargetAtTime(v * (o.s || 0), t + A, o.d / 3);
+  g.gain.setTargetAtTime(0, t + hold, R / 4);
+  g.connect(out);
+  let dest = g;
+  if(o.lp){
+    const fl = a.createBiquadFilter(); fl.type = 'lowpass'; fl.Q.value = o.q || .8;
+    fl.frequency.setValueAtTime(o.env || o.lp, t); if(o.env) fl.frequency.setTargetAtTime(o.lp, t, o.et || .08);
+    fl.connect(g); dest = fl;
   }
+  let lfo = null;
+  if(o.vib){
+    lfo = a.createOscillator(); lfo.frequency.value = 5.4;
+    const lg = a.createGain(); lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(o.vib, t + .3);
+    lfo.connect(lg); lfo.start(t); lfo.stop(end); lfo = lg;
+  }
+  const osc = (w, fr, det, vol) => {
+    const s = a.createOscillator(); s.type = w; s.frequency.value = fr; s.detune.value = det;
+    if(lfo) lfo.connect(s.detune);
+    if(vol !== 1){ const k = a.createGain(); k.gain.value = vol; s.connect(k); k.connect(dest); } else s.connect(dest);
+    s.start(t); s.stop(end);
+  };
+  if(o.det){ osc(o.w, f, -o.det / 2, .62); osc(o.w, f, o.det / 2, .62); } else osc(o.w, f, 0, 1);
+  if(o.part) for(const [ratio, vol, w] of o.part) osc(w || o.w, f * ratio, 0, vol);
+}
+function mNoise(ch, t, dur, v, type, f, q, fto){
+  const a = AUDIO.ctx, src = a.createBufferSource(); src.buffer = AUDIO.noise; src.loop = true;
+  const fl = a.createBiquadFilter(); fl.type = type; fl.Q.value = q || .7; fl.frequency.setValueAtTime(f, t);
+  if(fto) fl.frequency.exponentialRampToValueAtTime(fto, t + dur);
+  const g = a.createGain(); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0005, t + dur);
+  src.connect(fl); fl.connect(g); g.connect(MIX.ch[ch]);
+  src.start(t, Math.random() * .5); src.stop(t + dur + .02);
+}
+const DRUM = {
+  k(t, v){
+    const a = AUDIO.ctx, o = a.createOscillator(), g = a.createGain();
+    o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(44, t + .12);
+    g.gain.setValueAtTime(v * .9, t); g.gain.exponentialRampToValueAtTime(.001, t + .38);
+    o.connect(g); g.connect(MIX.ch.kick); o.start(t); o.stop(t + .4);
+    mNoise('kick', t, .015, v * .2, 'highpass', 2500);
+  },
+  s(t, v){ mNoise('snare', t, .18, v * .5, 'highpass', 1400); mNoise('snare', t, .08, v * .35, 'bandpass', 900, 1.2); mVoice('snare', 160, t, .01, {w:'triangle', v:v * .3, r:.1}); },
+  r(t, v){ mVoice('perc', 1700, t, .004, {w:'triangle', v:v * .16, r:.04}); mNoise('perc', t, .03, v * .2, 'bandpass', 2400, 2); },
+  h(t, v){ mNoise('hat', t, .04, v * .28, 'highpass', 8000); },
+  o(t, v){ mNoise('hat', t, .26, v * .22, 'highpass', 7000); },
+  p(t, v){ mNoise('perc', t, .06, v * .16, 'bandpass', 6000, 1.6); },
+  t(t, v, s){
+    const a = AUDIO.ctx, o = a.createOscillator(), g = a.createGain(), f = 190 - s * 6;
+    o.frequency.setValueAtTime(f * 1.5, t); o.frequency.exponentialRampToValueAtTime(f, t + .08);
+    g.gain.setValueAtTime(v * .55, t); g.gain.exponentialRampToValueAtTime(.001, t + .3);
+    o.connect(g); g.connect(MIX.ch.perc); o.start(t); o.stop(t + .32);
+  },
+  c(t, v){ mNoise('hat', t, 1.6, v * .2, 'highpass', 4200); },
+};
+const VEL = {X:1, x:.7, g:.32};
+
+// a chord's tones placed from lo upward, over n octaves
+function chordTones(C, lo, n){
+  const out = [];
+  for(let o = 0; o < n; o++) for(const pc of C.pcs) out.push(lo + ((pc - lo) % 12 + 12) % 12 + 12 * o);
+  return out.sort((x, y) => x - y);
+}
+const placeBass = pc => 34 + ((pc - 34) % 12 + 12) % 12;   // Bb1 .. A2
+function bassNote(C, k){
+  const r = placeBass(C.pc);
+  return k === 'R' ? placeBass(C.bass) : k === '5' ? r + 7 : k === 'O' ? r + 12 : k === '3' ? r + C.iv[1] : r;
+}
+// how many steps a note in a bass/comp line lasts (until the next note, a rest, or a chord change)
+function lineLen(line, s, two){ let n = 1; while(s + n < 16 && line[s + n] === '-' && !(two && s < 8 && s + n === 8)) n++; return n; }
+
+function musicStep(C, step, t, sp){
+  const bar = Math.floor(step / 16), s = step % 16;
+  const P = bar < C.introBars.length ? C.introBars[bar] : C.loop[(bar - C.introBars.length) % C.loop.length];
+  const chs = P.sec.ch[P.b], two = chs.length > 1, Ch = chs[two && s >= 8 ? 1 : 0];
+  const full = P.mode === '+', calm = P.mode === '~' || P.mode === 'i', I = C.inst;
+  if(s % 2) t += C.swing * sp;
+  // drums
+  let gr = P.mode === 'i' ? C.introGroove : P.mode === '~' ? C.brkGroove : full ? C.grooveFull : C.groove;
+  if(P.fill && s >= 8 && gr !== GROOVES.build) gr = C.fill;
+  for(const k in gr){ const v = VEL[gr[k][s]]; if(v) DRUM[k](t, v, s); }
+  if(s === 0 && P.first && P.mode !== '~' && P.mode !== 'i' && (full || bar === C.introBars.length)) DRUM.c(t, 1);
+  // bass
+  const bl = calm ? C.bassBrk : full ? C.bassFull : C.bass, bk = bl[s];
+  if(I.bass && bk !== '-' && bk !== '.') mVoice('bass', midiF(bassNote(Ch, bk)), t, lineLen(bl, s, two) * sp * .92, INST[I.bass]);
+  // pad: one chord per bar or half bar
+  if(I.pad && (s === 0 || (two && s === 8))){
+    const len = (two ? 8 : 16) * sp;
+    for(const m of chordTones(Ch, C.padLo, 1)) mVoice('pad', midiF(m), t, len, INST[I.pad]);
+  }
+  // keys comping
+  if(I.keys && C.comp && C.comp[s] === 'x' && P.mode !== 'i'){
+    const len = lineLen(C.comp, s, two) * sp * .9;
+    for(const m of chordTones(Ch, C.padLo + 5, 1)) mVoice('keys', midiF(m), t, len, INST[I.keys]);
+  }
+  // arpeggio
+  if(I.arp && (full || calm || C.arpAlways) && s % C.arpRate === 0){
+    const tones = chordTones(Ch, C.arpLo, 2), i = C.arp[(s / C.arpRate + bar * 2) % C.arp.length] % tones.length;
+    mVoice('arp', midiF(tones[i]), t, C.arpRate * sp * .9, INST[I.arp]);
+  }
+  // melody, and a harmony a chord tone below it in the full sections
+  const ev = !calm && P.sec.mel && P.sec.mel[P.b][s];
+  if(ev){
+    const dur = ev.d * sp * .94;
+    mVoice('lead', midiF(ev.m + C.leadOct), t, dur, INST[I.lead]);
+    if(full && I.harm){
+      let h = 0;
+      for(let k = 3; k <= 9 && !h; k++) if(Ch.pcs.includes((ev.m - k + 120) % 12)) h = ev.m - k;
+      if(h) mVoice('harm', midiF(h + C.leadOct + C.harmOct), t, dur, INST[I.harm]);
+    }
+  }
+}
+
+const MUSIC = {name:null, intensity:0, song:null, step:0, next:0, ducked:false, fresh:false};
+function setMusic(name, intensity){
+  intensity = intensity || 0;
+  if(name && intensity >= 2 && SONGS[name] && SONGS[name].boss) name = SONGS[name].boss;
+  if(name && !SONGS[name]) name = 'ruins';
+  if(MUSIC.name === name) return;
+  MUSIC.name = name; MUSIC.intensity = intensity; MUSIC.song = null;
+  if(!name) return;
+  try{ MUSIC.song = songCompile(name); }catch(e){ console.error('music: ' + name + ': ' + e.message); MUSIC.name = null; return; }
+  MUSIC.step = 0; MUSIC.next = 0; MUSIC.fresh = true;
+}
+function setDuck(on){
+  MUSIC.ducked = on; applyVolumes();
+  if(MIX.ctx && MIX.ctx === AUDIO.ctx) MIX.duck.frequency.setTargetAtTime(on ? 900 : MUSIC.song ? MUSIC.song.lp : 16000, AUDIO.ctx.currentTime, .12);
 }
 function musicTick(){
   const a = AUDIO.ctx;
-  if(!a || a.state !== 'running' || !MUSIC.name || save.vol.mute || save.vol.music <= 0) return;
-  const song = SONGS[MUSIC.name], sp = 60 / song.bpm / 4;
+  if(!a || a.state !== 'running' || !MUSIC.song || save.vol.mute || save.vol.music <= 0) return;
+  mixInit();
+  const C = MUSIC.song, sp = 60 / C.bpm / 4;
+  if(MUSIC.fresh){ MUSIC.fresh = false; mixSong(C, sp); }
   if(MUSIC.next < a.currentTime) MUSIC.next = a.currentTime + .05;
   while(MUSIC.next < a.currentTime + .2){
-    try{ playStep(song, MUSIC.step, MUSIC.next, sp); }catch(e){}
+    try{ musicStep(C, MUSIC.step, MUSIC.next, sp); }catch(e){}
     MUSIC.step++; MUSIC.next += sp;
   }
 }
@@ -2295,11 +2541,11 @@ function onVolumeInput(el){
    HUB UI
    ===================================================================== */
 const hub = $('#hub'), modal = $('#modal'), mbox = $('#mbox'), titleEl = $('#title');
-let tab = 'stages';
+let tab = 'dungeon';
 let lastPulls = [];
 let resetArmed = false;
-const B = {stage:'s1', char:'mage', items:[], filter:'all', deckName:''};
-if(!save.decks.some(Boolean) && !Object.keys(save.cleared).length) B.items = STARTER_LOADOUT.slice();
+const B = {stage:'dg-ruins', char:'mage', items:[], filter:'all', deckName:''};
+if(!save.decks.some(Boolean) && !Object.keys(save.dg.cleared).length) B.items = STARTER_LOADOUT.slice();
 
 let toastT = 0;
 function toast(msg, kind){
@@ -2314,11 +2560,9 @@ function applyStageRules(){
   for(const id of st.forced) if(!B.items.includes(id)) B.items.push(id);
 }
 function unlockSource(id){
-  const st = STAGES.find(s => s.reward.items && s.reward.items.includes(id));
   const fl = DG_FLOORS.find(f => f.reward.items.includes(id)), rel = Object.values(DG_RELICS).find(r => r.items.includes(id));
   const src = ['Gacha'];
-  if(st) src.push(`first clear of ${st.name}`);
-  if(fl) src.push(`first clear of dungeon floor ${fl.n}`);
+  if(fl) src.push(`first clear of floor ${fl.n}`);
   if(rel) src.push(`${rel.name.toLowerCase().replace(/s$/, '')} drops in the dungeon`);
   return src.join(', ');
 }
@@ -2352,42 +2596,12 @@ function itemCard(id, st, combos){
     <span class="pt"><small>${it.type === 'neg' ? 'GIVES' : 'COST'}</small><b>${ptxt}</b></span>${tag}</button>`;
 }
 
-function stageCard(s, i){
-  const un = stageUnlocked(i);
-  return `<button class="stg ${B.stage === s.id ? 'on' : ''}" style="--sc:${s.accent};--img:url(${stageThumb(s)})" ${un ? `data-act="stage" data-id="${s.id}"` : 'disabled'}>
-    ${save.cleared[s.id] ? '<span class="sclr">CLEARED</span>' : ''}
-    <span class="sn">${i + 1}</span>
-    <span class="sname">${un ? s.name : ico('lock') + ' Locked'}</span>
-    <span class="smeta">${un ? `Budget ${s.budget} pts · ${fmtTime(s.dur)} + boss` : `Clear ${STAGES[i - 1].name} first`}</span></button>`;
-}
-
 function ruleChips(st){
   const chips = [];
   for(const id of st.forced) chips.push(`<span class="rchip forced">${ico('pin')} ${ITEMS[id].name} forced</span>`);
   for(const id of st.banned) chips.push(`<span class="rchip banned">${ico('ban')} ${ITEMS[id].name} banned</span>`);
   for(const r of st.rules) chips.push(`<span class="rchip">${ico('warn')} ${esc(r)}</span>`);
   return chips.join('');
-}
-
-function briefHtml(st){
-  const chips = ruleChips(st) || '<span class="rchip">No special rules</span>';
-  const rw = [];
-  if(save.cleared[st.id]) rw.push(`<span class="rchip done">${ico('check')} First-clear reward claimed</span>`);
-  else {
-    for(const c of st.reward.chars || []) rw.push(`<span class="rchip rew">${ico(c)} ${CHARACTERS[c].name}</span>`);
-    for(const i of st.reward.items || []) rw.push(`<span class="rchip rew">${ico(i)} ${ITEMS[i].name}</span>`);
-    rw.push(`<span class="rchip rew">${ico('coin')} ${st.reward.coins}</span>`);
-  }
-  const foes = stageTypes(st).map(ty => `<figure class="foe"><img src="${portrait(st.skins[ty])}" alt=""><figcaption>${SKINS[st.skins[ty]].name}${SKINS[st.skins[ty]].move ? `<br><span class="mv">${SKINS[st.skins[ty]].move}</span>` : ''}</figcaption></figure>`).join('')
-    + `<figure class="foe boss"><img src="${portrait(st.boss)}" alt=""><figcaption>${SKINS[st.boss].name}<br>Boss</figcaption></figure>`;
-  return `<div class="brief" style="--sc:${st.accent};--img:url(${stageThumb(st)})">
-    <div><h2>${st.name}</h2><p>${st.desc}</p></div>
-    <div class="bstats"><div><small>BUDGET</small><b>${st.budget} pts</b></div><div><small>SURVIVE</small><b>${fmtTime(st.dur)}</b></div><div><small>THEN</small><b>Boss</b></div>
-      ${save.best[st.id] ? `<div><small>YOUR BEST</small><b style="font-size:15px;padding-top:6px">${esc(save.best[st.id])}</b></div>` : ''}</div>
-    <div><div class="lbl">Enemies</div><div class="foes">${foes}</div></div>
-    ${st.budget < 0 ? `<div class="note">Negative budget: your negative traits must give at least ${-st.budget} more points than everything else costs.</div>` : ''}
-    <div><div class="lbl">Stage rules</div><div class="chips">${chips}</div>${st.forced.length ? '<div class="note" style="margin-top:6px">Forced negative traits still give you their points.</div>' : ''}</div>
-    <div><div class="lbl">First clear reward</div><div class="chips">${rw.join('')}</div></div></div>`;
 }
 
 function poolHtml(st, combos){
@@ -2420,7 +2634,7 @@ function rackHtml(st, combos){
   for(const [cid, c] of Object.entries(CHARACTERS)){
     const un = save.chars.includes(cid);
     h += `<button class="chr ${B.char === cid ? 'on' : ''}" ${un ? `data-act="char" data-id="${cid}"` : 'disabled'}>
-      <span class="ci">${ico(un ? cid : 'lock')}</span><span><b>${c.name}</b><small>${un ? `${c.hp} HP · ${WEAPONS[c.weapon].name}` : 'Clear stage 1'}</small></span></button>`;
+      <span class="ci">${ico(un ? cid : 'lock')}</span><span><b>${c.name}</b><small>${un ? `${c.hp} HP · ${WEAPONS[c.weapon].name}` : 'Clear floor 1'}</small></span></button>`;
   }
   h += '</div></div>';
   h += `<div class="gauge"><div class="lbl">Points</div><div class="gnum ${over ? 'over' : ''}"><b>${cost}</b><span>/ ${st.budget} budget</span></div>
@@ -2457,26 +2671,12 @@ function previewHtml(st){
     <button class="btn wide" data-act="tab" data-id="loadout">${ico('edit')} Edit loadout</button></aside>`;
 }
 
-function renderStages(){
-  const st = stageById(B.stage);
-  let h = '';
-  if(!save.seenGuide) h += `<div class="intro">
-    <div><b>1 · Pick a stage</b>Each stage has a point budget and its own rules.</div>
-    <div><b>2 · Build a loadout</b>Abilities and positive traits cost points. Negative traits give points back.</div>
-    <div><b>3 · Survive</b>You only move. Attacks are automatic. Level up, then beat the boss.</div>
-    <button class="btn sm" data-act="hideIntro">Got it</button></div>`;
-  h += `<div class="pagehead"><div><h2>Choose a stage</h2><p>Clear a stage to unlock the next one.</p></div></div>`;
-  h += `<div class="stages">${STAGES.map(stageCard).join('')}</div>`;
-  h += `<div class="play split">${briefHtml(st)}${previewHtml(st)}</div>`;
-  return h;
-}
-
 function renderLoadout(){
-  const st = stageById(B.stage), combos = activeCombos(B.items), i = STAGES.indexOf(st);
-  let h = `<div class="target" style="--sc:${st.accent}"><span class="tn">${st.dungeon ? 'B' + (B.floor || 1) : i + 1}</span>
-    <span class="tt"><small>BUILDING FOR</small><b>${st.dungeon ? 'Dungeon · ' : ''}${st.name} · ${st.budget} pts</b></span>
+  const st = stageById(B.stage), combos = activeCombos(B.items), n = B.floor || 1;
+  let h = `<div class="target" style="--sc:${st.accent}"><span class="tn">B${n}</span>
+    <span class="tt"><small>BUILDING FOR</small><b>Floor ${n} · ${dgThemeOf(n).name} · ${st.budget} pts</b></span>
     <span class="chips">${ruleChips(st)}</span>
-    ${st.dungeon ? `<button class="btn sm" data-act="tab" data-id="dungeon">${ico('stairs')} Change floor</button>` : `<button class="btn sm" data-act="tab" data-id="stages">${ico('map')} Change stage</button>`}</div>`;
+    <button class="btn sm" data-act="tab" data-id="dungeon">${ico('stairs')} Change floor</button></div>`;
   h += `<div class="play"><div>${poolHtml(st, combos)}</div>${rackHtml(st, combos)}</div>`;
   return h;
 }
@@ -2495,7 +2695,7 @@ function renderGacha(){
         <small>${['','Common','Rare','Epic'][it.rarity]} · ${TYPE_ONE[it.type]}</small>
         ${r.isNew ? '<span class="new">NEW</span>' : `<small>Duplicate · +${DUPE_REFUND} coins</small>`}</div>`;
     }).join('') + '</div>';
-  } else h += '<p class="note" style="margin-top:14px">Earn coins by playing stages. Clearing a stage pays the most.</p>';
+  } else h += '<p class="note" style="margin-top:14px">Earn coins in the dungeon. They count once you secure them at a portal, and first clears pay the most.</p>';
   return h;
 }
 
@@ -2517,68 +2717,66 @@ function renderCollection(){
       ? `<div class="cmb"><b>${ico('spark')} ${c.name}</b>${c.req.map(r => ITEMS[r].name).join(' + ')}<br>${c.desc}</div>`
       : `<div class="cmb unk"><b>${ico('spark')} ???</b>Hint: involves ${ITEMS[c.req[0]].type === 'neg' ? 'a negative trait' : ITEMS[c.req[0]].type === 'pos' ? 'a positive trait' : 'an ability'}</div>`;
   }
-  h += `</div></div><div class="sec"><h2>Bestiary</h2><p>Enemies you can meet in each stage.</p>`;
-  STAGES.forEach((st, i) => {
-    const seen = stageUnlocked(i);
-    h += `<div class="ghead" style="color:${st.accent}">${i + 1} · ${seen ? st.name : 'Locked'}</div><div class="foes">`;
-    h += seen ? stageTypes(st).map(ty => `<figure class="foe"><img src="${portrait(st.skins[ty])}" alt=""><figcaption>${SKINS[st.skins[ty]].name}</figcaption></figure>`).join('')
-      + `<figure class="foe boss"><img src="${portrait(st.boss)}" alt=""><figcaption>${SKINS[st.boss].name}</figcaption></figure>` : '<span class="note">Clear the previous stage to see these enemies.</span>';
+  h += `</div></div><div class="sec"><h2>Bestiary</h2><p>Enemies and bosses on each dungeon floor.</p>`;
+  const foe = (s, boss) => `<figure class="foe ${boss ? 'boss' : ''}"><img src="${dgPortraitSrc(s)}" alt=""><figcaption>${SKINS[s].name}</figcaption></figure>`;
+  for(const f of DG_FLOORS){
+    const seen = dgFloorUnlocked(f.n);
+    h += `<div class="ghead" style="color:${dgThemeOf(f.n).accent}">B${f.n} · ${seen ? esc(f.name) : 'Not reached yet'}</div><div class="foes">`;
+    h += seen ? f.foes.map(s => foe(s)).join('') + [f.boss, f.boss2].filter(Boolean).map(s => foe(s, true)).join('') : '<span class="note">Reach this floor to see what lives there.</span>';
     h += '</div>';
-  });
+  }
   return h + '</div>';
 }
 
 function renderGuide(){
-  return `<div class="sec"><h2>How to play</h2><p>One run takes about 4–5 minutes.</p><div class="steps">
-    <div class="step"><span class="n">1</span><b>Pick a stage</b>Each stage has a point budget and may force or ban some traits.</div>
-    <div class="step"><span class="n">2</span><b>Build a loadout</b>Abilities (max ${MAX_ABILITIES}) and positive traits cost points. Negative traits give points back. Stay at or under the budget.</div>
-    <div class="step"><span class="n">3</span><b>Survive</b>Move to dodge. Your weapon and abilities fire on their own. Collect gems to level up.</div>
+  return `<div class="sec"><h2>How to play</h2><p>Fight your way down a 3D dungeon, one hand-made floor at a time.</p><div class="steps">
+    <div class="step"><span class="n">1</span><b>Pick a floor</b>Start from floor 1, or from any floor whose portal you have reached.</div>
+    <div class="step"><span class="n">2</span><b>Build a loadout</b>Abilities (max ${MAX_ABILITIES}) and positive traits cost points. Negative traits give points back. Each theme (5 floors) has one budget.</div>
+    <div class="step"><span class="n">3</span><b>Explore and survive</b>You move and roll. Your weapon and abilities fire on their own. Collect XP gems to level up.</div>
     <div class="step"><span class="n">4</span><b>Upgrade</b>Each level gives an upgrade. Weapon and abilities go up to Lv ${MAX_LV.ability}, positive traits to Lv ${MAX_LV.pos}. You can overcome a negative trait in ${MAX_LV.neg} steps.</div>
-    <div class="step"><span class="n">5</span><b>Beat the boss</b>When the timer ends, the stage boss appears. Defeat it to clear the stage.</div>
-    <div class="step"><span class="n">6</span><b>Unlock more</b>First clears give new items and stages. Spend coins on the gacha.</div></div></div>
-    <div class="sec"><h2>Dungeon</h2><p>A 3D mode. Same characters and loadouts, one budget for each theme.</p><div class="steps">
-    <div class="step"><b>${ico('stairs')} Hand-made floors</b>Explore each floor, find the boss chamber and beat the boss. Then an exit portal opens.</div>
-    <div class="step"><b>${ico('reroll')} Fresh start every floor</b>Each floor starts you back at level 1 with your bare loadout, and each level needs 1.1× the XP of the one before (1.08× in the stages). XP gems stay where enemies fall.</div>
+    <div class="step"><span class="n">5</span><b>Beat the boss</b>Find the boss chamber and win. Then step into the exit portal to keep what you carried.</div>
+    <div class="step"><span class="n">6</span><b>Grow stronger</b>First clears give coins, items, a character and skill points. Spend coins on the gacha and points in the skill tree.</div></div></div>
+    <div class="sec"><h2>The dungeon</h2><div class="steps">
+    <div class="step"><b>${ico('reroll')} Fresh start every floor</b>Each floor starts you back at level 1 with your bare loadout, and each level needs 1.1× the XP of the one before. XP gems stay where enemies fall.</div>
     <div class="step"><b>${ico('portal')} Secure your loot</b>Coins and relics only count once you step into a portal. If you die, you lose only what you were carrying.</div>
     <div class="step"><b>${ico('roll')} Dodge roll</b><kbd>Space</kbd> or the roll button. Nothing can hit you mid-roll, and it breaks you out of webs.</div>
-    <div class="step"><b>${ico('warn')} Floor hazards</b>Webs slow you down, cracked floor falls away a moment after you step on it, and moss pools poison you.</div>
+    <div class="step"><b>${ico('warn')} Farther is tougher</b>Enemies grow stronger the farther they are from the start of the floor, up to ×3 HP and damage, and pay more XP.</div>
+    <div class="step"><b>${ico('warn')} Floor hazards</b>Webs slow you down, cracked floor falls away a moment after you step on it, moss pools poison you, and water and currents push you around.</div>
     <div class="step"><b>${ico('check')} Floor objectives</b>From floor 6, the boss gate stays locked until you do the floor's job: turn valves, break brood clutches, light lanterns, hold pumps, or sink the Drowned Admiral. A gold arrow at the edge of the screen points to the next one.</div>
-    <div class="step"><b>${ico('skilltree')} Skill tree</b>Every first clear of a floor gives a skill point (every fifth floor gives 2). Spend them in the Skills tab: faster and longer rolls, damage, HP, a healing flask and more.</div>
+    <div class="step"><b>${ico('skilltree')} Skill tree</b>Every first clear of a floor gives a skill point (every fifth floor gives 2). Each rank of a skill costs one point more than the last. Spend them in the Skills tab.</div>
     <div class="step"><b>${ico('crown')} Bosses</b>Every boss has its own set of attacks, and its name for each one shows above it as it starts. Shockwave rings can only be dodged by rolling through them.</div>
     <div class="step"><b>${ico('gem')} Relics</b>Elites and bosses drop relics: locked items that match the enemy type. Revenants drop melee items, spiders poison and speed items, archers ranged items.</div></div></div>
     <div class="sec"><h2>During a run</h2><div class="steps">
     <div class="step"><b>${ico('spark')} Combos</b>Some item pairs change costs or effects. Cards show a hint when one is close.</div>
     <div class="step"><b>${ico('flame')} Chain</b>Kill quickly to build a chain. Every 10 kills in a chain gives +1% XP, up to +50%.</div>
-    <div class="step"><b>${ico('crown')} Elites</b>A golden elite appears about once a minute. It drops a treasure chest with a free upgrade.</div>
-    <div class="step"><b>${ico('warn')} Enemy attacks</b>From stage 6, every enemy has its own attack. Red lines and circles show where an attack is about to land.</div>
+    <div class="step"><b>${ico('warn')} Enemy attacks</b>Red lines and circles show where an attack is about to land.</div>
     <div class="step"><b>${ico('chest')} Drops</b>Hearts heal, magnets pull in every gem, bombs hit everything on screen, chests give a free upgrade.</div></div></div>
     <div class="sec"><h2>Controls</h2><div class="steps">
-    <div class="step"><b>Keyboard</b><kbd>WASD</kbd> or arrow keys to move · <kbd>1</kbd>–<kbd>4</kbd> pick an upgrade · <kbd>R</kbd> reroll · <kbd>P</kbd> or <kbd>Esc</kbd> pause · <kbd>Space</kbd> dodge roll (dungeon)</div>
-    <div class="step"><b>Touch</b>Drag anywhere to move. Tap a card to pick an upgrade.</div></div></div>`;
+    <div class="step"><b>Keyboard</b><kbd>WASD</kbd> or arrow keys to move · <kbd>Space</kbd> dodge roll · <kbd>Q</kbd> healing flask · <kbd>1</kbd>–<kbd>4</kbd> pick an upgrade · <kbd>R</kbd> reroll · <kbd>P</kbd> or <kbd>Esc</kbd> pause</div>
+    <div class="step"><b>Touch</b>Drag anywhere to move. Tap the roll button to dodge. Tap a card to pick an upgrade.</div></div></div>`;
 }
 
 function renderHub(){
-  // the Stages tab builds for a stage, the Dungeon tab for the dungeon theme
-  if(tab === 'dungeon' && !stageById(B.stage).dungeon) B.lastStage = B.stage;
-  if(tab === 'dungeon' && B.stage !== dgStageOf(B.floor || 1).id){ B.stage = dgStageOf(B.floor || 1).id; applyStageRules(); }
-  if(tab === 'stages' && stageById(B.stage).dungeon){ B.stage = B.lastStage || 's1'; applyStageRules(); }
+  // the loadout is always built for the theme of the chosen floor
+  if(!dgFloorUnlocked(B.floor)) B.floor = Math.min(save.dg.reached, DG_FLOORS.length);
+  if(B.stage !== dgStageOf(B.floor).id){ B.stage = dgStageOf(B.floor).id; applyStageRules(); }
   $('#topbar').innerHTML = `<button class="logo" data-act="title" aria-label="Back to title"><span class="l1">LOADOUT</span><span class="l2">SURVIVORS</span></button>
-    <nav class="tabs">${[['stages','Stages'],['dungeon','Dungeon'],['skills','Skills'],['loadout','Loadout'],['gacha','Gacha'],['collection','Collection'],['guide','Guide']].map(([k, l]) =>
+    <nav class="tabs">${[['dungeon','Dungeon'],['skills','Skills'],['loadout','Loadout'],['gacha','Gacha'],['collection','Collection'],['guide','Guide']].map(([k, l]) =>
       `<button data-act="tab" data-id="${k}" class="${tab === k ? 'on' : ''}">${l}${k === 'skills' && skFree() > 0 ? `<i class="tbadge">${skFree()}</i>` : ''}</button>`).join('')}</nav>
     <div class="wallet">${ico('coin')} ${save.coins}</div>
     <button class="iconbtn" data-act="settings" aria-label="Settings">${ico('gear')}</button>`;
-  let h = tab === 'stages' ? renderStages() : tab === 'dungeon' ? renderDungeon() : tab === 'skills' ? renderSkills() : tab === 'loadout' ? renderLoadout() : tab === 'gacha' ? renderGacha() : tab === 'collection' ? renderCollection() : renderGuide();
+  let h = tab === 'dungeon' ? renderDungeon() : tab === 'skills' ? renderSkills() : tab === 'loadout' ? renderLoadout() : tab === 'gacha' ? renderGacha() : tab === 'collection' ? renderCollection() : renderGuide();
   h += `<footer><span class="note">Progress is saved in this browser.</span>
     <button class="btn sm ghost" data-act="reset">${resetArmed ? 'Click again to erase ALL progress' : 'Reset save'}</button></footer>`;
   $('#main').innerHTML = h;
   const launch = $('#launch');
-  launch.hidden = tab !== 'stages' && tab !== 'loadout' && tab !== 'dungeon';
+  launch.hidden = tab !== 'loadout' && tab !== 'dungeon';
   if(!launch.hidden){
     const st = stageById(B.stage), errs = validate(st, B.char, B.items), cost = loadoutCost(B.items), ab = abilityCount(B.items);
-    if(st.dungeon && !dgFloorUnlocked(B.floor || 1)) errs.unshift('That floor is locked');
+    if(!dgFloorUnlocked(B.floor)) errs.unshift('That floor is locked');
     launch.innerHTML = `<div class="lstat"><span class="st ${errs.length ? 'bad' : 'good'}">${errs.length ? ico('warn') + ' ' + esc(errs[0]) : ico('check') + ' Ready to start'}</span>
-      <small>${esc(st.dungeon ? `Dungeon floor ${B.floor || 1}` : st.name)} · ${cost} / ${st.budget} pts · ${ab} / ${MAX_ABILITIES} abilities</small></div>
-      <button class="go" data-act="start" ${errs.length ? 'disabled' : ''}>${st.dungeon ? 'ENTER' : 'START'} ${ico('play')}</button>`;
+      <small>Floor ${B.floor} · ${cost} / ${st.budget} pts · ${ab} / ${MAX_ABILITIES} abilities</small></div>
+      <button class="go" data-act="start" ${errs.length ? 'disabled' : ''}>ENTER ${ico('play')}</button>`;
   }
 }
 
@@ -2619,16 +2817,6 @@ hub.addEventListener('click', e => {
     case 'title': showTitle(); return;
     case 'settings': openSettings(); return;
     case 'tab': tab = id; hub.scrollTop = 0; break;
-    case 'stage': {
-      const before = B.items.slice();
-      B.stage = id; applyStageRules();
-      const removed = before.filter(x => !B.items.includes(x)), added = B.items.filter(x => !before.includes(x));
-      const msg = [];
-      if(removed.length) msg.push('Removed ' + removed.map(x => ITEMS[x].name).join(', ') + ' (banned here)');
-      if(added.length) msg.push('Added ' + added.map(x => ITEMS[x].name).join(', ') + ' (forced here)');
-      if(msg.length) toast(msg.join(' · '));
-      break;
-    }
     case 'char': B.char = id; break;
     case 'floor': {
       B.floor = +id;
@@ -2655,8 +2843,7 @@ hub.addEventListener('click', e => {
     case 'start': {
       const st = stageById(B.stage);
       if(validate(st, B.char, B.items).length) return;
-      if(st.dungeon){ dgStartFromHub(); return; }
-      startRun(st, B.char, B.items.slice()); return;
+      dgStartFromHub(); return;
     }
     case 'pull': gachaPull(+t.dataset.n); break;
     case 'skUp': skLearn(id); break;
@@ -2667,14 +2854,14 @@ hub.addEventListener('click', e => {
     case 'reset':
       if(!resetArmed){ resetArmed = true; break; }
       resetArmed = false; save = defaultSave(); persist();
-      B.stage = 's1'; B.char = 'mage'; B.items = STARTER_LOADOUT.slice(); lastPulls = []; break;
+      B.stage = 'dg-ruins'; B.floor = 1; B.char = 'mage'; B.items = STARTER_LOADOUT.slice(); lastPulls = []; break;
   }
   renderHub();
 });
 
 function openDecks(){
   mbox.className = 'mbox';
-  mbox.innerHTML = `<h2>Saved loadouts</h2><p class="mnote">Save your current loadout, or load one. Loading adjusts it for the selected stage's forced and banned items.</p>
+  mbox.innerHTML = `<h2>Saved loadouts</h2><p class="mnote">Save your current loadout, or load one.</p>
     <label class="lbl" for="deckName">Name for saving</label><input id="deckName" type="text" maxlength="24" placeholder="e.g. Glass cannon" value="${esc(B.deckName)}">
     <div class="decks">${save.decks.map((d, i) => `<div class="dk"><div class="dn">${d
       ? `<b>${CHARACTERS[d.char] ? ico(d.char) : ''} ${esc(d.name)}</b><span>${d.items.filter(x => ITEMS[x]).map(x => ico(x)).join('')}</span>`
@@ -2731,30 +2918,27 @@ modal.addEventListener('click', e => {
 });
 
 /* =====================================================================
-   TITLE SCREEN — menu over a self-playing demo of each stage
+   TITLE SCREEN — menu over a self-playing demo
    ===================================================================== */
 function renderTitle(){
-  const cleared = STAGES.filter(s => save.cleared[s.id]).length;
+  const cleared = DG_FLOORS.filter(f => save.dg.cleared[f.n]).length;
   const owned = Object.keys(ITEMS).filter(isUnlocked).length;
   titleEl.innerHTML = `
     <div class="tl-kicker">A roguelite of budgets and handicaps</div>
     <h1 class="tl-logo"><span class="o">LOADOUT</span><span class="f">SURVIVORS</span></h1>
-    <p class="tl-tag">Spend points on power. Take handicaps to afford more. Then survive the swarm and beat the boss.</p>
+    <p class="tl-tag">Spend points on power. Take handicaps to afford more. Then fight your way down a 3D dungeon, floor by floor.</p>
     <nav class="tl-menu">
-      <button class="tl-btn primary" data-go="stages">${ico('play')} Start<small>Enter</small></button>
-      <button class="tl-btn" data-go="dungeon">${ico('stairs')} Dungeon<small>3D</small></button>
+      <button class="tl-btn primary" data-go="dungeon">${ico('play')} Start<small>Enter</small></button>
+      <button class="tl-btn" data-go="skills">${ico('skilltree')} Skill tree</button>
       <button class="tl-btn" data-go="loadout">${ico('layers')} Loadout</button>
       <button class="tl-btn" data-go="gacha">${ico('capsule')} Gacha</button>
       <button class="tl-btn" data-go="collection">${ico('grid')} Collection</button>
       <button class="tl-btn" data-go="guide">${ico('guide')} How to play</button>
       <button class="tl-btn" data-go="settings">${ico('gear')} Settings</button>
     </nav>
-    <div class="tl-stats"><span>${ico('trophy')} Stages <b>${cleared} / ${STAGES.length}</b></span><span>${ico('gem')} Items <b>${owned} / ${Object.keys(ITEMS).length}</b></span>
-      <span>${ico('spark')} Combos <b>${save.combos.length} / ${COMBOS.length}</b></span><span>${ico('coin', 'gold')} <b>${save.coins}</b></span></div>
-    <div class="tl-now"><small>NOW SHOWING</small><b id="tlStage"></b></div>`;
-  updateTitleStage();
+    <div class="tl-stats"><span>${ico('stairs')} Floors cleared <b>${cleared} / ${DG_FLOORS.length}</b></span><span>${ico('gem')} Items <b>${owned} / ${Object.keys(ITEMS).length}</b></span>
+      <span>${ico('spark')} Combos <b>${save.combos.length} / ${COMBOS.length}</b></span><span>${ico('coin', 'gold')} <b>${save.coins}</b></span></div>`;
 }
-function updateTitleStage(){ const el = $('#tlStage'); if(el){ const st = STAGES[DEMO.si]; el.textContent = st.name; el.style.color = st.accent; } }
 function showTitle(){ hub.hidden = true; modal.hidden = true; titleEl.hidden = false; renderTitle(); setMusic('title'); }
 function goHub(t){ tab = t; titleEl.hidden = true; hub.hidden = false; hub.scrollTop = 0; renderHub(); setMusic('hub'); }
 titleEl.addEventListener('click', e => {
@@ -2779,7 +2963,7 @@ function demoUpdate(dt){
   if(D.next <= 0){ D.fade = .8; D.next = 11; }
   if(D.fade > 0){
     const before = D.fade; D.fade -= dt;
-    if(before > .4 && D.fade <= .4){ D.si = (D.si + 1) % STAGES.length; D.enemies.length = 0; D.parts.length = 0; D.shots.length = 0; updateTitleStage(); }
+    if(before > .4 && D.fade <= .4){ D.si = (D.si + 1) % STAGES.length; D.enemies.length = 0; D.parts.length = 0; D.shots.length = 0; }
   }
   const cam = demoCam(), types = stageTypes(st);
   D.acc += dt * 7;
@@ -2868,7 +3052,7 @@ const KEYMAP = {ArrowLeft:'l',KeyA:'l',ArrowRight:'r',KeyD:'r',ArrowUp:'u',KeyW:
 addEventListener('keydown', e => {
   if(KEYMAP[e.code]){ keys[KEYMAP[e.code]] = true; if(G) e.preventDefault(); }
   if(!G){
-    if(!titleEl.hidden && (e.code === 'Enter' || e.code === 'Space') && !e.target.closest('button')){ e.preventDefault(); goHub('stages'); }
+    if(!titleEl.hidden && (e.code === 'Enter' || e.code === 'Space') && !e.target.closest('button')){ e.preventDefault(); goHub('dungeon'); }
     return;
   }
   if((e.code === 'Escape' || e.code === 'KeyP') && (G.state === 'play' || G.state === 'paused')) togglePause();
@@ -2957,15 +3141,12 @@ function startRun(stage, charId, items){
   if(G.ab.shield) G.p.shield = true;
   hub.hidden = true; titleEl.hidden = true;
   $('#hud').hidden = false;
-  sfx('start'); setMusic(stage.art, 0); setDuck(false);
+  sfx('start'); setDuck(false);
   $('#bossbar').hidden = true;
   $('#chain').hidden = true;
   modal.hidden = true;
   renderIcons();
   updateHud();
-  const idx = STAGES.indexOf(stage) + 1;
-  const cmb = [...G.combos].map(id => COMBOS.find(c => c.id === id).name).join(' · ');
-  showBanner(stage.name, '', `Stage ${idx} · survive ${fmtTime(stage.dur)}${cmb ? ' · Combos: ' + cmb : ''}`);
 }
 
 function recalcStats(){
@@ -4538,48 +4719,7 @@ function srcLabel(k){
 function endRun(win){
   if(G.state === 'over') return;
   G.state = 'over';
-  if(G.dg){ dgEndRun(win); return; }
-  $('#bossbar').hidden = true;
-  setMusic(null); setDuck(false); sfx(win ? 'clear' : 'defeat');
-  const st = G.stage, idx = STAGES.indexOf(st);
-  const lines = [];
-  lines.push([`Kills (${G.kills})`, Math.floor(G.kills / 5)]);
-  lines.push(['Survival time', Math.floor(Math.min(G.t, st.dur) / 10)]);
-  if(G.bonusCoins) lines.push(['Level-up coins', G.bonusCoins]);
-  const unlocks = [];
-  if(win){
-    lines.push(['Stage clear', 100 + idx * 50]);
-    const unused = Math.max(0, st.budget - G.cost);
-    lines.push([`Unused points (${unused})`, Math.min(10, unused) * UNUSED_POINT_COINS]);
-    if(!save.cleared[st.id]){
-      save.cleared[st.id] = true;
-      lines.push(['First clear bonus', st.reward.coins]);
-      for(const c of st.reward.chars || []) if(!save.chars.includes(c)){ save.chars.push(c); unlocks.push(ico(c) + ' ' + CHARACTERS[c].name + ' (character)'); }
-      for(const i of st.reward.items || []) if(!isUnlocked(i)){ save.unlocked.push(i); unlocks.push(ico(i) + ' ' + ITEMS[i].name); }
-      if(STAGES[idx + 1]) unlocks.push(ico('map') + ' ' + STAGES[idx + 1].name);
-    }
-    save.best[st.id] = `Cleared · Lv ${G.level}`;
-  } else if(!save.cleared[st.id]){
-    const prev = save.best[st.id];
-    if(!prev || !prev.startsWith('Cleared')) save.best[st.id] = `Survived ${fmtTime(G.t)}`;
-  }
-  const poorF = negF('poor');
-  if(poorF > 0){ const sub = lines.reduce((a, l) => a + l[1], 0); lines.push(['Poor (handicap)', -Math.round(sub * 0.5 * poorF)]); }
-  const total = lines.reduce((a, l) => a + l[1], 0);
-  save.coins += total;
-  persist();
-  const dm = Object.entries(G.dmgBy).sort((a, b) => b[1] - a[1]), top = dm.length ? dm[0][1] : 1;
-  mbox.className = 'mbox res';
-  mbox.innerHTML = `<h2 class="${win ? 'win' : 'lose'}">${win ? 'STAGE CLEAR' : 'DEFEATED'}</h2>
-    <div class="sub">${st.name}</div>
-    <div class="tiles"><div class="tile"><small>TIME</small><b>${fmtTime(G.t)}</b></div><div class="tile"><small>LEVEL</small><b>${G.level}</b></div>
-    <div class="tile"><small>KILLS</small><b>${G.kills}</b></div><div class="tile"><small>BEST CHAIN</small><b>${G.maxChain}</b></div></div>
-    ${dm.length ? `<h3>Damage dealt</h3>${dm.slice(0, 7).map(([k, v]) => `<div class="dmr"><span>${srcLabel(k)}</span><div><i style="width:${v / top * 100}%"></i></div><b>${fmtNum(v)}</b></div>`).join('')}` : ''}
-    <h3>Coins</h3>${lines.map(l => `<div class="row"><span>${l[0]}</span><b>${l[1] < 0 ? '' : '+'}${l[1]}</b></div>`).join('')}
-    <div class="row total"><span>Total</span><b>+${total} ${ico('coin')}</b></div>
-    ${unlocks.length ? `<h3>Unlocked</h3><div class="unl">${unlocks.map(u => `<span class="rchip rew">${u}</span>`).join('')}</div>` : ''}
-    <div class="mfoot"><button class="btn hot" id="backB" data-act="back">Back to base</button></div>`;
-  modal.hidden = false;
+  dgEndRun(win);
 }
 function backToHub(){
   const wasDg = !!(G && G.dg);
@@ -4587,8 +4727,8 @@ function backToHub(){
   $('#hud').hidden = true;
   G = null;
   joy.active = false;
-  if(wasDg){ d3Show(false); $('#dgobj').hidden = $('#dgcarry').hidden = $('#rollBtn').hidden = $('#flaskBtn').hidden = true; goHub('dungeon'); return; }
-  goHub(tab === 'stages' || tab === 'loadout' ? tab : 'stages');
+  if(wasDg){ d3Show(false); $('#dgobj').hidden = $('#dgcarry').hidden = $('#rollBtn').hidden = $('#flaskBtn').hidden = true; }
+  goHub('dungeon');
 }
 
 /* =====================================================================
@@ -4885,7 +5025,7 @@ const DG_MOB = {hp:1.3, dmg:1.2};               // regular dungeon enemies are t
 const DG_XP_GROWTH = 1.1;                       // in the dungeon each level needs ×1.1 the XP of the one before (stages: ×1.08), and your level resets on every floor
 const TT = {WALL:0, FLOOR:1, PIT:2, POOL:3, CRUMBLE:4, WEB:5, GATE:6, PROP:7, STAIR:8, DEEP:9, CURRENT:10, SLICK:11};
 const CUR_DIR = [[1, 0], [-1, 0], [0, 1], [0, -1]];   // > < v ^
-const DG_DIST = {near:.8, far:1.35};             // enemy strength by distance from the start: x0.8 next to it, x1.35 at the far end
+const DG_DIST = {near:.8, far:3};                 // enemy strength by distance from the start: x0.8 next to it, x3 at the far end
 const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 const N8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
 
@@ -4936,7 +5076,7 @@ const DG_PACKS = {
   a:{elite:'archer',   make:f => ({archer:3 + Math.ceil(f / 2), revenant:3})},
   x:{elite:'revenant', make:f => ({revenant:4, crawler:4, archer:3})},
 };
-const DG_THEMES = [{id:'ruins', name:'Mossy Ruins', first:1, last:5, accent:'#8be36a', song:'ruins',
+const DG_THEMES = [{id:'ruins', name:'Mossy Ruins', first:1, last:5, accent:'#8be36a', song:'ruins', boss:'bossRuins',
   desc:'Stone ruins wrapped in vines and moss. A classic fantasy start, and the way down.'}];
 const dgThemeOf = n => DG_THEMES.find(t => n >= t.first && n <= t.last) || DG_THEMES[0];
 
@@ -4951,7 +5091,7 @@ const DG_FLOORS = [
   {n:1, name:'Crumbled Entrance Hall', boss:'mosssentinel', bossHp:3900, hpMul:1, xpMul:1, coinMul:1,
    trickle:{every:10, n:3, mix:{revenant:1}}, foes:['revenant'],
    desc:'The broken gateway into the ruins: a great hall, a chapel, a garden and a courtyard. Only revenants. A good place to learn the dodge roll.',
-   tags:['Revenants only'], reward:{coins:60, items:[]}, map:`
+   tags:['Revenants only'], reward:{coins:60, items:['lightning'], chars:['knight']}, map:`
 #################################################################################################
 #################################################################################################
 ########################################bbbbbbbbbbbbbbbbb########################################
@@ -5048,7 +5188,7 @@ const DG_FLOORS = [
   {n:2, name:'Vine Corridors', boss:'vinebrood', bossHp:5600, hpMul:1.15, xpMul:1.15, coinMul:1.2,
    trickle:{every:9, n:3, mix:{revenant:1, crawler:1}}, foes:['revenant','stonespider'],
    desc:'Winding halls choked with vines. Stone-eater spiders wait in the side passages, and their webs slow you down.',
-   tags:['Webs slow you','Poison bites'], reward:{coins:80, items:['poison']}, map:`
+   tags:['Webs slow you','Poison bites'], reward:{coins:80, items:['poison', 'restless', 'momentum']}, map:`
 ##################################################################################################
 ##################bbbbbbbbbbbbb###################################################################
 ##############bbbbbbbbbbbbbbbbbbbbb###############################################################
@@ -5149,7 +5289,7 @@ const DG_FLOORS = [
   {n:3, name:'Collapsed Library', boss:'archcaptain', bossHp:7200, hpMul:1.3, xpMul:1.3, coinMul:1.4,
    trickle:{every:9, n:3, mix:{revenant:2, crawler:1, archer:2}}, foes:['revenant','stonespider','ruinarcher'],
    desc:'Shelves of rotting books over a chasm. Cracked floor gives way a moment after you step on it. Archers shoot from across the gaps.',
-   tags:['Crumbling floor','Archers'], reward:{coins:100, items:['precision']}, map:`
+   tags:['Crumbling floor','Archers'], reward:{coins:100, items:['precision', 'berserker', 'nearsighted']}, map:`
 ####################################################################################################
 ####################################################################################################
 #############bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb############
@@ -5250,7 +5390,7 @@ const DG_FLOORS = [
   {n:4, name:'Stairway to the Altar', boss:'altarkeeper', bossHp:10500, hpMul:1.5, xpMul:1.45, coinMul:1.6,
    trickle:{every:8, n:4, mix:{revenant:2, crawler:2, archer:1}}, foes:['revenant','stonespider','ruinarcher'],
    desc:'Great stairs climb toward the altar. Pools of toxic moss narrow the way, and all three enemy types attack together.',
-   tags:['Moss pools poison you','Mixed hordes'], reward:{coins:120, items:['stillness']}, map:`
+   tags:['Moss pools poison you','Mixed hordes'], reward:{coins:120, items:['stillness', 'haste', 'shield']}, map:`
 ################################################################################################
 ################################################################################################
 #######################bbbbbbbbbbbbbbbbbbbbbbbbobobbbbbbbbbbbbbbbbbbbbbbbb######################
@@ -5365,7 +5505,7 @@ const DG_FLOORS = [
   {n:5, name:'Heart of the Ruins', boss:'stonegiant', bossHp:9500, boss2:'ruinguardian', boss2Hp:7500, hpMul:1.7, xpMul:1.6, coinMul:1.8, themeEnd:true,
    trickle:null, foes:['revenant','stonespider','ruinarcher'],
    desc:'Ruined halls lead to one long sealed corridor. Iron gates drop in front of you and behind you, and four waves pour into each section. At the end, two bosses back to back.',
-   tags:['Sealed corridor','No turning back','2 bosses'], reward:{coins:300, items:['static']},
+   tags:['Sealed corridor','No turning back','2 bosses'], reward:{coins:300, items:['static', 'siphon']},
    zones:{
      1:{waves:[{revenant:18}, {revenant:22}, {revenant:26}, {revenant:22, elite:'revenant'}]},
      2:{waves:[{revenant:12, crawler:10}, {crawler:14, revenant:12}, {revenant:14, crawler:16}, {revenant:14, crawler:14, elite:'crawler'}]},
@@ -5525,9 +5665,6 @@ Object.assign(SFX, {
   portal: {gap:1,   play(){ arp([392, 523, 659, 784, 1046, 1318], .07, {type:'sine', vol:.08, len:.3}); tone(200, 1, {type:'sine', vol:.05, to:800}); }},
   relic:  {gap:.4,  play(){ arp([659, 988, 1318, 1976], .06, {type:'triangle', vol:.08, len:.25}); }},
 });
-Object.assign(SONGS, {
-  ruins: {bpm:96, root:52, scale:'dorian', prog:[0,5,3,4], bass:'sawtooth', bp:'pulse', lead:'triangle', arp:'sine', drums:1, pad:1, density:.3, seed:211},
-});
 /* ---------- theme 2: the Flooded Aqueducts (floors 6–10) ----------
    Every floor has its own job to do before the boss gate opens, its own map shape, look and enemies:
      6 Sluice Gate          turn 3 valves (each drains part of the Great Canal)   sailors, harpooners, barnacle cannons
@@ -5604,7 +5741,7 @@ Object.assign(DG_RELICS, {
   shell:{name:'Shell relics',   color:'#ffcf6a', items:['thorns','plating','shield','giant','sluggish','rigid']},
   deep: {name:'Abyssal relics', color:'#c8f4ff', items:['frost','lightning','static','haste','nearsighted','dull']},
 });
-DG_THEMES.push({id:'aqueduct', name:'Flooded Aqueducts', first:6, last:10, accent:'#5fd8ff', song:'aqueduct',
+DG_THEMES.push({id:'aqueduct', name:'Flooded Aqueducts', first:6, last:10, accent:'#5fd8ff', song:'aqueduct', boss:'bossDeep',
   desc:'The flooded waterworks under the ruins: currents, deep cisterns and dark channels.'});
 const DG_STAGE_AQ = {id:'dg-aqueduct', dungeon:true, theme:'aqueduct', name:'Flooded Aqueducts', art:'swamp', seed:113, budget:3, dur:0, spawn:0, hpMul:1, speedMul:1,
   bossHp:0, bossArmor:0, accent:'#5fd8ff', mote:'#bff4ff', rise:0, desc:'The flooded waterworks under the ruins.',
@@ -5625,7 +5762,7 @@ DG_FLOORS.push(
           x:{elite:'sailor', make:() => ({sailor:7, harpooner:4})}, t:{elite:'barnacle', make:() => ({barnacle:1})}},
    trickle:{every:18, n:3, cap:26, mix:{sailor:2, harpooner:1}}, foes:['drowned','harpooner','barnacle'],
    desc:'The Great Canal cuts the floor in two. Turn the three sluice valves to unlock the Great Sluice Gate: each one sets off an ambush and drains part of the canal. Barnacle cannons cover the crossings.',
-   tags:['Turn 3 valves','Currents push you','Barnacle cannons'], reward:{coins:150, items:[]}, map:`
+   tags:['Turn 3 valves','Currents push you','Barnacle cannons'], reward:{coins:150, items:['giant', 'frail']}, map:`
 ##############################################################################################################
 ##############################################################################################################
 ##############################################################################################################
@@ -5725,7 +5862,7 @@ DG_FLOORS.push(
           f:{elite:'puffer', make:() => ({puffer:5, jelly:2})}, x:{elite:'crab', make:() => ({crab:4, puffer:3, jelly:3, sailor:2})}},
    trickle:{every:18, n:3, cap:26, mix:{crab:1, puffer:1, jelly:1}}, foes:['ironcrab','puffer','jelly','drowned'],
    desc:'Nine raised cisterns stand in a flooded hall, joined by narrow causeways. Brood clutches in the four corner cisterns hatch crabs for as long as you are near; break all four to open the walled cistern in the middle.',
-   tags:['Break 4 brood clutches','Deep water slows you','Armored crabs','Spinefish'], reward:{coins:170, items:[]}, map:`
+   tags:['Break 4 brood clutches','Deep water slows you','Armored crabs','Spinefish'], reward:{coins:170, items:['executioner', 'bleeding']}, map:`
 ####################################################################################################
 ####################################################################################################
 ##dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd##
@@ -5829,7 +5966,7 @@ DG_FLOORS.push(
           x:{elite:'siren', make:() => ({siren:3, eel:3, jelly:3, angler:1})}, i:{elite:'angler', early:true, make:() => ({angler:1})}},
    trickle:{every:20, n:3, cap:24, mix:{jelly:2, eel:1, siren:1}}, foes:['siren','angler','eel','jelly'],
    desc:'A labyrinth of narrow channels in total darkness. Six old lanterns stand in its chambers: light them all to open the way to the Siren Matriarch. Not every light down here is a lantern.',
-   tags:['Light 6 lanterns','Darkness','A maze','Lurking anglers'], reward:{coins:190, items:[]}, map:`
+   tags:['Light 6 lanterns','Darkness','A maze','Lurking anglers'], reward:{coins:190, items:['retaliate', 'swarmed']}, map:`
 ################################################################################################
 ################################################################################################
 ################################################################################################
@@ -5934,7 +6071,7 @@ DG_FLOORS.push(
           x:{elite:'crab', make:() => ({crab:3, eel:3, harpooner:2, siren:2})}, y:{elite:'wraith', make:() => ({wraith:6})}},
    trickle:{every:18, n:3, cap:26, mix:{eel:2, wraith:1, harpooner:1}}, foes:['wraith','eel','ironcrab','harpooner','siren'],
    desc:'Three vast halls that flood and drain. Restart the pump in each by staying near it until it runs, while tide wraiths rise out of the water. A running pump drains its hall for good; all three open the Thunder Eel\'s lair.',
-   tags:['Hold 3 pumps','The halls flood and drain','Tide wraiths'], reward:{coins:210, items:[]}, map:`
+   tags:['Hold 3 pumps','The halls flood and drain','Tide wraiths'], reward:{coins:210, items:['frenzy', 'rigid']}, map:`
 ########################################################################################################
 ########################################################################################################
 ########################################################################################################
@@ -6038,14 +6175,14 @@ DG_FLOORS.push(
 `},
   {n:10, name:'Bottom of the Great Reservoir', boss:'admiral', bossHp:12000, boss2:'leviathan', boss2Hp:13000, boss2At:[55, 13], lairZone:9, lairRect:[31, 4, 79, 24],
    hpMul:2.25, xpMul:1.9, coinMul:2.5, themeEnd:true, look:'reservoir', flood:{mode:'lake'},
-   hunter:{speed:230, cd:3.8, warn:1.05, r:110, dmg:20, reach:56, spitEvery:6.5},
+   hunter:{speed:160, rush:950, cd:1.8, warn:.6, r:100, dmg:24, spitEvery:6.5},
    objective:{kind:'admiral', text:'Board the wreck and defeat the Drowned Admiral', gateZone:9, after:'The reservoir is draining · find the Leviathan\'s lair (north)'},
    packs:{z:{elite:'sailor', make:() => ({sailor:6, harpooner:3})}, a:{elite:'harpooner', make:() => ({harpooner:4, siren:3})},
           x:{elite:'sailor', make:() => ({sailor:4, harpooner:2, leaper:3, siren:2})}, t:{elite:'barnacle', make:() => ({barnacle:1})}, y:{elite:'leaper', make:() => ({leaper:5})}},
    trickle:{every:20, n:3, cap:24, mix:{leaper:2, sailor:1}}, foes:['drowned','harpooner','leaper','barnacle','siren'],
    zones:{9:{boss2:true}},
    desc:'The bottom of the waterworks is a black lake of walkways and islands, and something enormous hunts anyone in the water. Board the Drowned Admiral\'s wreck and sink him for good; then the reservoir drains and the gates of the Leviathan\'s lair open.',
-   tags:['Something hunts you in the water','A boss on a shipwreck','The reservoir drains','2 bosses'], reward:{coins:500, items:[]}, map:`
+   tags:['Something hunts you in the water','A boss on a shipwreck','The reservoir drains','2 bosses'], reward:{coins:500, items:['secondwind']}, map:`
 ##############################################################################################################
 ##############################################################################################################
 ##############################################################################################################
@@ -6165,9 +6302,6 @@ Object.assign(ATK_NAME, {cannon:'Water Cannon', anchor:'Anchor', gateslam:'Gate 
   submerge:'Submerge', electrify:'Electrify', bolts:'Lightning Cross', coil:'Coil', sparks:'Sparks', broadside:'Broadside', cannons:'Cannon Barrage',
   crew:'All Hands', cutlass:'Cutlass Spin', bite:'Bite', tidal:'Tidal Wave', spit:'Spit', whirlpool:'Whirlpool', tailsweep:'Tail Sweep', eels:'Eels', torrent:'Torrent', eeldash:'Lightning Dash',
   anchors:'Anchor Volley', rivets:'Rivet Storm', pearls:'Pearl Barrage', coral:'Coral Javelins', anchorfan:'Anchors Aweigh', grapeshot:'Grapeshot', wreckage:'Wreckage'});
-Object.assign(SONGS, {
-  aqueduct:{bpm:88, root:50, scale:'minor', prog:[0,5,6,4], bass:'triangle', bp:'pulse', lead:'sine', arp:'triangle', drums:1, pad:1, density:.26, seed:307},
-});
 Object.assign(SFX, {
   splash:{gap:.15, play(){ noise(.3, {filter:'bandpass', f:900, fto:300, q:1.2, vol:.1}); }},
   shock: {gap:.15, play(){ noise(.25, {filter:'bandpass', f:3200, q:4, vol:.12}); tone(90, .3, {type:'sawtooth', vol:.06, to:60}); }},
@@ -6345,7 +6479,7 @@ function dgNearest(x, y, maxD){
 /* ---------- dungeon: run flow ---------- */
 function dgEnter(n){
   startRun(Object.assign({}, dgStageOf(n)), B.char, B.items.slice());
-  G.dg = {start:n, floor:0, carried:{coins:0, items:[]}, secured:{coins:0, items:[]}, floorsCleared:0, roll:{t:0, cd:0, n:1, max:1, dx:0, dy:1},
+  G.dg = {start:n, floor:0, carried:{coins:0, items:[]}, secured:{coins:0, items:[], chars:[]}, floorsCleared:0, roll:{t:0, cd:0, n:1, max:1, dx:0, dy:1},
     sk:Object.assign({}, save.dg.skills)};   // the skill tree as it was when you went in
   document.body.classList.add('dg');
   $('#dgobj').hidden = $('#dgcarry').hidden = $('#rollBtn').hidden = false;
@@ -6430,8 +6564,8 @@ function dgSpawn(type, x, y, elite, zone){
   e.rise = e.riseMax = .75; e.zone = zone || 0; e.xp *= G.dg.def.xpMul;
   // enemies get tougher (and a little bigger) the farther they are from the start
   const k = dgFar(x, y), s = DG_DIST.near + (DG_DIST.far - DG_DIST.near) * k;
-  e.pow = 1; e.vis = .92 + .18 * k;
-  if(type !== 'egg'){ e.hp *= DG_MOB.hp * s; e.maxHp = e.hp; e.dmg *= DG_MOB.dmg * s; e.pow = DG_MOB.dmg * s; e.xp *= .85 + .4 * k; }
+  e.pow = 1; e.vis = .92 + .3 * k;
+  if(type !== 'egg'){ e.hp *= DG_MOB.hp * s; e.maxHp = e.hp; e.dmg *= DG_MOB.dmg * s; e.pow = DG_MOB.dmg * s; e.xp *= .85 + 1.15 * k; }   // and pay up to twice the XP
   dgCollide(e, e.r);
   if(G.parts.length < 600) burst(e.x, e.y, '#9a8a6a', 5, 110);
   return e;
@@ -6591,7 +6725,7 @@ function dgSpawnBoss(skin, hp, second){
   G.enemies.push(b); G.boss = b;
   $('#bossName').textContent = sk.name; $('#bossbar').hidden = false;
   showBanner(second ? 'THEME BOSS' : 'FLOOR BOSS', 'warn', sk.name);
-  sfx('warning'); setMusic(dgThemeOf(D.floor).song, 2); G.shake = .5;
+  sfx('warning'); setMusic(second ? 'finale' : dgThemeOf(D.floor).boss); G.shake = .5;   // the theme's last boss gets the finale
   burst(x, y, '#9a8a6a', 40, 260, 1.6);
   G.fx.push({type:'ring', x, y, r:10, maxR:220, life:.6, max:.6, color:sk.glow, fill:true});
   dgObjective();
@@ -6730,20 +6864,21 @@ function dgFloorClear(){
   sfx('portal');
   const poorF = negF('poor'), fort = skV('fortune'), coins = Math.round(D.carried.coins * (1 - .5 * poorF) * (1 + fort));
   const lines = [[`Coins you carried${poorF > 0 ? ' (Poor)' : ''}${fort ? ` (Treasure Hunter +${skPct(fort)})` : ''}`, coins]], unlocked = [];
-  const skp = save.dg.cleared[n] ? 0 : skFloorPts(n);
+  const skp = save.dg.cleared[n] ? 0 : skFloorPts(n), newChars = [];
   for(const id of D.carried.items) if(!isUnlocked(id)){ save.unlocked.push(id); unlocked.push(id); }
   let first = 0;
   if(!save.dg.cleared[n]){
     save.dg.cleared[n] = true; first = def.reward.coins;
     lines.push([`First clear of floor ${n}`, first]);
     for(const id of def.reward.items) if(!isUnlocked(id)){ save.unlocked.push(id); unlocked.push(id); }
+    for(const c of def.reward.chars || []) if(!save.chars.includes(c)){ save.chars.push(c); newChars.push(c); }
   }
   const total = coins + first;
   save.coins += total;
   save.dg.reached = Math.max(save.dg.reached, Math.min(n + 1, DG_FLOORS.length));
   if(def.themeEnd) save.dg.themes[dgThemeOf(n).id] = true;
   persist();
-  D.secured.coins += total; D.secured.items.push(...unlocked); D.floorsCleared++;
+  D.secured.coins += total; D.secured.items.push(...unlocked); D.secured.chars.push(...newChars); D.floorsCleared++;
   D.carried = {coins:0, items:[]};
   const next = !def.themeEnd && DG_FLOORS[n] ? n + 1 : 0;
   mbox.className = 'mbox res';
@@ -6752,7 +6887,7 @@ function dgFloorClear(){
     <p class="mnote" style="text-align:center">Everything you carried is now safe in your base. ${next ? 'You can also start from floor ' + next + ' next time. On the next floor your level starts again from 1.' : ''}</p>
     <h3>Secured</h3>${lines.map(l => `<div class="row"><span>${l[0]}</span><b>+${l[1]}</b></div>`).join('')}
     <div class="row total"><span>Total</span><b>+${total} ${ico('coin')}</b></div>
-    ${unlocked.length ? `<h3>Unlocked</h3><div class="unl">${unlocked.map(id => `<span class="rchip rew">${ico(id)} ${ITEMS[id].name}</span>`).join('')}</div>` : ''}
+    ${unlocked.length || newChars.length ? `<h3>Unlocked</h3><div class="unl">${newChars.map(c => `<span class="rchip rew">${ico(c)} ${CHARACTERS[c].name} (character)</span>`).join('')}${unlocked.map(id => `<span class="rchip rew">${ico(id)} ${ITEMS[id].name}</span>`).join('')}</div>` : ''}
     ${skp ? `<h3>Skill tree</h3><div class="row skrow"><span>${ico('skilltree')} First clear of floor ${n}</span><b>+${skp} skill point${skp > 1 ? 's' : ''}</b></div>
       <p class="note">Spend ${skp > 1 ? 'them' : 'it'} in the Skills tab at base. You have ${skFree()} to spend.</p>` : ''}
     ${def.themeEnd ? (DG_FLOORS[n] ? `<p class="note" style="margin-top:12px">Floor ${n + 1} is open: ${esc(dgThemeOf(n + 1).name)} starts there, with its own loadout budget.</p>`
@@ -6782,7 +6917,7 @@ function dgEndRun(win){
     <div class="tile"><small>KILLS</small><b>${G.kills}</b></div><div class="tile"><small>TIME</small><b>${fmtTime(G.t)}</b></div></div>
     ${dm.length ? `<h3>Damage dealt</h3>${dm.slice(0, 6).map(([k, v]) => `<div class="dmr"><span>${srcLabel(k)}</span><div><i style="width:${v / top * 100}%"></i></div><b>${fmtNum(v)}</b></div>`).join('')}` : ''}
     <h3>Secured this dive</h3><div class="row"><span>Coins</span><b>+${D.secured.coins}</b></div>
-    ${D.secured.items.length ? `<div class="unl">${D.secured.items.map(id => `<span class="rchip rew">${ico(id)} ${ITEMS[id].name}</span>`).join('')}</div>` : ''}
+    ${D.secured.items.length || D.secured.chars.length ? `<div class="unl">${D.secured.chars.map(c => `<span class="rchip rew">${ico(c)} ${CHARACTERS[c].name} (character)</span>`).join('')}${D.secured.items.map(id => `<span class="rchip rew">${ico(id)} ${ITEMS[id].name}</span>`).join('')}</div>` : ''}
     ${!win && (lost.coins >= 1 || lostItems.length) ? `<h3>Lost (not secured)</h3><div class="row lost"><span>Coins</span><b>−${Math.floor(lost.coins)}</b></div>
       ${lostItems.length ? `<div class="unl">${lostItems.map(id => `<span class="rchip lostc">${ico(id)} ${ITEMS[id].name}</span>`).join('')}</div>` : ''}
       <p class="note">Rewards are only kept once you step into an exit portal.</p>` : ''}
@@ -7080,7 +7215,8 @@ function dgFloodWraiths(n){
 function dgObjInit(){
   const D = G.dg, L = D.L, def = D.def, O = def.objective;
   D.obj = null; D.later = [];
-  D.hunter = def.hunter ? {x:20.5 * DT, y:55.5 * DT, a:0, cd:3, spitT:4, alpha:1} : null;
+  D.hunter = def.hunter ? {x:20.5 * DT, y:55.5 * DT, a:0, cd:0, spitT:4, alpha:1, state:'patrol'} : null;
+  if(D.hunter) dgHunterPass();
   if(O){
     const sites = O.kind === 'lanterns' ? L.lanterns.filter(o => L.z[o.i] !== 10) : O.kind === 'admiral' ? [] : L.sites;
     D.obj = {kind:O.kind, O, need:O.kind === 'admiral' ? 1 : sites.length, done:0, complete:false, after:O.after || '',
@@ -7246,15 +7382,28 @@ function dgShards(x, y, n, sp, dmg, color, model){
 }
 
 /* ---------- the thing in the reservoir ----------
-   It swims through the flooded lake toward you. If you stand in the water (or right at its edge) it
-   bites from below after a warning; on the walkways it surfaces now and then to spit. It sinks out of
-   sight during the Admiral fight and leaves when the reservoir drains. */
+   It drifts slowly through the flooded lake. The moment you step into the water it hears you and comes
+   at full speed through the lake, then bites from below after a short warning; get out and it circles
+   near the shore for a while before it loses interest. On the walkways it surfaces now and then to spit.
+   It sinks out of sight during the Admiral fight and leaves when the reservoir drains. */
 function dgLakeAt(x, y){
   const D = G.dg, L = D.L, tx = Math.floor(x / DT), ty = Math.floor(y / DT);
   if(tx < 0 || ty < 0 || tx >= L.W || ty >= L.H) return false;
   const i = ty * L.W + tx;
   return !!(L.low[i] && L.t[i] !== TT.WALL && !L.z[i] && D.flood && D.flood.level > .5);
 }
+// where it can swim: the open lake, and under the narrow walkways that cross it (not under islands)
+function dgHunterPass(){
+  const L = G.dg.L, W = L.W, N = W * L.H, pass = L.hpass = new Uint8Array(N);
+  const lake = i => L.low[i] && L.t[i] !== TT.WALL && !L.z[i];
+  const reach = (x, y, dx, dy) => { for(let k = 1; k <= 4; k++){ const nx = x + dx * k, ny = y + dy * k; if(nx < 0 || ny < 0 || nx >= W || ny >= L.H) return false; const j = ny * W + nx; if(lake(j)) return true; if(L.t[j] === TT.WALL || L.z[j]) return false; } return false; };
+  for(let y = 0; y < L.H; y++) for(let x = 0; x < W; x++){
+    const i = y * W + x;
+    if(lake(i)) pass[i] = 1;
+    else if(L.t[i] !== TT.WALL && !L.z[i] && ((reach(x, y, 1, 0) && reach(x, y, -1, 0)) || (reach(x, y, 0, 1) && reach(x, y, 0, -1)))) pass[i] = 2;   // under a bridge
+  }
+}
+const dgHunterAt = (x, y) => { const L = G.dg.L, tx = Math.floor(x / DT), ty = Math.floor(y / DT); return tx >= 0 && ty >= 0 && tx < L.W && ty < L.H && !!L.hpass[ty * L.W + tx] && G.dg.flood.level > .5; };
 function dgNearLake(x, y, r){
   if(dgLakeAt(x, y)) return true;
   for(let k = 0; k < 8; k++){ const a = k / 8 * TAU; if(dgLakeAt(x + Math.cos(a) * r, y + Math.sin(a) * r)) return true; }
@@ -7265,7 +7414,7 @@ function dgHunterField(){
   const D = G.dg, L = D.L, p = G.p, W = L.W, N = W * L.H;
   const f = D.hfield && D.hfield.length === N ? D.hfield : (D.hfield = new Int16Array(N));
   f.fill(-1);
-  const lake = i => L.low[i] && L.t[i] !== TT.WALL && !L.z[i];
+  const lake = i => L.hpass[i];
   const q = [], tx = Math.floor(p.x / DT), ty = Math.floor(p.y / DT);
   for(let y = ty - 2; y <= ty + 2; y++) for(let x = tx - 2; x <= tx + 2; x++){
     if(x < 0 || y < 0 || x >= W || y >= L.H) continue;
@@ -7279,42 +7428,70 @@ function dgHunterField(){
   }
   return true;
 }
+// a random spot in the open lake within a few hundred units of (x, y)
+function dgLakeSpot(x, y){
+  for(let k = 0; k < 30; k++){ const a = Math.random() * TAU, r = rand(150, 520), sx = x + Math.cos(a) * r, sy = y + Math.sin(a) * r; if(dgLakeAt(sx, sy)) return [sx, sy]; }
+  return [x, y];
+}
 function dgHunterTick(dt){
   const D = G.dg, H = D.hunter, hd = D.def.hunter, p = G.p;
   if(!H) return;
   if(H.flee || !D.flood || D.flood.level < .5){ H.alpha -= dt * .6; if(H.alpha <= 0) D.hunter = null; return; }
   H.hide = !!(G.boss || (D.zones[10] && D.zones[10].state === 'active'));
-  if(H.hide) return;
+  if(H.hide){ H.state = 'patrol'; return; }
   if(H.surface > 0) H.surface -= dt;
-  const near = dgNearLake(p.x, p.y, hd.reach);
-  // it finds its way through the lake toward the water nearest to you
+  const wet = dgLakeAt(p.x, p.y), dp = Math.hypot(p.x - H.x, p.y - H.y);
+  // the moment you step into the water it hears you, and comes at full speed
+  if(wet && (H.state === 'patrol' || H.state === 'prowl')){
+    H.state = 'alert'; H.stT = .45; H.surface = .8;
+    sfx('warning'); G.shake = Math.max(G.shake, .25); addText(p.x, p.y - 50, 'IT HEARD YOU · GET OUT OF THE WATER', 2);
+  }
+  if(H.state === 'alert'){ H.stT -= dt; if(H.stT <= 0) H.state = 'rush'; }
+  else if(H.state === 'rush' && !wet){ H.state = 'prowl'; H.stT = 4; }                        // you got out: it circles near the shore
+  else if(H.state === 'prowl'){ H.stT -= dt; if(H.stT <= 0) H.state = 'patrol'; }
+  // it finds its way through the lake to the water nearest to you (or drifts about when it has lost you)
   H.fieldT = (H.fieldT || 0) - dt;
-  if(H.fieldT <= 0){ H.fieldT = .35; H.hasField = dgHunterField(); }
-  let tx = p.x, ty = p.y;
+  if(H.fieldT <= 0){ H.fieldT = H.state === 'rush' ? .2 : .5; H.hasField = H.state !== 'patrol' && dgHunterField(); }
+  let tx, ty;
   const L = D.L, f = D.hfield, hi = tileAt(L, H.x, H.y);
-  if(H.hasField && f[hi] > 0){
+  if(H.state === 'patrol' || !H.hasField){
+    // drift between random spots in the lake, picking a new one when it gets there or gets stuck
+    if(!H.wp || Math.hypot(H.wp[0] - H.x, H.wp[1] - H.y) < 40 || (H.stuck || 0) > .6){ H.wp = dgLakeSpot(p.x, p.y); H.stuck = 0; }   // it lurks somewhere near you
+    tx = H.wp[0]; ty = H.wp[1];
+    // too far off to swim straight there: follow the lake toward you
+    if(Math.hypot(tx - H.x, ty - H.y) > 700){ H.hasField = H.hasField || dgHunterField(); if(H.hasField && f[hi] > 0) H.state = 'prowl', H.stT = 2; }
+  }
+  else if(f[hi] > 0){
     let best = f[hi], bx = 0, by = 0;
     const hx = hi % L.W, hy = (hi - hx) / L.W;
-    for(const [ox, oy] of N8){ const j = (hy + oy) * L.W + hx + ox, v = f[j]; if(v >= 0 && v < best){ best = v; bx = ox; by = oy; } }
+    for(const [ox, oy] of N8){
+      const j = (hy + oy) * L.W + hx + ox, v = f[j];
+      if(ox && oy && (f[hy * L.W + hx + ox] < 0 || f[(hy + oy) * L.W + hx] < 0)) continue;   // never cut a corner of the shore
+      if(v >= 0 && v < best){ best = v; bx = ox; by = oy; }
+    }
     tx = (hx + bx + .5) * DT; ty = (hy + by + .5) * DT;
-  } else if(!(H.hasField && f[hi] === 0)){ H.wander = (H.wander || 0) + dt * .4; tx = H.x + Math.cos(H.wander) * 200; ty = H.y + Math.sin(H.wander * 1.3) * 200; }
-  const dx = tx - H.x, dy = ty - H.y, d = Math.hypot(dx, dy) || 1, sp = hd.speed * (near ? 1 : .6);
+  } else { tx = p.x; ty = p.y; }
+  const sp = H.state === 'rush' ? hd.rush : H.state === 'prowl' ? hd.speed : H.state === 'alert' ? 0 : hd.speed * .5;
+  const dx = tx - H.x, dy = ty - H.y, d = Math.hypot(dx, dy) || 1;
   const nx = H.x + dx / d * Math.min(d, sp * dt), ny = H.y + dy / d * Math.min(d, sp * dt);
-  if(dgLakeAt(nx, ny)){ H.x = nx; H.y = ny; } else if(dgLakeAt(nx, H.y)) H.x = nx; else if(dgLakeAt(H.x, ny)) H.y = ny;
-  if(d > 2) H.a = turnToward(H.a, Math.atan2(dy, dx), 4 * dt);
+  const ox = H.x, oy = H.y;
+  if(dgHunterAt(nx, ny)){ H.x = nx; H.y = ny; } else if(dgHunterAt(nx, H.y)) H.x = nx; else if(dgHunterAt(H.x, ny)) H.y = ny;
+  H.under = L.hpass[tileAt(L, H.x, H.y)] === 2;
+  H.stuck = sp && Math.hypot(H.x - ox, H.y - oy) < sp * dt * .2 ? (H.stuck || 0) + dt : 0;
+  if(d > 2) H.a = turnToward(H.a, Math.atan2(dy, dx), (H.state === 'rush' ? 9 : 3) * dt);
   H.cd -= dt; H.spitT -= dt;
-  const dp = Math.hypot(p.x - H.x, p.y - H.y);
-  if(near && H.cd <= 0 && dp < 320){
+  if(H.state === 'rush' && wet && H.cd <= 0 && dp < 170){
+    // the jaws come up from below where you stand
     H.cd = hd.cd;
-    const bx = p.x + p.vx * .3, by = p.y + p.vy * .3;
+    const bx = p.x + p.vx * .2, by = p.y + p.vy * .2;
     addCircle(bx, by, hd.r, hd.warn, hd.dmg, '#0e3a4a');
     H.bite = {x:bx, y:by, t:hd.warn, max:hd.warn};
-    sfx('charge'); addText(p.x, p.y - 44, 'SOMETHING BENEATH YOU', 1.4);
-    dgLater(hd.warn, () => { if(G.dg.hunter){ G.shake = .5; sfx('splash'); burst(bx, by, '#bff4ff', 26, 300); } });
-  } else if(!near && H.spitT <= 0 && dp < 560){
+    sfx('charge'); addText(p.x, p.y - 44, 'BENEATH YOU · ROLL!', 1.2);
+    dgLater(hd.warn, () => { if(G.dg.hunter){ G.shake = .55; sfx('splash'); burst(bx, by, '#bff4ff', 26, 300); } });
+  } else if(!wet && H.state !== 'rush' && H.spitT <= 0 && dp < 560){
     H.spitT = hd.spitEvery; H.surface = 1;
     const a0 = Math.atan2(p.y - H.y, p.x - H.x);
-    for(let i = -2; i <= 2; i++) ebullet(H.x, H.y, a0 + i * .15, 310, hd.dmg * .4, '#7df9ff', {r:9});
+    for(let i = -2; i <= 2; i++) ebullet(H.x, H.y, a0 + i * .15, 310, hd.dmg * .35, '#7df9ff', {r:9});
     sfx('splash');
   }
   if(H.bite){ H.bite.t -= dt; if(H.bite.t < -.5) H.bite = null; }
@@ -9234,10 +9411,10 @@ function d3ThingsAQ(dt, ts){
   }
   // the thing in the reservoir: a fin cutting the water, and jaws when it bites
   const H = D.hunter;
-  if(H && !H.hide && vis(H.x, H.y)){
-    const s = .9 * Math.max(.05, H.alpha), yo = -18 + (H.surface > 0 ? Math.sin(Math.min(1, H.surface) * Math.PI) * 26 : 0) + Math.sin(ts * 2) * 3;
+  if(H && !H.hide && !H.under && vis(H.x, H.y)){
+    const rush = H.state === 'rush', s = .9 * Math.max(.05, H.alpha), yo = (rush ? -6 : -18) + (H.surface > 0 ? Math.sin(Math.min(1, H.surface) * Math.PI) * 26 : 0) + Math.sin(ts * (rush ? 9 : 2)) * 3;
     d3Entity('fin', 'hunterfin', H.x, H.y, H.a, s, {ph:ts * 3, mv:1, t:ts, seed:7, pose:0, cast:0, swing:0}, 0, null, yo, 0);
-    for(let k = 0; k < 3; k++) gp(H.x - Math.cos(H.a) * (30 + k * 26) + rand(-10, 10), 4, H.y - Math.sin(H.a) * (30 + k * 26) + rand(-10, 10), '#d8f8ff', 26 - k * 5, .45, .3);
+    for(let k = 0; k < (rush ? 8 : 3); k++) gp(H.x - Math.cos(H.a) * (30 + k * 26) + rand(-10, 10) * (rush ? 2 : 1), 4, H.y - Math.sin(H.a) * (30 + k * 26) + rand(-10, 10) * (rush ? 2 : 1), '#d8f8ff', (rush ? 40 : 26) - k * 3, rush ? .7 : .45, .3);
   }
   if(H && H.bite){
     const B = H.bite, k = 1 - B.t / B.max;
@@ -9331,7 +9508,7 @@ function dgPortraitSrc(skin){
   if(u) return u;
   if(!D3.wantPortraits){
     D3.wantPortraits = true;
-    d3Load().then(() => { if(!G && !hub.hidden && tab === 'dungeon') renderHub(); }).catch(() => {});
+    d3Load().then(() => { if(!G && !hub.hidden && (tab === 'dungeon' || tab === 'collection')) renderHub(); }).catch(() => {});
   }
   return BLANK_IMG;
 }
@@ -9349,7 +9526,7 @@ function dgBriefHtml(f){
   const boss = (s, label) => `<figure class="foe boss"><img src="${dgPortraitSrc(s)}" alt=""><figcaption>${SKINS[s].name}<br><span class="mv">${label}</span></figcaption></figure>`;
   const rw = [];
   if(save.dg.cleared[f.n]) rw.push(`<span class="rchip done">${ico('check')} First-clear reward claimed</span>`);
-  else { for(const i of f.reward.items) rw.push(`<span class="rchip rew">${ico(i)} ${ITEMS[i].name}</span>`); rw.push(`<span class="rchip rew">${ico('coin')} ${f.reward.coins}</span>`); }
+  else { for(const c of f.reward.chars || []) rw.push(`<span class="rchip rew">${ico(c)} ${CHARACTERS[c].name} (character)</span>`); for(const i of f.reward.items) rw.push(`<span class="rchip rew">${ico(i)} ${ITEMS[i].name}</span>`); rw.push(`<span class="rchip rew">${ico('coin')} ${f.reward.coins}</span>`); }
   const th = dgThemeOf(f.n);
   return `<div class="brief dgbrief" style="--sc:${th.accent}">
     <div><div class="lbl" style="margin:0">Floor ${f.n} · ${th.name}</div><h2>${esc(f.name)}</h2><p>${esc(f.desc)}</p></div>
@@ -9357,8 +9534,8 @@ function dgBriefHtml(f){
     <div><div class="lbl">Enemies</div><div class="foes">${f.foes.map(foe).join('')}${boss(f.boss, f.boss2 ? 'Floor boss' : 'Boss')}${f.boss2 ? boss(f.boss2, 'Theme boss') : ''}</div>
       <div class="note" style="margin-top:6px">${SKINS[f.boss].about}${f.boss2 ? ' Then: ' + SKINS[f.boss2].about : ''}</div></div>
     <div><div class="lbl">Dungeon rules</div><ul class="dgrules">
-      <li>${ico('reroll')}<span>Your level <b>resets to 1 on every floor</b>, and each level needs 1.1× the XP of the one before (1.08× in the stages). XP gems stay where enemies fall, so go and collect them.</span></li>
-      <li>${ico('warn')}<span>Enemies get <b>tougher and a little bigger the farther they are from the start</b> (up to ×1.35 HP and damage at the far end; ×0.8 near the start).</span></li>
+      <li>${ico('reroll')}<span>Your level <b>resets to 1 on every floor</b>, and each level needs 1.1× the XP of the one before. XP gems stay where enemies fall, so go and collect them.</span></li>
+      <li>${ico('warn')}<span>Enemies get <b>tougher and a little bigger the farther they are from the start</b> (×0.8 next to the start, rising to <b>×3 HP and damage</b> at the far end, where they also give up to twice the XP).</span></li>
       <li>${ico('coin')}<span>Coins and relics you pick up are <b>not safe yet</b>. Step into the exit portal after the boss to keep them.</span></li>
       <li>${ico('skull')}<span>If you die, you go back to base and lose only what you had not secured.</span></li>
       <li>${ico('portal')}<span>Every portal you reach lets you start from the next floor later.</span></li>
@@ -9372,7 +9549,13 @@ function renderDungeon(){
   if(!dgFloorUnlocked(B.floor)) B.floor = Math.min(save.dg.reached, DG_FLOORS.length);
   const f = DG_FLOORS[B.floor - 1];
   const sp = skFree();
-  let h = `<div class="pagehead"><div><h2>Dungeon</h2><p>${DG_FLOORS_TOTAL} floors underground, in 3D. Your loadout works here too, with one budget for each theme.</p></div>
+  let h = '';
+  if(!save.seenGuide) h += `<div class="intro">
+    <div><b>1 · Pick a floor</b>Start from floor 1, or from any floor you have reached before.</div>
+    <div><b>2 · Build a loadout</b>Abilities and positive traits cost points. Negative traits give points back. Each theme has one budget.</div>
+    <div><b>3 · Fight your way down</b>You move and roll (<kbd>Space</kbd>). Attacks are automatic. Beat the boss, then step into the portal to keep your loot.</div>
+    <button class="btn sm" data-act="hideIntro">Got it</button></div>`;
+  h += `<div class="pagehead"><div><h2>Dungeon</h2><p>${DG_FLOORS_TOTAL} floors underground, in 3D. Pick where to start, then build your loadout. Each theme has one loadout budget.</p></div>
     <button class="btn ${sp ? 'hot' : 'ghost'}" data-act="tab" data-id="skills">${ico('skilltree')} Skill tree${sp ? ` · ${sp} point${sp > 1 ? 's' : ''} to spend` : ''}</button></div>`;
   DG_THEMES.forEach((th, ti) => {
     const st = DG_STAGES.find(s => s.theme === th.id), floors = DG_FLOORS.filter(x => x.n >= th.first && x.n <= th.last);
@@ -9402,6 +9585,7 @@ $('#rollBtn').innerHTML = ico('roll') + '<small>ROLL</small>';
 $('#rollBtn').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); dgRoll(); });
 /* ---------- dungeon skill tree ----------
    Skill points: 1 for the first clear of each floor, 2 for every fifth floor (5, 10, 15 ...).
+   Each rank of a skill costs one point more than the rank before it (1, 2, 3 ...).
    Three branches. A branch's middle row opens once 4 points sit in its first row, its last row
    once 10 points sit in the rows above. Skills only work in the dungeon, and you can take
    points back out at any time. */
@@ -9425,7 +9609,7 @@ const SK_BRANCHES = [
   {id:'survival', name:'Survival', icon:'tough', color:'#3dffa8', desc:'Health, healing and loot'},
 ];
 const skPct = v => Math.round(v * 100) + '%';
-// per: the value one rank adds; txt(value) describes it; cost: points per rank (1 unless given)
+// per: the value one rank adds; txt(value) describes it; cost: a flat price for one-rank skills
 const DG_SKILLS = {
   rollcd:   {b:'agility',  tier:0, name:'Quick Recovery', icon:'hourglass', max:5, per:.08, txt:v => `Roll cooldown −${skPct(v)}`},
   rollfar:  {b:'agility',  tier:0, name:'Long Roll',      icon:'longroll',  max:5, per:.12, txt:v => `Roll distance +${skPct(v)}`},
@@ -9452,14 +9636,18 @@ const DG_SKILLS = {
 const SK_TIER_NAMES = ['Basics', 'Advanced', 'Mastery'];
 let skResetArmed = false;
 
-const skCost = id => DG_SKILLS[id].cost || 1;
 const skRank = (id, sk) => (sk || save.dg.skills)[id] || 0;
+// the price of going from rank r to r + 1: 1, 2, 3 ... (or the skill's flat cost)
+const skStep = (id, r) => DG_SKILLS[id].cost || r + 1;
+// points sitting in a skill at rank r
+const skPaid = (id, r) => { let n = 0; for(let i = 0; i < r; i++) n += skStep(id, i); return n; };
+const skCost = id => skStep(id, skRank(id));
 const skFloorPts = n => n % 5 === 0 ? 2 : 1;
 function skEarned(){ let n = 0; for(const k in save.dg.cleared) if(save.dg.cleared[k]) n += skFloorPts(+k); return n; }
-function skSpent(sk){ sk = sk || save.dg.skills; let n = 0; for(const id in sk) if(DG_SKILLS[id]) n += sk[id] * skCost(id); return n; }
+function skSpent(sk){ sk = sk || save.dg.skills; let n = 0; for(const id in sk) if(DG_SKILLS[id]) n += skPaid(id, sk[id]); return n; }
 const skFree = () => skEarned() - skSpent();
 // points spent in a branch's rows above a tier
-function skBelow(sk, b, tier){ let n = 0; for(const id in DG_SKILLS){ const d = DG_SKILLS[id]; if(d.b === b && d.tier < tier) n += skRank(id, sk) * skCost(id); } return n; }
+function skBelow(sk, b, tier){ let n = 0; for(const id in DG_SKILLS){ const d = DG_SKILLS[id]; if(d.b === b && d.tier < tier) n += skPaid(id, skRank(id, sk)); } return n; }
 function skValid(sk){
   for(const id in sk){ const d = DG_SKILLS[id]; if(d && sk[id] > 0 && skBelow(sk, d.b, d.tier) < SK_TIER_NEED[d.tier]) return false; }
   return skSpent(sk) <= skEarned();
@@ -9477,6 +9665,8 @@ function skLearn(id){
   if(why){ toast(why, 'bad'); sfx('untick'); return; }
   save.dg.skills[id] = skRank(id) + 1; persist(); sfx('tick');
 }
+// older saves were bought at a flat 1 point per rank; give the points back if they no longer add up
+if(!skValid(save.dg.skills)){ save.dg.skills = {}; persist(); setTimeout(() => toast('Skill costs changed, so every skill point was refunded'), 600); }
 function skUnlearn(id){
   const r = skRank(id);
   if(!r) return;
@@ -9507,12 +9697,13 @@ function renderSkills(){
   let h = `<div class="pagehead"><div><h2>Skill tree</h2><p>Permanent upgrades for the dungeon, paid for with skill points from the floors you clear.</p></div>
     <div class="skpts"><b>${free}</b><small>skill point${free === 1 ? '' : 's'} to spend</small></div></div>
     <div class="skinfo">${ico('stairs')}<span>Clearing a floor for the first time gives <b>1 point</b>; every fifth floor (5, 10, 15 …) gives <b>2</b>. You have earned <b>${earned}</b> so far.
+      Each rank of a skill costs one point more than the one before it (1, 2, 3 …).
       Skills work in the dungeon only. Take points back out with <b>−</b> whenever you like.</span>
       ${skSpent() ? `<button class="btn sm ghost" data-act="skReset">${skResetArmed ? 'Click again to refund every point' : 'Refund all'}</button>` : ''}</div>
     <div class="sktree">`;
   for(const br of SK_BRANCHES){
     const ids = Object.keys(DG_SKILLS).filter(id => DG_SKILLS[id].b === br.id);
-    const spent = ids.reduce((a, id) => a + skRank(id) * skCost(id), 0);
+    const spent = ids.reduce((a, id) => a + skPaid(id, skRank(id)), 0);
     h += `<section class="skb" style="--sc:${br.color}"><header>${ico(br.icon)}<div><b>${br.name}</b><small>${br.desc}</small></div><span class="skbp">${spent} pts</span></header>`;
     for(let t = 0; t < 3; t++){
       const have = skBelow(sk, br.id, t), open = have >= SK_TIER_NEED[t];
