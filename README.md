@@ -18,17 +18,28 @@ A browser survivor-like game with a deckbuilding twist. Open `index.html` in any
 
 A 3D mode seen from behind and above, in the style of Minecraft Dungeons. It uses the same characters, loadouts, weapons and level-ups as the stages. It follows the dungeon design notes on floor structure, the death penalty, the first theme and enemy families:
 
-- 100 floors in 20 themes of 5 floors are planned. Theme 1, **Mossy Ruins** (floors 1–5), is built.
-- Every floor is a large hand-made map (about 7–10 minutes for a full clear) with its own floor boss. Floor 5 ends with the floor boss and then the theme boss, back to back.
+- 100 floors in 20 themes of 5 floors are planned. Two themes are built: **Mossy Ruins** (floors 1–5) and **Flooded Aqueducts** (floors 6–10).
+- Every floor is a large hand-made map (about 7–10 minutes for a full clear) with its own floor boss. The last floor of a theme ends with the floor boss and then the theme boss, back to back.
 - Each floor starts you back at level 1 with your bare loadout, and each level needs 1.1× the XP of the one before (`DG_XP_GROWTH`; the stages use 1.08×). XP gems stay where enemies fall.
 - Every boss has several attacks of its own (for example the Broodmother's web shots, egg sacs, web field, pounce, venom spray and spiderlings); the attack list is `patterns` in its `SKINS` entry, and the attacks live in `bossStep()`.
+- Enemies get tougher the farther they are from the floor's start: from ×0.8 health and damage next to the start to ×1.35 at the far end (`DG_DIST`). Far-away enemies are also a little bigger and give more XP.
 - Floor 5 is a long sealed corridor: iron gates drop in front of you and behind you, and four waves attack in each section. There is no way back.
-- Floor gimmicks: spider webs slow you (floor 2), cracked floor falls away (floor 3), moss pools poison you (floor 4).
-- Enemy families: Ruin Revenants (melee), Stone-eater Spiders (poison), Ruin Archers (ranged). Elites and bosses drop **relics**, locked items that match their family.
+- Mossy Ruins gimmicks: spider webs slow you (floor 2), cracked floor falls away (floor 3), moss pools poison you (floor 4). Enemy families: Ruin Revenants (melee), Stone-eater Spiders (poison), Ruin Archers (ranged).
+- Flooded Aqueducts has six enemy types, and each floor mixes them differently (`packs` and `foes` in each `DG_FLOORS` entry):
+  - Drowned Sailors grab you until you roll free. Harpooners aim, then throw a harpoon that drags you in.
+  - Ironshell Crabs block most damage from the front, so hit them from the side or behind.
+  - Bubble Sirens fire slowing bubbles and trapping bubbles. Electric Eels are fast in water and shock the water around them. Glow Jellyfish sting and burst into a shock when they die.
+- Flooded Aqueducts floors:
+  - Floor 6, Sluice Gate: sailors and harpooners. Currents push you along the canals.
+  - Floor 7, Crab Cisterns: crabs, jellyfish and sailors. Deep water slows you and slick algae makes you slide.
+  - Floor 8, Lightless Channels: sirens, jellyfish and eels in darkness. Walk up to lanterns to light them and see far.
+  - Floor 9, Flood Halls: eels, crabs, harpooners and sirens. The low halls flood and drain on a cycle.
+  - Floor 10, Bottom of the Great Reservoir: all six types. You climb a sealed corridor while the water rises behind you, then fight the Drowned Admiral and the Leviathan.
+- Elites and bosses drop **relics**, locked items that match their family.
 - Coins and relics you pick up are only kept when you step into the exit portal after the boss. If you die you go back to base and lose only what you had not secured.
 - Each portal you reach lets you start from the next floor later (fast travel).
 - The dodge roll (Space or the roll button) makes you untouchable for a moment and breaks webs.
-- The whole theme has one point budget for the loadout.
+- Each theme has one point budget for the loadout: 5 points for Mossy Ruins, 3 for Flooded Aqueducts.
 
 ## Sound
 
@@ -45,6 +56,6 @@ All content lives in the data tables at the top of the script in `index.html`:
 - `CHARACTERS`, `WEAPONS`
 - `ICONS`: line icons as SVG paths, used in the menus and on the canvas
 - Stage art lives in `TILES` (ground) and `PROPS` (scenery); enemy art in `DRAW`
-- Dungeon: `DG_FLOORS` (each floor's ASCII map, boss, enemy pressure and rewards; the legend is in the comment above it), `DG_THEMES`, `DG_PACKS`, `DG_RELICS`, and `RIGS` (the blocky 3D models, one list of boxes per enemy or hero)
+- Dungeon: `DG_FLOORS` (each floor's ASCII map, boss, enemy packs and rewards; the map legend is in the comment at the top of the dungeon code), `DG_THEMES`, `DG_STAGES` (one loadout budget per theme), `DG_PACKS`, `DG_RELICS`, `DG_AI` (the aqueduct enemies' attacks), and `RIGS` (the blocky 3D models, one list of boxes per enemy or hero)
 
 A new item's numbers go in `ITEMS`: `lv(L)` returns its stats at level L, and `show` lists which stats the level-up cards display. Its behavior goes in `recalcStats()` (passive traits) or `useAbility()` (active abilities).

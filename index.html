@@ -931,7 +931,7 @@ function loadoutCost(items){
 }
 function abilityCount(items){ return items.filter(id => ITEMS[id].type === 'ability').length; }
 function stageUnlocked(i){ return i === 0 || !!save.cleared[STAGES[i - 1].id]; }
-function stageById(id){ return STAGES.find(s => s.id === id) || (id === DG_STAGE.id ? DG_STAGE : undefined); }
+function stageById(id){ return STAGES.find(s => s.id === id) || DG_STAGES.find(s => s.id === id); }
 function stageTypes(st){ const s = new Set(); for(const [, m] of st.mix) for(const k in m) s.add(k); return [...s]; }
 function validate(stage, charId, items){
   const errs = [];
@@ -2505,7 +2505,8 @@ function renderGuide(){
 
 function renderHub(){
   // the Stages tab builds for a stage, the Dungeon tab for the dungeon theme
-  if(tab === 'dungeon' && !stageById(B.stage).dungeon){ B.lastStage = B.stage; B.stage = DG_STAGE.id; applyStageRules(); }
+  if(tab === 'dungeon' && !stageById(B.stage).dungeon) B.lastStage = B.stage;
+  if(tab === 'dungeon' && B.stage !== dgStageOf(B.floor || 1).id){ B.stage = dgStageOf(B.floor || 1).id; applyStageRules(); }
   if(tab === 'stages' && stageById(B.stage).dungeon){ B.stage = B.lastStage || 's1'; applyStageRules(); }
   $('#topbar').innerHTML = `<button class="logo" data-act="title" aria-label="Back to title"><span class="l1">LOADOUT</span><span class="l2">SURVIVORS</span></button>
     <nav class="tabs">${[['stages','Stages'],['dungeon','Dungeon'],['loadout','Loadout'],['gacha','Gacha'],['collection','Collection'],['guide','Guide']].map(([k, l]) =>
@@ -2574,7 +2575,12 @@ hub.addEventListener('click', e => {
       break;
     }
     case 'char': B.char = id; break;
-    case 'floor': B.floor = +id; break;
+    case 'floor': {
+      B.floor = +id;
+      const ns = dgStageOf(B.floor).id;
+      if(B.stage !== ns){ B.stage = ns; applyStageRules(); toast(`Loadout budget for ${dgThemeOf(B.floor).name}: ${dgStageOf(B.floor).budget} pts`); }
+      break;
+    }
     case 'filter': B.filter = id; break;
     case 'hideIntro': save.seenGuide = true; persist(); break;
     case 'clear': B.items = stageById(B.stage).forced.slice(); break;
@@ -3003,6 +3009,7 @@ function hitEnemy(e, base, src){
   if(G.pos.momentum){ const sp = Math.hypot(p.vx, p.vy); m *= 1 + s.momentum * Math.min(1.5, sp / 150); }
   if(src === 'fireball' && G.combos.has('thermal') && e.slow > 0) m *= 1.6;
   if(s.still && Math.hypot(p.vx, p.vy) < 10) m *= 1 + s.still;
+  if(G.dg && SKINS[e.skin].shell) m *= dgShell(e);
   let crit = false;
   if(Math.random() < s.crit){ m *= s.critMul; crit = true; }
   const d = Math.max(1, base * m - e.armor);
@@ -3150,6 +3157,7 @@ function updateHazards(dt){
       if(hz.warn > 0){ hz.warn -= dt; if(hz.warn <= 0) sfx('laser'); }
       else {
         hz.active -= dt; hz.a += hz.rot * dt;
+        if(hz.track){ hz.a = turnToward(hz.a, Math.atan2(p.y - hz.y, p.x - hz.x), hz.track * dt); }
         const x1 = hz.x + Math.cos(hz.a) * hz.len, y1 = hz.y + Math.sin(hz.a) * hz.len;
         if(!(hz.once && hz.hitP) && segDist(p.x, p.y, hz.x, hz.y, x1, y1) < hz.w / 2 + p.r){ if(hz.slow) p.slowT = Math.max(p.slowT, hz.slow); const h0 = p.hp; hurtPlayer(hz.dmg); if(p.hp < h0) hz.hitP = true; }
         if(hz.active <= 0) hz.done = true;
@@ -3165,6 +3173,7 @@ function aiStep(e, ai, dt, d, dx, dy, sp){
   const p = G.p;
   e.aT -= dt;
   if(e.stunT > 0){ e.stunT -= dt; return true; }
+  if(G.dg && DG_AI[ai.type]) return DG_AI[ai.type](e, ai, dt, d, dx, dy, sp);
   switch(ai.type){
     case 'dash': {
       if(e.st === 'wind'){ e.stT -= dt; if(e.stT <= 0){ e.st = 'dash'; e.stT = ai.dur; sfx('dash'); } return true; }
@@ -3184,7 +3193,7 @@ function aiStep(e, ai, dt, d, dx, dy, sp){
       if(ai.los && G.dg && !dgLos(e.x, e.y, p.x, p.y)) return false;
       if(e.aT <= 0 && d < ai.range){
         e.aT = ai.cd; const a0 = Math.atan2(dy, dx);
-        for(let i = 0; i < ai.n; i++) ebullet(e.x, e.y, a0 + (i - (ai.n - 1) / 2) * ai.spread, ai.bs, ai.dmg, ai.color, ai.slow ? {slow:ai.slow} : ai.arrow ? {arrow:true} : null);
+        for(let i = 0; i < ai.n; i++) ebullet(e.x, e.y, a0 + (i - (ai.n - 1) / 2) * ai.spread, ai.bs, ai.dmg * (e.pow || 1), ai.color, ai.slow ? {slow:ai.slow} : ai.arrow ? {arrow:true} : null);
       }
       if(d < ai.keep){ e.x -= dx / d * sp * .7 * dt; e.y -= dy / d * sp * .7 * dt; return true; }
       return d < ai.keep + 60;
@@ -3298,6 +3307,8 @@ function bossPatterns(b, sk){
   if(idx > b.phase){
     b.phase = idx; b.act = null; b.atkT = 1.2;
     showBanner(`PHASE ${idx + 1}`, 'warn', sk.phases[idx].msg || ''); sfx('warning'); G.shake = .45;
+    if(sk.phases[idx].flood && G.dg && G.dg.flood){ G.dg.flood.on = true; sfx('splash'); }
+    b.noTouch = false; b.airH = 0; b.guard = false; if(G.p.pull && G.p.pull.e === b) G.p.pull = null;
     G.fx.push({type:'ring', x:b.x, y:b.y, r:10, maxR:280, life:.6, max:.6, color:sk.glow, fill:true});
     burst(b.x, b.y, sk.glow, 30, 260, 1.4);
   }
@@ -3334,6 +3345,11 @@ function bossStep(b, dt){
     if(b.atkT <= 0){
       b.pi = (b.pi === undefined ? -1 : b.pi) + 1; b.act = {name:pats[b.pi % pats.length], t:0, k:0};
       if(G.dg && ATK_NAME[b.act.name]) addText(b.x, b.y - 30, ATK_NAME[b.act.name], 2);
+    }
+    if(sk.anchored){  // stays in its pool and drifts back to it
+      const h = b.home, dx = h.x - b.x, dy = h.y - b.y, d = Math.hypot(dx, dy);
+      if(d > 4){ b.x += dx / d * Math.min(d, 260 * dt); b.y += dy / d * Math.min(d, 260 * dt); }
+      return true;
     }
     if(sk.keep){      // archers back away to keep their distance
       const dx = p.x - b.x, dy = p.y - b.y, d = Math.hypot(dx, dy) || 1;
@@ -3570,6 +3586,208 @@ function bossStep(b, dt){
       if(!A.k){ A.k = 1; addBeam({x:b.x, y:b.y, a:aim - .7, rot:.55, len:1100, w:44, warn:1, active:2.4, dmg:dmg * .6, color:'#c8ffb0', owner:b, slow:1.2}); }
       if(A.t > 3.5) done = true;
       break;
+    // ---- Rusted Sluice Warden ----
+    case 'cannon':
+      hold = true;
+      if(!A.k){ A.k = 1; addBeam({x:b.x, y:b.y, a:aim - 1, rot:.85, len:900, w:36, warn:.8, active:2.2, dmg:dmg * .6, color:'#7df9ff', owner:b, once:true}); }
+      if(A.t > 3.2) done = true;
+      break;
+    case 'anchor':
+      hold = true;
+      if(!A.k){ A.k = 1; A.h = {kind:'tele', x:b.x, y:b.y, a:aim, len:760, w:26, warn:.8, max:.8}; G.hazards.push(A.h); sfx('charge'); }
+      if(A.t < .55){ A.h.x = b.x; A.h.y = b.y; A.h.a = aim; }
+      if(A.t >= .8 && A.k === 1){ A.k = 2; ebullet(b.x, b.y, A.h.a, 640, dmg * .55, '#a8b0b8', {arrow:true, anchor:true, from:b, pullT:.6, r:15}); sfx('whoosh'); }
+      if(A.t > 1.4) done = true;
+      break;
+    case 'gateslam':
+      hold = true;
+      if(A.t >= .6 && A.k < 1){ A.k = 1; addWave(b, 520, 290, '#7df9ff', dmg * .6); G.shake = .3; sfx('thud'); }
+      if(A.t >= 1.9 && A.k < 2){ A.k = 2; addWave(b, 520, 290, '#7df9ff', dmg * .6); sfx('thud'); }   // late enough to roll through both
+      if(A.t > 2.2) done = true;
+      break;
+    case 'floodgates':
+      if(G.dg){ G.dg.curFlip = 8; d3FlipCurrents(); }
+      showBanner('FLOODGATES', 'warn', 'The currents reverse'); sfx('splash');
+      for(let i = 0; i < 4; i++){ const a = Math.random() * TAU, r = rand(80, 240); addCircle(p.x + Math.cos(a) * r, p.y + Math.sin(a) * r, 60, 1 + i * .15, dmg * .6, '#7df9ff'); }
+      done = true; break;
+    // ---- Ironclaw Crab King ----
+    case 'clawsnap':
+      hold = true;
+      while(A.k < 2 && A.t >= A.k * .55){ G.hazards.push({kind:'cone', x:b.x, y:b.y, a:aim + (A.k ? .35 : -.35), spread:.85, r:b.r + 190, warn:.6, max:.6, dmg:dmg * .9, color:sk.glow}); A.k++; }
+      if(A.t > 1.4) done = true;
+      break;
+    case 'scuttle': {
+      hold = true;
+      if(!A.k){ A.k = 1; A.side = Math.random() < .5 ? 1 : -1; }
+      if(A.t < .9){ const a = aim + A.side * Math.PI / 2; b.x += Math.cos(a) * 420 * dt; b.y += Math.sin(a) * 420 * dt; if(G.dg) dgCollide(b, b.r); b.face = aim; }
+      else if(A.k === 1){ A.k = 2; G.hazards.push({kind:'cone', x:b.x, y:b.y, a:aim, spread:1, r:b.r + 200, warn:.55, max:.55, dmg:dmg, color:sk.glow}); }
+      if(A.t > 1.6) done = true;
+      break;
+    }
+    case 'shellguard':
+      hold = true;
+      b.guard = A.t < 4.5;
+      while(A.k < 3 && A.t >= .4 + A.k * 1.4){ ring(b, 10, 190, dmg * .45, '#9fe8ff'); A.k++; }
+      if(A.t > 4.6){ b.guard = false; done = true; }
+      break;
+    case 'burrow':
+      hold = true;
+      if(!A.k){ A.k = 1; b.noTouch = true; sfx('splash'); burst(b.x, b.y, '#c8b090', 24, 200); }
+      if(A.t < 1.3){ b.airH = -Math.min(1, A.t * 3) * 90; const dx = p.x - b.x, dy = p.y - b.y, d = Math.hypot(dx, dy) || 1; if(d > 20){ b.x += dx / d * Math.min(d, 380 * dt); b.y += dy / d * Math.min(d, 380 * dt); } }
+      else if(A.k === 1){ A.k = 2; addCircle(b.x, b.y, b.r + 70, .6, dmg * 1.1, sk.glow); }
+      if(A.t >= 1.9 && A.k === 2){ A.k = 3; b.airH = 0; b.noTouch = false; ring(b, 14, 210, dmg * .45, '#9fe8ff'); G.shake = .35; burst(b.x, b.y, '#c8b090', 30, 260); }
+      if(A.t > 2.3) done = true;
+      break;
+    case 'hermits':
+      if(G.dg) for(let i = 0; i < 4; i++){ const a = i / 4 * TAU + Math.random(), x = b.x + Math.cos(a) * 110, y = b.y + Math.sin(a) * 110; dgSpawn('hermit', x, y, false, 0); }
+      G.fx.push({type:'ring', x:b.x, y:b.y, r:10, maxR:180, life:.4, max:.4, color:sk.glow, fill:true}); sfx('elite');
+      done = true; break;
+    // ---- Siren Matriarch ----
+    case 'lure':
+      hold = true;
+      if(!A.k){ A.k = 1; p.pull = {e:b, t:2.6, sp:150, stop:b.r + 30}; addText(p.x, p.y - 34, 'LURED · ROLL OR WALK AWAY', 2); sfx('charge'); }
+      if(A.t % .3 < dt) G.fx.push({type:'ring', x:b.x, y:b.y, r:b.r, maxR:b.r + 260, life:.6, max:.6, color:'#c8f8ff'});
+      if(A.t >= 2.6 && A.k === 1){ A.k = 2; addCircle(b.x, b.y, b.r + 120, .55, dmg, '#c8f8ff'); }
+      if(A.t > 3.3) done = true;
+      break;
+    case 'orbs':
+      hold = true;
+      while(A.k < 5 && A.t >= A.k * .18){ ebullet(b.x, b.y, aim + (A.k - 2) * .55, 210, dmg * .5, '#c8f8ff', {home:1.8, homeT:2.2, r:9, life:4}); A.k++; }
+      if(A.t > 1.3) done = true;
+      break;
+    case 'prison':
+      for(const o of [-.5, 0, .5]) ebullet(b.x, b.y, aim + o, 170, dmg * .4, '#e6fbff', {root:1.2, r:20, bubble:true, life:5});
+      done = true; break;
+    case 'mirror':
+      if(G.dg){
+        const L = G.dg.L, tiles = L.zoneTiles[10];
+        for(let i = 0; i < 2; i++){
+          const t = tiles[Math.floor(Math.random() * tiles.length)];
+          const e = dgSpawn('decoy', (t % L.W + .5) * DT, (Math.floor(t / L.W) + .5) * DT, false, 0);
+          if(e){ e.rise = e.riseMax = .3; e.hp = e.maxHp = 220; }
+        }
+        burst(b.x, b.y, '#c8f8ff', 24, 220);
+      }
+      sfx('blink'); done = true; break;
+    case 'submerge':
+      hold = true;
+      if(!A.k){ A.k = 1; b.noTouch = true; sfx('splash'); burst(b.x, b.y, '#9fe8ff', 20, 200); }
+      if(A.t < .9) b.airH = -Math.min(1, A.t * 3) * 110;
+      else if(A.k === 1){
+        A.k = 2;
+        if(G.dg){ const L = G.dg.L, tiles = L.zoneTiles[10]; for(let k = 0; k < 20; k++){ const t = tiles[Math.floor(Math.random() * tiles.length)], x = (t % L.W + .5) * DT, y = (Math.floor(t / L.W) + .5) * DT; if(Math.hypot(x - p.x, y - p.y) > 260 && !dgBlockedAt(x, y)){ b.x = x; b.y = y; break; } } }
+        b.airH = 0; b.noTouch = false; ring(b, 16, 200, dmg * .4, '#9fe8ff'); sfx('blink');
+      }
+      if(A.t > 1.3) done = true;
+      break;
+    // ---- Thunder Eel ----
+    case 'electrify':
+      hold = true;
+      if(!A.k){ A.k = 1; if(G.dg) G.hazards.push({kind:'shock', tiles:dgArenaWater(), warn:1.4, max:1.4, active:.6, dmg:dmg * .9}); sfx('charge'); }
+      if(A.t > 2.2) done = true;
+      break;
+    case 'eeldash':
+      // darts along the line, then sheds a ring of sparks where it stops
+      hold = true;
+      if(!A.k){ A.k = 1; A.a = aim; G.hazards.push({kind:'tele', x:b.x, y:b.y, a:aim, len:640, w:b.r * 1.3, warn:.7, max:.7}); sfx('charge'); }
+      if(A.k === 2 && (A.crash || A.t >= 1.4)){ A.k = 3; ring(b, 10, 200, dmg * .4, '#fff07a'); sfx('shock'); }
+      if(A.crash){ if(A.t - A.crash > .6) done = true; }
+      else if(A.t >= .7 && A.t < 1.4){ if(A.k === 1){ A.k = 2; sfx('dash'); } bossRush(b, A, dt, 820); }
+      else if(A.t >= 1.9) done = true;
+      break;
+    case 'bolts':
+      hold = true;
+      if(!A.k){ A.k = 1; for(let i = 0; i < 4; i++) addBeam({x:b.x, y:b.y, a:aim + i * Math.PI / 2 + .4, rot:.6, len:700, w:26, warn:.8, active:1.8, dmg:dmg * .55, color:'#fff07a', owner:b, once:true}); }
+      if(A.t > 2.7) done = true;
+      break;
+    case 'coil': {
+      hold = true;
+      if(!A.k){ A.k = 1; const c = b.home || {x:b.x, y:b.y}; A.cx = c.x; A.cy = c.y; A.ang = Math.atan2(b.y - c.y, b.x - c.x); }
+      A.ang += 1.9 * dt;
+      const tx = A.cx + Math.cos(A.ang) * 300, ty = A.cy + Math.sin(A.ang) * 300;
+      b.x += (tx - b.x) * Math.min(1, dt * 5); b.y += (ty - b.y) * Math.min(1, dt * 5);
+      if(G.dg) dgCollide(b, b.r);
+      A.kk = (A.kk || 0) - dt;
+      if(A.kk <= 0){ A.kk = .32; ebullet(b.x, b.y, aim, 260, dmg * .4, '#fff07a', {r:8}); }
+      if(A.t > 3.6) done = true;
+      break;
+    }
+    case 'sparks':
+      for(let i = 0; i < 6; i++) ebullet(b.x, b.y, aim + (i - 2.5) * .45, 180, dmg * .45, '#fff07a', {bounce:3, life:6, r:10});
+      sfx('shock'); done = true; break;
+    // ---- The Drowned Admiral ----
+    case 'broadside': {
+      hold = true;
+      if(!A.k){
+        A.k = 1; A.rows = [];
+        const L = G.dg ? G.dg.L : null, bx = L ? L.zoneBox[10] : null;
+        const x0 = bx ? (bx.x0 + .5) * DT : p.x - 600, x1 = bx ? (bx.x1 + .5) * DT : p.x + 600, fromWest = Math.random() < .5;
+        const gap = Math.floor(rand(2, 7));
+        for(let i = 0; i < 9; i++){
+          if(i === gap || i === gap + 1) continue;
+          const y = p.y + (i - 4) * 64, sx = fromWest ? x0 : x1;
+          A.rows.push([sx, y, fromWest ? 0 : Math.PI]);
+          G.hazards.push({kind:'tele', x:sx, y, a:fromWest ? 0 : Math.PI, len:Math.abs(x1 - x0), w:30, warn:.9, max:.9});
+        }
+        sfx('charge');
+      }
+      if(A.t >= .9 && A.k === 1){ A.k = 2; for(const [x, y, a] of A.rows) ebullet(x, y, a, 520, dmg * .7, '#c8d0d8', {r:13, life:4}); sfx('bigboom'); G.shake = .3; }
+      if(A.t > 1.4) done = true;
+      break;
+    }
+    case 'cannons':
+      for(let i = 0; i < 10; i++){ const a = Math.random() * TAU, r = i < 3 ? rand(0, 60) : rand(80, 300), x = p.x + p.vx * .5 + Math.cos(a) * r, y = p.y + p.vy * .5 + Math.sin(a) * r; addCircle(x, y, 58, .9 + i * .1, dmg * .6, '#ff8a3d'); }
+      sfx('lob'); done = true; break;
+    case 'crew': bossSummon(b, 'ghost', sk.minion, 4, 100); sfx('elite'); done = true; break;
+    case 'cutlass':
+      hold = true;
+      if(!A.k){ A.k = 1; G.hazards.push({kind:'aura', owner:b, r:b.r + 80, life:3, max:3, wind:.6, dmg:dmg * .65, tick:.6, color:sk.glow}); sfx('charge'); }
+      if(A.t > .6 && A.t < 3){ const dx = p.x - b.x, dy = p.y - b.y, d = Math.hypot(dx, dy) || 1, sp = b.speed * 1.45; b.x += dx / d * sp * dt; b.y += dy / d * sp * dt; }
+      if(A.t > 3.2) done = true;
+      break;
+    // ---- Leviathan of the Reservoir (it stays in its pool; its head lunges out) ----
+    case 'bite':
+      hold = true;
+      if(A.k < 3 && A.t >= A.k * .85){
+        A.from = {x:b.x, y:b.y};
+        let tx = p.x + p.vx * .3, ty = p.y + p.vy * .3;
+        const h = b.home, dd = Math.hypot(tx - h.x, ty - h.y), reach = 520;
+        if(dd > reach){ tx = h.x + (tx - h.x) / dd * reach; ty = h.y + (ty - h.y) / dd * reach; }
+        A.to = {x:tx, y:ty}; A.k0 = A.t; A.k++;
+        addCircle(tx, ty, 88, .6, dmg * 1.1, '#7df9ff'); b.noTouch = true; sfx('charge');
+      }
+      if(A.to){ const q = Math.min(1, (A.t - A.k0) / .6); b.x = A.from.x + (A.to.x - A.from.x) * q; b.y = A.from.y + (A.to.y - A.from.y) * q; b.airH = Math.sin(q * Math.PI) * 90; if(q >= 1){ b.noTouch = false; b.airH = 0; } }
+      if(A.t > 2.9){ b.noTouch = false; b.airH = 0; done = true; }
+      break;
+    case 'tidal':
+      hold = true;
+      while(A.k < 2 && A.t >= .4 + A.k * 1.3){ addWave(b, 760, 250, '#7df9ff', dmg * .7); sfx('splash'); A.k++; }
+      if(A.t > 2.4) done = true;
+      break;
+    case 'spit':
+      hold = true;
+      while(A.k < 3 && A.t >= A.k * .4){ for(let i = -2; i <= 2; i++) ebullet(b.x, b.y, aim + i * .14, 300, dmg * .45, '#7df9ff', {r:9}); A.k++; }
+      if(A.t > 1.2) done = true;
+      break;
+    case 'whirlpool':
+      hold = true;
+      if(!A.k){ A.k = 1; p.pull = {e:b, t:3.2, sp:135, stop:b.r + 10}; G.hazards.push({kind:'aura', owner:b, r:b.r + 110, life:3.4, max:3.4, wind:.5, dmg:dmg * .6, tick:.5, color:'#7df9ff'}); addText(p.x, p.y - 34, 'WHIRLPOOL · GET AWAY', 2); sfx('splash'); }
+      if(A.t % .25 < dt) G.fx.push({type:'ring', x:b.x, y:b.y, r:b.r + 300, maxR:b.r + 20, life:.5, max:.5, color:'#7df9ff'});
+      if(A.t > 3.6) done = true;
+      break;
+    case 'tailsweep':
+      hold = true;
+      if(!A.k){ A.k = 1; const dir = Math.random() < .5 ? 1 : -1; addBeam({x:b.x, y:b.y, a:aim - dir * 2.6, rot:dir * 1.6, len:620, w:44, warn:.8, active:3.3, dmg:dmg * .7, color:'#2f8aa0', owner:b, once:true}); }
+      if(A.t > 4.2) done = true;
+      break;
+    case 'eels':
+      if(G.dg) for(let i = 0; i < 3; i++){ const a = i / 3 * TAU + Math.random(), x = b.x + Math.cos(a) * (b.r + 70), y = b.y + Math.sin(a) * (b.r + 70); dgSpawn('eel', x, y, false, 0); }
+      sfx('splash'); done = true; break;
+    case 'torrent':
+      hold = true;
+      if(!A.k){ A.k = 1; addBeam({x:b.x, y:b.y, a:aim, rot:0, track:.8, len:900, w:40, warn:1, active:2.6, dmg:dmg * .5, color:'#7df9ff', owner:b, slow:.6}); }
+      if(A.t > 3.8) done = true;
+      break;
     default: done = true;
   }
   if(done){ b.act = null; b.atkT = sk.phases ? (b.phase >= 2 ? .7 : 1.1) : 1.4; }
@@ -3629,6 +3847,52 @@ const HZD = {
     ctx.beginPath(); ctx.arc(hz.x, hz.y, hz.r, 0, TAU); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
   },
 };
+
+// water tiles inside the boss chamber (for the Thunder Eel's Electrify)
+function dgArenaWater(){
+  const L = G.dg.L, out = [];
+  for(const i of L.zoneTiles[10] || []){ const x = (i % L.W + .5) * DT, y = (Math.floor(i / L.W) + .5) * DT; if(dgWaterAt(x, y)) out.push(i); }
+  return out;
+}
+Object.assign(HZX, {
+  // a cone in front of a boss: fills up, then hits everything inside it
+  cone(hz, dt){
+    hz.warn -= dt;
+    if(hz.warn > 0) return;
+    hz.done = true;
+    const p = G.p, dx = p.x - hz.x, dy = p.y - hz.y, d = Math.hypot(dx, dy);
+    let diff = Math.abs((Math.atan2(dy, dx) - hz.a) % TAU); if(diff > Math.PI) diff = TAU - diff;
+    if(d < hz.r + p.r && diff < hz.spread / 2 + .1) hurtPlayer(hz.dmg);
+    G.fx.push({type:'ring', x:hz.x, y:hz.y, r:hz.r * .4, maxR:hz.r, life:.25, max:.25, color:hz.color}); sfx('slash');
+  },
+  // every water tile in the room is electrified for a moment
+  shock(hz, dt){
+    const p = G.p;
+    if(hz.warn > 0){ hz.warn -= dt; if(hz.warn <= 0){ sfx('shock'); G.flash = .15; } return; }
+    hz.active -= dt;
+    if(dgWaterAt(p.x, p.y) && G.dg.L.z[tileAt(G.dg.L, p.x, p.y)] === 10) hurtPlayer(hz.dmg);
+    if(hz.active <= 0) hz.done = true;
+  },
+});
+Object.assign(HZD, {
+  cone(hz){
+    const k = 1 - hz.warn / hz.max;
+    ctx.fillStyle = hexA('#ff3d5a', .1 + .18 * k);
+    ctx.beginPath(); ctx.moveTo(hz.x, hz.y); ctx.arc(hz.x, hz.y, hz.r, hz.a - hz.spread / 2, hz.a + hz.spread / 2); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = hexA(hz.color, .35);
+    ctx.beginPath(); ctx.moveTo(hz.x, hz.y); ctx.arc(hz.x, hz.y, hz.r * k, hz.a - hz.spread / 2, hz.a + hz.spread / 2); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = hexA('#ff3d5a', .8); ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(hz.x, hz.y); ctx.arc(hz.x, hz.y, hz.r, hz.a - hz.spread / 2, hz.a + hz.spread / 2); ctx.closePath(); ctx.stroke();
+  },
+  shock(hz){
+    const L = G.dg.L, on = hz.warn <= 0, blink = on || Math.floor(hz.warn * 8) % 2 === 0;
+    if(!blink) return;
+    ctx.globalCompositeOperation = on ? 'lighter' : 'source-over';
+    ctx.fillStyle = on ? 'rgba(255,240,122,.55)' : 'rgba(255,61,90,.22)';
+    for(const i of hz.tiles){ const x = (i % L.W) * DT, y = Math.floor(i / L.W) * DT; ctx.fillRect(x + 2, y + 2, DT - 4, DT - 4); }
+    ctx.globalCompositeOperation = 'source-over';
+  },
+});
 
 function drawHazards(beams){
   const t = G.t;
@@ -3746,7 +4010,7 @@ function useAbility(id){
         const e = vis.splice(Math.floor(Math.random() * vis.length), 1)[0];
         G.fx.push({type:'bolt', x:e.x, y:e.y, x0:e.x + rand(-50, 50), y0:e.y - hh - 40, life:0.22, max:0.22, color:'#fff07a'});
         G.fx.push({type:'ring', x:e.x, y:e.y, r:4, maxR:34, life:0.25, max:0.25, color:'#fff07a'});
-        hitEnemy(e, st.dmg, 'lightning');
+        HITFROM = e; hitEnemy(e, st.dmg, 'lightning'); HITFROM = null;
         if(G.combos.has('overcharge')){
           query(e.x, e.y, 150, tmpB);
           tmpB.sort((a, b) => ((a.x - e.x) ** 2 + (a.y - e.y) ** 2) - ((b.x - e.x) ** 2 + (b.y - e.y) ** 2));
@@ -3778,7 +4042,9 @@ function explode(pr){
   if(pr.exploded) return;
   pr.exploded = true; pr.life = 0;
   query(pr.x, pr.y, pr.aoe + 45, tmpB);
+  const hf = HITFROM; HITFROM = {x:pr.x, y:pr.y};
   for(const e of tmpB) if(Math.hypot(e.x - pr.x, e.y - pr.y) < pr.aoe + e.r) hitEnemy(e, pr.dmg, 'fireball');
+  HITFROM = hf;
   G.fx.push({type:'ring', x:pr.x, y:pr.y, r:10, maxR:pr.aoe, life:0.35, max:0.35, color:'#ff8a3d', fill:true});
   burst(pr.x, pr.y, '#ffb23d', 12, 220); sfx('boom');
 }
@@ -3878,9 +4144,8 @@ function update(dt){
 
   for(const b of g.ebullets){
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
-    if(g.dg && dgShotBlocked(g.dg.L, b.x, b.y)){ b.life = 0; continue; }
-    if(g.dg && g.dg.roll.t > 0) continue;           // rolling: shots pass through you
-    if(Math.hypot(b.x - p.x, b.y - p.y) < b.r + p.r){ b.life = 0; if(b.slow) p.slowT = Math.max(p.slowT, b.slow); if(b.root) p.rootT = Math.max(p.rootT || 0, b.root); if(b.venom && p.inv <= 0 && g.dg) dgContact({skin:'', venom:b.venom}); hurtPlayer(b.dmg); }
+    if(g.dg && dgBullet(b, dt)) continue;           // walls, bounces, homing; rolling makes shots pass through you
+    if(Math.hypot(b.x - p.x, b.y - p.y) < b.r + p.r){ b.life = 0; if(b.slow) p.slowT = Math.max(p.slowT, b.slow); if(b.root) p.rootT = Math.max(p.rootT || 0, b.root); if(g.dg) dgBulletHit(b); hurtPlayer(b.dmg); }
   }
   g.ebullets = g.ebullets.filter(b => b.life > 0);
   updateHazards(dt);
@@ -3916,7 +4181,7 @@ function update(dt){
       query(bx, by, 60, tmpA);
       for(const e of tmpA){
         if(g.t - e.oT < 0.35) continue;
-        if(Math.hypot(e.x - bx, e.y - by) < e.r + 11){ e.oT = g.t; hitEnemy(e, os.dmg, 'orbit'); }
+        if(Math.hypot(e.x - bx, e.y - by) < e.r + 11){ e.oT = g.t; HITFROM = {x:bx, y:by}; hitEnemy(e, os.dmg, 'orbit'); HITFROM = null; }
       }
     }
   }
@@ -3936,13 +4201,13 @@ function update(dt){
     if(pd.tick <= 0){
       pd.tick = 0.25;
       query(pd.x, pd.y, pd.r + 45, tmpA);
-      for(const e of tmpA) if(Math.hypot(e.x - pd.x, e.y - pd.y) < pd.r + e.r) hitEnemy(e, pd.dps * 0.25, 'poison');
+      for(const e of tmpA) if(Math.hypot(e.x - pd.x, e.y - pd.y) < pd.r + e.r){ HITFROM = e; hitEnemy(e, pd.dps * 0.25, 'poison'); HITFROM = null; }
     }
   }
   g.puddles = g.puddles.filter(pd => pd.life > 0);
 
   for(const pr of g.projs){
-    pr.life -= dt; pr.age += dt;
+    pr.px = pr.x; pr.py = pr.y; pr.life -= dt; pr.age += dt;
     if(pr.kind === 'boom'){
       const out = 0.5 * (g.combos.has('kite') ? 1.3 : 1);
       if(pr.age < out){ const k = 1 - pr.age / out; pr.x += pr.vx * dt * k; pr.y += pr.vy * dt * k; }
@@ -3956,6 +4221,7 @@ function update(dt){
     if(pr.kind === 'fire' && Math.random() < .5 && g.parts.length < 600) g.parts.push({x:pr.x, y:pr.y, vx:rand(-30, 30), vy:rand(-30, 30), life:.35, max:.35, c:'#ff8a3d', s:rand(2, 4)});
     if(pr.life <= 0) continue;
     query(pr.x, pr.y, pr.r + 45, tmpA);
+    HITFROM = {x:pr.px - (pr.x - pr.px) * 6, y:pr.py - (pr.y - pr.py) * 6};
     for(const e of tmpA){
       if(e.dead) continue;
       const rr = e.r + pr.r;
@@ -3974,6 +4240,7 @@ function update(dt){
     }
     if(pr.kind === 'fire' && pr.life <= 0) explode(pr);
   }
+  HITFROM = null;
   g.projs = g.projs.filter(pr => pr.life > 0);
   g.enemies = g.enemies.filter(e => !e.dead);
 
@@ -4477,8 +4744,8 @@ function render(now){
    DUNGEON MODE — a 3D dungeon crawl seen from behind and above (like
    Minecraft Dungeons). It runs on the same characters, loadouts, weapons
    and level-ups as the stages. 100 floors in 20 themes are planned;
-   theme 1 (Mossy Ruins, floors 1–5) is built. Every floor is a
-   hand-made ASCII map:
+   themes 1 (Mossy Ruins, floors 1–5) and 2 (Flooded Aqueducts, 6–10)
+   are built. Every floor is a hand-made ASCII map:
      #  wall            .  floor          ,  mossy floor     u  stairs
      ~  pit             c  crumbling floor (falls after you step on it)
      m  moss pool (poisons and slows you)  w  spider web (slows you)
@@ -4487,6 +4754,10 @@ function render(now){
      z s a x  enemy pack (revenants / spiders / archers / mixed); upper case adds an elite
      1–9  sealed corridor section (ambush waves)
      b  boss chamber    B  boss spawn     X  exit portal
+   Flooded Aqueducts also use:
+     d  deep water (slows you)   < > ^ v  current (pushes you that way)
+     g  slick algae (you slide)  l  low floor that floods   L  lantern
+   Pack letters mean whatever the floor's own `packs` table says.
    ===================================================================== */
 const THREE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.165.0/three.module.min.js';
 const DT = 64;                                  // one map tile in world units
@@ -4494,7 +4765,9 @@ const DG_FLOORS_TOTAL = 100, DG_THEMES_TOTAL = 20;
 const DG_ROLL = {time:.3, cd:1.1, speed:2.7};   // dodge roll: duration, cooldown, speed multiplier
 const DG_MOB = {hp:1.3, dmg:1.2};               // regular dungeon enemies are tougher and hit harder than their base stats
 const DG_XP_GROWTH = 1.1;                       // in the dungeon each level needs ×1.1 the XP of the one before (stages: ×1.08), and your level resets on every floor
-const TT = {WALL:0, FLOOR:1, PIT:2, POOL:3, CRUMBLE:4, WEB:5, GATE:6, PROP:7, STAIR:8};
+const TT = {WALL:0, FLOOR:1, PIT:2, POOL:3, CRUMBLE:4, WEB:5, GATE:6, PROP:7, STAIR:8, DEEP:9, CURRENT:10, SLICK:11};
+const CUR_DIR = [[1, 0], [-1, 0], [0, 1], [0, -1]];   // > < v ^
+const DG_DIST = {near:.8, far:1.35};             // enemy strength by distance from the start: x0.8 next to it, x1.35 at the far end
 const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 const N8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
 
@@ -4545,11 +4818,12 @@ const DG_PACKS = {
   a:{elite:'archer',   make:f => ({archer:3 + Math.ceil(f / 2), revenant:3})},
   x:{elite:'revenant', make:f => ({revenant:4, crawler:4, archer:3})},
 };
-const DG_THEMES = [{id:'ruins', name:'Mossy Ruins', first:1, last:5, accent:'#8be36a',
+const DG_THEMES = [{id:'ruins', name:'Mossy Ruins', first:1, last:5, accent:'#8be36a', song:'ruins',
   desc:'Stone ruins wrapped in vines and moss. A classic fantasy start, and the way down.'}];
+const dgThemeOf = n => DG_THEMES.find(t => n >= t.first && n <= t.last) || DG_THEMES[0];
 
 // The loadout builder treats the dungeon like one more stage: one budget for the whole theme.
-const DG_STAGE = {id:'dg-ruins', dungeon:true, name:'Mossy Ruins', art:'forest', seed:37, budget:5, dur:0, spawn:0, hpMul:1, speedMul:1,
+const DG_STAGE = {id:'dg-ruins', dungeon:true, theme:'ruins', name:'Mossy Ruins', art:'forest', seed:37, budget:5, dur:0, spawn:0, hpMul:1, speedMul:1,
   bossHp:0, bossArmor:0, accent:'#8be36a', mote:'#c8ff8a', rise:0, desc:DG_THEMES[0].desc,
   rules:['Your level resets on every floor','Death sends you back to base','Rewards are only kept at exit portals'], banned:[], forced:[],
   skins:{revenant:'revenant', crawler:'stonespider', archer:'ruinarcher', soldier:'stonesoldier', minion:'spiderling', egg:'eggsac'},
@@ -5136,12 +5410,659 @@ Object.assign(SFX, {
 Object.assign(SONGS, {
   ruins: {bpm:96, root:52, scale:'dorian', prog:[0,5,3,4], bass:'sawtooth', bp:'pulse', lead:'triangle', arp:'sine', drums:1, pad:1, density:.3, seed:211},
 });
+/* ---------- theme 2: the Flooded Aqueducts (floors 6–10) ----------
+   Six enemy types, and every floor mixes them differently:
+     6 Sluice Gate          sailors + harpooners           currents
+     7 Crab Cisterns        crabs + jellyfish + sailors     deep water, slick algae
+     8 Lightless Channels   sirens + jellyfish + eels       darkness and lanterns
+     9 Flood Halls          eels + crabs + harpooners + sirens   the halls flood and drain
+    10 Great Reservoir      everything                       rising water, two bosses */
+Object.assign(ENEMIES, {
+  sailor:   {hp:20, speed:60,  dmg:9, r:13, xp:1.2, armor:0},
+  harpooner:{hp:15, speed:70,  dmg:7, r:12, xp:1.4, armor:0},
+  crab:     {hp:22, speed:72,  dmg:7, r:14, xp:1.4, armor:1},
+  siren:    {hp:13, speed:72,  dmg:6, r:12, xp:1.4, armor:0},
+  eel:      {hp:14, speed:100, dmg:7, r:12, xp:1.3, armor:0},
+  jelly:    {hp:12, speed:44,  dmg:6, r:13, xp:1.1, armor:0},
+  hermit:   {hp:9,  speed:96,  dmg:4, r:9,  xp:.5,  armor:0},
+  ghost:    {hp:13, speed:92,  dmg:6, r:12, xp:.5,  armor:0},
+  decoy:    {hp:70, speed:0,   dmg:0, r:30, xp:0,   armor:0},
+});
+Object.assign(SKINS, {
+  drowned:   {name:'Drowned Sailor',   rig:'sailor',    family:'tide',  body:'#7d9c94', dark:'#2a3a48', glow:'#7df9ff', alt:'#c9b88a',
+              move:'Grabs you and holds on until you roll free', grab:{t:.9, cd:4}},
+  harpooner: {name:'Drowned Harpooner', rig:'harpooner', family:'tide',  body:'#8aa69c', dark:'#3a2a24', glow:'#7df9ff', alt:'#c8d0d8',
+              move:'Aims, then throws a harpoon that drags you in', ai:{type:'harpoon', range:520, keep:300, cd:4.6, warn:.75, bs:600, dmg:8, pull:.5}},
+  ironcrab:  {name:'Ironshell Crab',   rig:'crab',      family:'shell', body:'#a0603e', dark:'#3a2420', glow:'#ffcf6a', alt:'#d8c098',
+              move:'Its armored front blocks most damage. Hit it from the side or behind', shell:{arc:1.05, mul:.5}, ai:{type:'crab', turn:1.3}},
+  siren:     {name:'Bubble Siren',     rig:'siren',     family:'deep',  body:'#86c0cc', dark:'#24485a', glow:'#c8f4ff', alt:'#3fc8a8',
+              move:'Fires slowing bubbles, and every third shot a bubble that traps you', ai:{type:'siren', range:480, keep:260, cd:2.6, bs:230, dmg:5, slow:1, trapEvery:3, trap:.9}},
+  eel:       {name:'Electric Eel',     rig:'eel',       family:'deep',  body:'#4f6e3a', dark:'#1c2a14', glow:'#fff07a', alt:'#c8d850',
+              move:'Fast in water, slow on land. Shocks the water around itself', ai:{type:'eel', cd:4.2, r:120, warn:.8, dmg:9}},
+  jelly:     {name:'Glow Jellyfish',   rig:'jelly',     family:'deep',  body:'#b48bff', dark:'#6a4aa8', glow:'#ff9af0', alt:'#e6dcff',
+              move:'Drifts at you and stings. Bursts into a shock when it dies', ai:{type:'jelly'}, zap:{slow:.7}, deathShock:{r:92, warn:.55, dmg:8}},
+  hermit:    {name:'Hermit Crab',      rig:'crab',      family:'shell', body:'#d0a868', dark:'#4a3020', glow:'#ffcf6a', alt:'#e8d8b0', shell:{arc:1.05, mul:.4}, ai:{type:'crab', turn:2.4}},
+  ghostcrew: {name:'Ghost Crew',       rig:'sailor',    family:'tide',  body:'#a8f0e8', dark:'#3a7078', glow:'#e6ffff', alt:'#c8f8f0', grab:{t:.6, cd:5}},
+  decoy:     {name:'Siren Matriarch',  rig:'matriarch', family:'deep',  body:'#7fc0d0', dark:'#1f4058', glow:'#c8f8ff', alt:'#e8d8a8', ai:{type:'decoy', life:11, cd:2.2, dmg:6}},
+  // floor bosses and the theme boss
+  sluicewarden:{name:'Rusted Sluice Warden', rig:'sluice', family:'tide', body:'#7a6a5a', dark:'#3a3028', glow:'#7df9ff', alt:'#a85a32', dmg:18, speed:74, armor:2,
+                patterns:['cannon','anchor','gateslam','floodgates','charge','anchor','cannon'], about:'Sweeps a water cannon, hooks you with its anchor, and reverses the currents.'},
+  crabking:  {name:'Ironclaw Crab King', rig:'crabking', family:'shell', body:'#b0603a', dark:'#3a1e14', glow:'#ffcf6a', alt:'#e0c8a0', dmg:22, speed:96, armor:2, shell:{arc:1.1, mul:.45}, turn:1,
+                patterns:['clawsnap','scuttle','shellguard','burrow','hermits','clawsnap'], about:'Armored in front, so get behind it. Snaps, scuttles sideways, burrows and calls hermit crabs.'},
+  matriarch: {name:'Siren Matriarch',   rig:'matriarch', family:'deep',  body:'#7fc0d0', dark:'#1f4058', glow:'#c8f8ff', alt:'#e8d8a8', dmg:18, speed:84, armor:1, keep:300,
+                patterns:['lure','orbs','prison','mirror','submerge','orbs','lure'], about:'Sings to pull you in, traps you in bubbles, fires homing orbs and splits into mirror images.'},
+  thundereel:{name:'Thunder Eel',       rig:'bigeel',    family:'deep',  body:'#3f6a34', dark:'#14240e', glow:'#fff07a', alt:'#d8e858', dmg:22, speed:110, armor:2,
+                patterns:['electrify','bolts','eeldash','coil','sparks','electrify','eeldash'], about:'Electrifies every bit of water in its lair. Stand on dry stone when it glows.'},
+  admiral:   {name:'The Drowned Admiral', rig:'admiral', family:'tide',  body:'#8fd8d0', dark:'#1c3a48', glow:'#c8fff8', alt:'#d8b860', dmg:19, speed:86, armor:2,
+                patterns:['broadside','cannons','crew','cutlass','anchor','cannons'], about:'A ghost captain. Broadsides sweep the room in rows; he calls his crew.'},
+  leviathan: {name:'Leviathan of the Reservoir', rig:'leviathan', family:'deep', body:'#2f5a6a', dark:'#0e2028', glow:'#7df9ff', alt:'#c8e0d0', dmg:22, speed:0, armor:2, anchored:true,
+                phases:[{at:1,   patterns:['bite','tidal','spit','bite','spit']},
+                        {at:.66, patterns:['whirlpool','tailsweep','bite','eels','tidal'], msg:'The water churns'},
+                        {at:.33, patterns:['torrent','whirlpool','bite','tailsweep','tidal','eels'], msg:'The reservoir floods', flood:true}],
+                about:'Rises from the reservoir. Bites, whirlpools, tail sweeps, and in the end it floods the edges of the room.'},
+});
+Object.assign(DG_FAMILY, {sailor:'tide', harpooner:'tide', ghost:'tide', crab:'shell', hermit:'shell', siren:'deep', eel:'deep', jelly:'deep'});
+Object.assign(DG_RELICS, {
+  tide: {name:'Drowned relics', color:'#7df9ff', items:['retaliate','plating','tough','secondwind','frail','swarmed']},
+  shell:{name:'Shell relics',   color:'#ffcf6a', items:['thorns','plating','shield','giant','sluggish','rigid']},
+  deep: {name:'Abyssal relics', color:'#c8f4ff', items:['frost','lightning','static','haste','nearsighted','dull']},
+});
+DG_THEMES.push({id:'aqueduct', name:'Flooded Aqueducts', first:6, last:10, accent:'#5fd8ff', song:'aqueduct',
+  desc:'The flooded waterworks under the ruins: currents, deep cisterns and dark channels.'});
+const DG_STAGE_AQ = {id:'dg-aqueduct', dungeon:true, theme:'aqueduct', name:'Flooded Aqueducts', art:'swamp', seed:113, budget:3, dur:0, spawn:0, hpMul:1, speedMul:1,
+  bossHp:0, bossArmor:0, accent:'#5fd8ff', mote:'#bff4ff', rise:0, desc:'The flooded waterworks under the ruins.',
+  rules:['Your level resets on every floor','Death sends you back to base','Rewards are only kept at exit portals','Enemies get tougher the farther you go'], banned:[], forced:[],
+  skins:{sailor:'drowned', harpooner:'harpooner', crab:'ironcrab', siren:'siren', eel:'eel', jelly:'jelly', hermit:'hermit', ghost:'ghostcrew', decoy:'decoy', minion:'hermit'},
+  mix:[[0, {sailor:1}]], reward:{coins:0}};
+DG_STAGE.rules.push('Enemies get tougher the farther you go');
+const DG_STAGES = [DG_STAGE, DG_STAGE_AQ];
+const dgStageOf = n => DG_STAGES.find(s => s.theme === dgThemeOf(n).id);
+
+DG_FLOORS.push(
+  {n:6, name:'Sluice Gate', boss:'sluicewarden', bossHp:11000, hpMul:1.6, xpMul:1.5, coinMul:2,
+   packs:{z:{elite:'sailor', make:() => ({sailor:7})}, a:{elite:'harpooner', make:() => ({harpooner:4, sailor:3})}, x:{elite:'sailor', make:() => ({sailor:5, harpooner:3})}},
+   trickle:{every:10, n:3, mix:{sailor:2, harpooner:1}}, foes:['drowned','harpooner'],
+   desc:'The great canal of the waterworks. Currents sweep you along the channels; drowned sailors grab you and harpooners drag you in.',
+   tags:['Currents push you','Harpoons drag you in'], reward:{coins:150, items:[]}, map:`
+##############################################################################################################
+##############################################################################################################
+##############################################################################################################
+##############################################################################################################
+##############################################################################################################
+##############################################################################################################
+##############################################################################################################
+##############################################################################################################
+##############################################################################################################
+##############################################################################################################
+#####################################################################......vvvv.......########################
+####################################################################.$..,..vvvv........#######################
+#######################################.........................####....,..vvvv........#######################
+######################################...........................###.......vvvv........#######################
+######################################..z........................###...z...vvvv........#######################
+######################################...........................###.......vvvv........#######################
+######################################....dddddd.......dddddd....###.......vvvv........#######################
+######################################....dddddd.......dddddd....###.,.....vvvv........#######################
+#######.........................######....dddddd.......dddddd....###.......vvvv...A....#######################
+######.$.........................#####....dddddd.......dddddd....###.......vvvv,....,..#######################
+######.....................a.....#####....dddddd.......dddddd..............vvvv......,.#######################
+######...........................#####....dddddd.......dddddd..............vvvv........#######################
+######...................k.......#####............a.....................,..vvvv........#######################
+######...........................#####.....................................vvvv........#######################
+######......o...k.........o........................o.............###.......vvvv.,......#######################
+######...........................................................###....,..vvvv........#######################
+######...........................................................###.......vvvv...,....##bbbbbbbbbbbbbbbbbb###
+######....................................dddddd.......dddddd....###.....,.vvvv........#bbbbbbbbbbbbbbbbbbbb##
+######.k....z....................#####....dddddd.......dddddd....###.......vvvv........#bpbbbbbbbbbbbbbbbbpb##
+######.................k.........#####....dddddd.......dddddd....###.......vvvv........#bbbbbbbbbbbbbbbbbbbb##
+######...........................#####....dddddd.......dddddd....###.......vvvv.,,..a..#bbbvv<<<<<<<<<<<<bbb##
+######......o.............o......#####....dddddd.......dddddd....###......,vvvv........#bbbvv<<<<<<<<<<<<bbb##
+######...........................#####....dddddd.......dddddd....###.......vvvv.....,..#bbbvvbbbbbbbbbb^^bbb##
+######...........................#####...........................###...,...vvvv,.......#bbbvvbbbbbbbbbb^^bbb##
+######...........................#####........................x..###.......vvvv........#bbbvvbbbbbbbbbb^^bbb##
+######.............Z.............#####...........................###.......vvvv....,...#bbbvvbbbbbbbbbb^^bbb##
+######...........................######.........................####...,...vvvv........#bbbvvbbbbbbbbbb^^bbb##
+#######.........................################.....###############.......vvvv........#bbbvvbbbbBbbbbb^^bbb##
+################.....###########################.....###############.......vvvv........#bbbvvbbbbbbbbbb^^bbb##
+################.....###########################.....###############......,vvvv........#bbbvvbbbbbbbbbb^^bbb##
+################.....###########################.....################......vvvv.......##bbbvvbbbbbbbbbb^^bbb##
+##....................,.....,.....,.....,.......,.,.....,.,..,.............vvvv........=bbbvvbbbbbbbbbb^^bbb##
+##...........................,,.....,...a............,...,....,.......z,...vvvv........=bbbvvbbbbbbbbbb^^bbb##
+##..............,............,..,...........,........,....,.....,..........vvvv..,....,=bbbvvbbbbbbbbbb^^bbb##
+##<<<<<<<<<<<<<<<<<<<<....<<<<<<<<<<<<<<<<<<<<<<<<<<....<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<=bbbvvbbbbbbbbbb^^bbb##
+##<<<<<<<<<<<<<<<<<<<<....<<<<<<<<<<<<<<<<<<<<<<<<<<....<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<=bbbvvbbbbbbbbbb^^bbb##
+##<<<<<<<<<<<<<<<<<<<<....<<<<<<<<<<<<<<<<<<<<<<<<<<....<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<=bbbvvbbbbbbbbbb^^bbb##
+##<<<<<<<<<<<<<<<<<<<<....<<<<<<<<<<<<<<<<<<<<<<<<<<....<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<=bbbvvbbbbbbbbbb^^bbb##
+##<<<<<<<<<<<<<<<<<<<<....<<<<<<<<<<<<<<<<<<<<<<<<<<....<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<=bbbvvbbbbbbbbbb^^bbb##
+##<<<<<<<<<<<<<<<<<<<<....<<<<<<<<<<<<<<<<<<<<<<<<<<....<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<=bbbvvbbbbbbbbbb^^bbb##
+##<<<<<<<<<<<<<<<<<<<<....<<<<<<<<<<<<<<<<<<<<<<<<<<....<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<=bbbvvbbbbbbbbbb^^bbb##
+##........,.......,...............................................,.,.......,...,......=bbbvvbbbbbbbbbb^^bbb##
+##..................,....,..................,.z...,........................,...,,,,....=bbbvvbbbbbbbbbb^^bbb##
+##......,...........,..,.,,....,.......,................,............,...........,....,=bbbvvbbbbbbbbbb^^bbb##
+#########....#####################.....###########################....##################bbbvvbbbbbbbbbb^^bbb##
+#########....#####################.....###########################....##################bbbvvbbbbbbbbbb^^bbb##
+#########....#####################.....###########################....##################bbbvvbbbbbbbbbb^^bbb##
+#########....#####################.....###########################....##################bbbvvbbbbbbbbbb^^bbb##
+#########....#####################.....##################.......................########bbbvvbbbbXbbbbb^^bbb##
+#########....#####################.....#################...........,.............#######bbbvvbbbbbbbbbb^^bbb##
+#########....############.........................######....,.........,....,.....#######bbbvvbbbbbbbbbb^^bbb##
+#########....###########...........................#####....,.............z......#######bbbvvbbbbbbbbbb^^bbb##
+#########....###########...........................#####....ddddddd.........,....#######bbbvvbbbbbbbbbb^^bbb##
+#########....###########...........................#####....ddddddd............,.#######bbb>>>>>>>>>>>>^^bbb##
+#########....###########...kkkkkk..kkkkkk..kkkkk...#####.,..ddddddd.........,....#######bbb>>>>>>>>>>>>^^bbb##
+#########....###########...........................#####.,,.ddddddd.p............#######bbbbbbbbbbbbbbbbbbbb##
+#########....###########...........................#####....ddddddd.......,......#######bpbbbbbbbbbbbbbbbbpb##
+#########....###########......z....................#####....ddddddd........,.....#######bbbbbbbbbbbbbbbbbbbb##
+#########....###########...........................#####....ddddddd..........,...########bbbbbbbbbbbbbbbbbb###
+#########....###########...........................#####.............,.......,...#############################
+#####.............######...kkkkkk..kkkkkk..kkkkk.................................#############################
+####...............#####........................................,................#############################
+####...............#####..............................................ddddddd....#############################
+####...............#####.....................a........................ddddddd....#############################
+####...............................................#####..x...........ddddddd....#############################
+####...............................................#####............p.ddddddd....#############################
+####.......................kkkkkk..kkkkkk..kkkkk...#####..............ddddddd....#############################
+####...............................................#####..............ddddddd....#############################
+####.ddddd.........#####...........................#####..............ddddddd....#############################
+####.ddddd.........#####..............z............#####............,............#############################
+####.ddddd.k...P...#####...........................#####.....................a...#############################
+####.ddddd.........#####.........................$.#####.......................$.#############################
+####.ddddd...k...k.######.........................#######.......................##############################
+####.ddddd.........###########################################################################################
+#####.............############################################################################################
+##############################################################################################################
+##############################################################################################################
+##############################################################################################################
+##############################################################################################################
+##############################################################################################################
+##############################################################################################################
+##############################################################################################################
+`},
+  {n:7, name:'Crab Cisterns', boss:'crabking', bossHp:11000, hpMul:1.75, xpMul:1.6, coinMul:2.1,
+   packs:{s:{elite:'crab', make:() => ({crab:5})}, a:{elite:'jelly', make:() => ({jelly:6})}, z:{elite:'sailor', make:() => ({sailor:5, crab:2})}, x:{elite:'crab', make:() => ({crab:3, jelly:3, sailor:2})}},
+   trickle:{every:10, n:3, mix:{crab:1, sailor:1, jelly:1}}, foes:['ironcrab','jelly','drowned'],
+   desc:'A forest of columns standing in deep water. Wade slowly or keep to the walkways, mind the slick algae, and hit the crabs where their shells are not.',
+   tags:['Deep water slows you','Slick algae','Armored crabs'], reward:{coins:170, items:[]}, map:`
+####################################################################################################
+####################################################################################################
+####################################################################################################
+####################################################################################################
+####################################################################################################
+####################################################################################################
+####################################################################################################
+####################################################################################################
+####......g.......g..............g...g......g..#####################################################
+####g.....g.............gs.....g.........g.....#####################################################
+####..dddddddddddddddddd...dddddddddddddddddd..##########.....................................######
+####..dddddddddddddddddd...dddddddddddddddddd..#########.............g....g.....gggg.....g...$.#####
+####.adddddddddddddddddd...dddddddddddddddddd..#########....x..g........g............g....a....#####
+####..dddddddddddddddddd...dddddddddddddddddd..#########.g...........g....p.......g.......g....#####
+####..ddddpdddddpddddddd...dddddddpdddddpdddd..#########.g....ddddddd.g.......g.g..............#####
+####..dddddddddddddddddd...dddddddddddddddddd..#########...g..ddddddd.g..gg..............g.....#####
+####..dddddddddddddddddd...dddddddddddddddddd..#########......dddddddgg......g...g...........g.#####
+####..dddddddddddddddddd...dddddddddddddddddd.................ddddddd...g...............g......#####
+####..dddddddddddddddddd...dddddddddddddddddd.................ddddddd..gg..................p...#####
+####..dddddddddddddddddd...dddddddddddddddddd..................................g.............g.#####
+####..ddddpdddddp..g...g...g......pdddddpdddd.............g....g...gg.gg...s...gg....gg........#####
+####..ddddddddddd..g.gg.....g.....ddddddddddd..#########...........g..gg.......................#####
+####..ddddddddddd...$...g.........ddddddddddd..#########....g........g...g......ddddddddd.g....#####
+####..ddddddddddd............g....ddddddddddd..#########........g...........g.g.ddddddddd..g...#####
+####..ddddddddddd...g..........gg.ddddddddddd..#########..........g..g......gg..ddddddddd......#####
+####..ddddddddddd.......g.........ddddddddddd..#########.g...gg.....g...g......gdddddddddg.....#####
+####...........................................#########...........g..g........gddddddddd......#####
+####...............g.g.g.S...g.................#########..........g.....g.p....gddddddddd.g.g..#####
+####................g..........................#########....g....g..gg..z....g...g........g.gg.#####
+####..ddddddddddd........g..g...g.ddddddddddd..#########....g....g...g.....gg.........g.g......#####
+####..ddddddddddd.g........g......ddddddddddd..##########.....................................######
+####..ddddddddddd...g...g.........ddddddddddd..###################=======###########.....###########
+####..dddddddddddg...........gg...ddddddddddd..##########bbbbbbbbbbbbbbbbbbbbbbbbb##.....###########
+####..ddddddddddd................gddddddddddd..#########bbbbbbbbbbbbbbbbbbbbbbbbbbb#.....###########
+####..ddddpdddddpg................pdddddpdddd..#########bbbbbbbbbbbbbbbbbbdddddddbb#.....###########
+####..dddddddddddddddddd...dddddddddddddddddd..#########bbbbpbbbbbbbbbbbbbdddddddbb#.....###########
+####..dddddddddddddddddd...dddddddddddddddddd..#########bbbbbbbbbbbbbbbbbbdddddddbb#.....###########
+####..dddddddddddddddddd...dddddddddddddddddd..#########bbbbbbbbbbbbbbbbbbdddddddbb#.....###########
+####..dddddddddddddddddd...dddddddddddddddddd..#########bbbbbbbbbbbbbBbbbbdddddddbb#.....###########
+####..dddddddddddddddddd...dddddddddddddddddd..#########bbbbbbbbbbbbbbbbbbdddddddbb#.....###########
+####..ddddpdddddpddddddd...dddddddpdddddpddddz.#########bbbbbbbbbbbbbbbbbbdddddddbb#.....###########
+####..dddddddddddddddddd...dddddddddddddddddd..#########bbbbbbbbbbbbbbbbbbbbbbbbbbb#.....###########
+####..dddddddddddddddddd...dddddddddddddddddd..#########bbbbbbbbbbbbbbbbbbbbbbbbbbb#.....###########
+####..dddddddddddddddddd...dddddddddddddddddd..#########bbbbbbbbbbbbbbbbbbbbbbbbbbb#.....###########
+####..dddddddddddddddddd...dddddddddddddddddd..#########bbdddddddbbbbpbbbbbbbbbbbbb#.....###########
+####...........................................#########bbdddddddbbbbbbbbbbbbbbbbbb#.....###########
+####...........................................#########bbdddddddbbbbbbbbbbbbbbbbbb#.....###########
+######################.....#############################bbdddddddbbbbbbbbbbbbbbbbbb#.....###########
+######################.....#############################bbdddddddbbbbbbbbbbbbbbbbbb#.....###########
+######################.....#############################bbdddddddbbbbbbbbbbbbbbpbbb#.....###########
+######################.....#############################bbdddddddbbbbbXbbbbbbbbbbbb#.....###########
+######################.....#############################bbdddddddbbbbbbbbbbbbbbbbbb#.....###########
+######################.....#############################bbbbbbbbbbbbbbbbbbbbbbbbbbb#.....###########
+######################.....##############################bbbbbbbbbbbbbbbbbbbbbbbbb##.....###########
+######################.....#########################################################.....###########
+######################.....#########################################################.....###########
+########dddddddddddddddddddddddddddddddddddddddddd...ddddddddddddddddddddddddd...dddddddddddddd#####
+########dddddddddddddddddddddddddddddddddddddddddd...ddddddddddddddddddddddddd...dddddddddddddd#####
+########dddddddddd...........ddddddd.........ddddd...ddddddddddddddddddddddddd...dddddddddddddd#####
+########ddddpddddd...........dpddddd.........dddpd...dpdddddpdddddpdddddpddddd...dddpdddddpdddd#####
+########dddddddddd.....s.....ddddddd....a....ddddd...ddddddddddddddddddddddddd...dddddddddddddd#####
+########dddddddddd...........ddddddd.........ddddd...ddddddddddddddddddddddddd...dddddddddddddd#####
+########dddddddddd...........ddddddd.........ddddd...ddddddddddddddddddddddddd...dddddddddddddd#####
+########dddddddddd...........ddddddd.........ddddd...ddddddddddddddddddddddddd...dddddddddddddd#####
+########dddddddddddddddddddddddddddddddddddddddddd...ddddddddddddddddddddddddd...dddddddddddddd#####
+########ddddpdddddpdddddpdddddpdddddpdddddpdddddpd...dpdddddpdddddpdddddpddddd...dddpdddddpdddd#####
+########dddddddddddddddddddddddddddddddddddddddddd...ddddddddddddddddddddddddd...dddddddddddddd#####
+########dddddddddddddddddddddddddddddddddddddddddd...ddddddddddddddddddddddddd...dddddddddddddd#####
+########.g..........g...g...g....g.g......g......g..g..........g..........g................gg..#####
+########.......g.......gg.......g.....ggx.....g..g.gg...g.......g...g..........g.g......s.....g#####
+########....g..g..g...........g..g.............g.........gg........g....................g.g....#####
+########ddddpdddddpdddddpdddddpdddddpdddddpdddddpd...dpdddddpdddddpdddddpddddd...dddpdddddpdddd#####
+########dddddddddddddddddddddddddddddddddddddddddd...ddddddddddddddddddddddddd...dddddddddddddd#####
+########dddddddddddddddddddddddddddddddddddddddddd...ddddddddddddddddddddddddd...dddddddddddddd#####
+########dddd...........ddddddddddddddddddddddddddd...ddddddd...........ddddddd...dddddddddddddd#####
+########dddd...........ddddddddddddddddddddddddddd...ddddddd...........ddddddd...dddddddddddddd#####
+########dddd.....z.....ddddddddddddddddddddddddddd...ddddddd.....a.....ddddddd...dddddddddddddd#####
+########dddd...........dpdddddpdddddpdddddpdddddpd...dpddddd...........dpddddd...dddpdddddpdddd#####
+########dddd.$.........ddddddddddddddddddddddddddd...ddddddd...........ddddddd...dddddddddddddd#####
+########dddd...........ddddddddddddddddddddddddddd...ddddddd...........ddddddd...dddddddddddddd#####
+########dddddddddddddddddddddddddddddddddddddddddd...ddddddddddddddddddddddddd...dddddddddddddd#####
+########dddddddddddddddddddddddddddddddddddddddddd...ddddddddddddddddddddddddd...dddddddddddddd#####
+########dddddddddddddddddddddddddddddddddddddddddd...ddddddddddddddddddddddddd...dddddddddddddd#####
+##############################################################################...###################
+###########################################################################...................######
+##########################################################################..............,......#####
+##########################################################################.....................#####
+##########################################################################.....................#####
+##########################################################################..,....,.............#####
+##########################################################################.,..........P...,....#####
+##########################################################################...,......,..........#####
+##########################################################################.....................#####
+##########################################################################.....,.........,..,..#####
+###########################################################################...................######
+####################################################################################################
+####################################################################################################
+`},
+  {n:8, name:'Lightless Channels', boss:'matriarch', bossHp:12500, hpMul:1.9, xpMul:1.7, coinMul:2.2, dark:{base:330, far:720, lit:520},
+   packs:{a:{elite:'siren', make:() => ({siren:4, jelly:2})}, s:{elite:'jelly', make:() => ({jelly:6})}, z:{elite:'eel', make:() => ({eel:5})}, x:{elite:'siren', make:() => ({siren:3, eel:3, jelly:2})}},
+   trickle:{every:11, n:3, mix:{jelly:2, eel:1, siren:1}}, foes:['siren','jelly','eel'],
+   desc:'Narrow channels in total darkness. Walk up to the old lanterns to light them; in their light you can see far.',
+   tags:['Darkness','Light the lanterns','Sirens and eels'], reward:{coins:190, items:[]}, map:`
+####################################################################################################
+####################################################################################################
+####################################################..................##############################
+####...........####################################.L................L.#############################
+###.L...........###################################....................#############################
+###.............###################################...a................#############################
+###...........................L........................................#############################
+###.....................................s...............dddddddddd.....#############################
+###.....P.......>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>.....dddddddddd.....#############################
+###.....................................................dddddddddd.....#############################
+###.........................................L...........dddddddddd.....#############################
+###.............############.....##################.....dddddddddd.....#############################
+###...........L.############.....##################.....dddddddddd.....#############################
+####...........#############.....##################.....dddddddddd.....#############################
+############################.....##################.....dddddddddd.....#############################
+############################.....##################.....dddddddddd.....#############################
+############################.....##################....................#############################
+############################.....##################................z...#############################
+#######################.................###########....................#############################
+######################.L.................##########.L................L.#############################
+######################...................###########..................##############################
+######################...s...............#################..v..#####################################
+######################...................#################..v..#####################################
+######################...................#################..v..#####################################
+######################......ddddddd......#################..v..#####################################
+######################......ddddddd......#################..v..#####################################
+######################......ddddddd......#################..v..#####################################
+######################......ddddddd......#################..v..#####################################
+######################......ddddddd......#################..v..##################................###
+######################......ddddddd......#################..v..#################.L..............$.##
+######################......ddddddd......#################..v..#################..................##
+######################...................#################..v..#################..................##
+######################...................#################.sv..#################........a.........##
+######################................z..#################L.v..#################..................##
+######################...................#################..v..#################..................##
+######################.$...............L.#################..v..#################..................##
+#######################.................##################..v..#################....ddddddddd.....##
+##########################################################..v..#################....ddddddddd.....##
+##########################################################..v..#################....ddddddddd.....##
+##########################################################..v..#################....ddddddddd.....##
+#####..............#######################################..v..#################....ddddddddd.....##
+####.L............L.######################################..v..#################....ddddddddd.....##
+####................######################################..v..#################....ddddddddd.....##
+####................######################################..v..#################....ddddddddd.....##
+####..a.............######################################..v..#################....ddddddddd.....##
+####................###########################,....,.........................##....ddddddddd.....##
+####....dddddddd....##########################.L.................,...........L.#....ddddddddd.....##
+####....dddddddd....##########################..,............,z.......,..,.....#..................##
+####....dddddddd....##########################........,.......,............,...#..................##
+####....dddddddd....##########################......ddddddddddddddddddddd......#..................##
+####....dddddddd....##########################..x...ddddddddddddddddddddd.........................##
+####....dddddddd....##########################......ddddddddddddddddddddd.........................##
+####....dddddddd.................L..................ddddddd.......ddddddd..,...................x..##
+####....dddddddd..............s.....................ddddddd.......ddddddd.........................##
+####....dddddddd....<<<<<<<<<<<<<<<<<<<<<<<<<<......ddddddd.......ddddddd......#..................##
+####....dddddddd...............................,....ddddddd.......ddddddd......#................L.##
+####....dddddddd....................................ddddddddddddddddddddd......##................###
+####....dddddddd....##########################......ddddddddddddddddddddd......#####################
+####....dddddddd....##########################......ddddddddddddddddddddd...a..#####################
+####....dddddddd....##########################..,.,.........,..................#####################
+####....dddddddd....##########################....................,....,.......#####################
+####....dddddddd....##########################.L.............,.,.............L.#####################
+####....dddddddd....###########################...........................,...######################
+####....dddddddd....################################################################################
+####....dddddddd....################################################################################
+####................################################################################################
+####.............Z..################################################################################
+####................################################################################################
+####................################################################################################
+####.L............L.################################################################################
+#####..............#####################################################bbbbbbbbbbbbbbbbbbbbbbbbb###
+########..v..##########################################################bLbbbbbbbbbbbbbbbbbbbbbbbLb##
+########..v..##########################################################bbbbbbbbbbbbbbbbbbbbbbbbbbb##
+########..v..##########################################################bbbbbbbbbbbbbbbbbbbbbbbbbbb##
+########..v..##########################################################bbbbbbbbbbbbbbbbbbbbbbbbbbb##
+########..v..##########################################################bbbbbbbbbbbbbbbbbbbbbbbbbbb##
+########..v..##########################################################bbbbbdddddddddbbbbbbbbbbbbb##
+########..v..##########################################################bbbbbdddddddddbbbbbBbbbbbbb##
+########..v..##########################################################bbbbbdddddddddbbbbbbbbbbbbb##
+########..v..##########################################################bbbbbdddddddddbbbbbbbbbbbbb##
+########..v..##########################################################bbbbbdddddddddbbbbbbbbbbbbb##
+########..v..##########################################################bbbbbdddddddddbbbbbbbbbbbbb##
+########..v..##########################################################bbbbbdddddddddbbbbbbbbbbbbb##
+########..v..##########################################################bbbbbdddddddddbbbbbbbbbbbbb##
+########..v..##########################################################bbbbbdddddddddbbbbbbbbbbbbb##
+#####,................................,.###############################bbbbbbbbbbbbbbbbbbbbbbbbbbb##
+####.L......,..........................L.##############################bbbbbbbbbbbbbbbbddddddddbbb##
+####...............,.....................##############################bbbbbbbbbbbbbbbbddddddddbbb##
+####.,........ddddddddd,.....,x...,......##############################bbbbbbbbbbbbbbbbddddddddbbb##
+####..........ddddddddd.......,.......................................=bbbbbbbbbbbbbbbbddddddddbbb##
+####..........ddddddddd.....ddddddd...................................=bbbbbbbbbbbbbbbbddddddddbbb##
+####..,.......ddddddddd.....ddddddd....,.>>>>>>>>>>>>>>>>>>>>>>>>>>>>>=bbbbbbbbbbbbbbbbddddddddbbb##
+####..........ddddddddd.....ddddddd...................................=bbbbbbbbbbbbbbbbddddddddbbb##
+####........,.ddddddddd.....ddddddd....,...............L..............=bbbbbbbbbbbbbbbbddddddddbbb##
+####......z...ddddddddd.....ddddddd......##############################bbbbbbbXbbbbbbbbbbbbbbbbbbb##
+####...,...,................ddddddd...a..##############################bbbbbbbbbbbbbbbbbbbbbbbbbbb##
+####.$................,.....ddddddd......##############################bLbbbbbbbbbbbbbbbbbbbbbbbLb##
+#####..,................L..,........,.,.################################bbbbbbbbbbbbbbbbbbbbbbbbb###
+####################################################################################################
+####################################################################################################
+`},
+  {n:9, name:'Flood Halls', boss:'thundereel', bossHp:13500, hpMul:2.05, xpMul:1.8, coinMul:2.3, flood:{mode:'cycle', dry:20, high:14},
+   packs:{z:{elite:'eel', make:() => ({eel:6})}, s:{elite:'crab', make:() => ({crab:4, eel:2})}, a:{elite:'harpooner', make:() => ({harpooner:3, siren:2})}, x:{elite:'crab', make:() => ({crab:3, eel:3, harpooner:2, siren:1})}},
+   trickle:{every:11, n:3, mix:{eel:2, crab:1, harpooner:1, siren:1}}, foes:['eel','ironcrab','harpooner','siren'],
+   desc:'Vast sunken halls that flood and drain. When the water rises, get to the raised walkways: eels love deep water.',
+   tags:['The halls flood and drain','Eels shock the water'], reward:{coins:210, items:[]}, map:`
+########################################################################################################
+########################################################################################################
+#####################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb####################
+####################bddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbddddddb###################
+####################bddddddbbbbbbbbbpbbbbbbbbbbbbbbbXbbbbbbbbbbbbbbbpbbbbbbbbbddddddb###################
+####################bddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbddddddb###################
+####################bdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddb###################
+####################bdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddb###################
+####################bddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbddddddb###################
+####################bddddddbbbllllllllllllllllllllllBllllllllllllllllllllllbbbddddddb###################
+####################bddddddbbblllllllllllllllllllllllllllllllllllllllllllllbbbddddddb###################
+####################bddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbddddddb###################
+####################bdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddb###################
+####################bdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddb###################
+####################bddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbddddddb###################
+####################bddddddbbbbbbbbbpbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbpbbbbbbbbbddddddb###################
+####################bddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbddddddb###################
+#####################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb####################
+###############################################=========################################################
+##############################################...........###############################################
+####.................................................................................................###
+####.................................................................................................###
+####.$lllllllllllllllllllllllllllllllllllllll.............lllllllllllllllllllllllllllllllllllllllll..###
+####..lllllllllllllllllllllllllllllllllllllll.............llllllllllllllllllllllllllllllllllllllllla.###
+####..lllllllllllllllllllllllllllllllllllllll.............lllllllllllllllllllllllllllllllllllllllll..###
+####..lllllllllllllllllllllllllllllllllllllll.............lllllllllllllllllllllllllllllllllllllllll..###
+####..llll.......llllllllllllllllllllllllllll.............lllllllllllllllllllllllllllllllllllllllll..###
+####..llll.......llllllllllllllllllllllllllll.............lllllllllllllllllllllllllllllllllllllllll..###
+####..llll...s...llllllllllllllllllllllllllll.............lllllllllllllllllllllllllllllllllllllllll..###
+####..llll.......llllllllllllllllllllllllllll.............lllllllllllllllllllllllllllllllllllllllll..###
+####..llll.......llllllllllllllllllllllllllll..#########..lllllllllllllllllllllllllllllllllllllllll..###
+####..lllllllllllllllllllllllllllllllllllllll..#########..lllllllllllllllllllllllllllllllllllllllll..###
+####..lllllllllllllllllllllllllllllllllllllll..#########..lllllllllllllllllllllllllllllllllllllllll..###
+####..lllllllllllllllllllllllllllllllllllllll..#########..lllllllllllllllllllllllllllllllllllllllll..###
+####..llllllllllllll.......llllllllllllllllll..#########..llllllll.........................llllllll..###
+####..llllllllllllll.......llllllllllllllllll..#########..llllllll.........................llllllll..###
+####..llllllllllllll...z...llllllllllllllllll.............llllllll.........................llllllll..###
+####..llllllllllllll.......llllllllllllllllll.............llllllll....x....................llllllll..###
+####..llllllllllllll.......llllllllllllllllll...o.....o...llllllll.........................llllllll..###
+####..lllllllllllllllllllllllllllllllllllllll.............llllllll....p...............p....llllllll..###
+####..lllllllllllllllllllllllllllllllllllllll.............llllllll.........................llllllll..###
+####..lllllllllllllllllllllllllllllllllllllll.............llllllll......................z..llllllll..###
+####..llllllllllllllllllllllll.......llllllll......A......llllllll.........................llllllll..###
+####..llllllllllllllllllllllll.......llllllll.............llllllll.........................llllllll..###
+####..llllllllllllllllllllllll...a...llllllll.............llllllll.........................llllllll..###
+####..llllllllllllllllllllllll.......llllllll.............lllllllllllllllllllllllllllllllllllllllll..###
+####..llllll.......lllllllllll.......llllllll.............lllllllllllllllllllllllllllllllllllllllll..###
+####..llllll.......llllllllllllllllllllllllll.............lllllllllllllllllllllllllllllllllllllllll..###
+####..llllll...x...llllllllllllllllllllllllll.............lllllllllllllllllllllllllllllllllllllllll..###
+####..llllll.......llllllllllllllllllllllllll.............lllllllllllllllllllllllllllllllllllllllll..###
+####..llllll.......lllllllllllllllllll....................lllllllllllllllllllllllllllllllllllllllll..###
+####..llllllllllllllllllllllllllllllll....................lllllllllllllllllllllllllllllllllllllllll..###
+####..llllllllllllllllllllllllllllllll....................lllllllllllllllllllllllllllllllllllllllll..###
+####..llllllllllllllllllllllllllllllll....................lllllllllllllllllllllllllllllllllllllllll..###
+####..llllllllllllllllllllllllllllllll..........o.....o...lllllllllllllllllllllllllllllllllllllllll..###
+####.Slllllllllllllllllllllllllllllllllllllll..........$..lllllllllllllllllllllllllllllllllllllllll..###
+####..lllllllllllllllllllllllllllllllllllllll.............lllllllllllllllllllllllllllllllllllllllll$.###
+####...........................................#########....s........................................###
+####...........................................#########.............................................###
+########################.......###########################################.......#######################
+########################.......###########################################.......#######################
+########################.......###########################################.......#######################
+##############..................................,,..............,..,...........,...........#############
+##############.......,.....................................................................#############
+##############..lllllllllllllllllllllllllllllllllll..,lllllllllllllllllllllllllllllllllll..#############
+##############..lllllllllllllllllllllllllllllllllll...llllllllllllllllllllllllllllllllllla.#############
+##############..llllllllll...,...llllllllllllllllll...llllllllllllllll.......llllllllllll..#############
+##############..llllllllll,z.....llllllllllllllllll...llllllllllllllll,x.....llllllllllll..#############
+##############..llllllllll.,.p...llllllllllllllllll...llllllllllllllll...p...llllllllllll..#############
+##############,.llllllllll......,llllllllllllllllll...llllllllllllllll...,...llllllllllll..#############
+##############..llllllllll.......llllllllllllllllll...llllllllllllllll.......llllllllllll..#############
+##############..lllllllllllllllllllllllllllllllllll..,lllllllllllllllllllllllllllllllllll..#############
+##############..lllllllllllllllllllllllllllllllllll...lllllllllllllllllllllllllllllllllll..#############
+##############...........................................................,...............,,#############
+##############,......................,..z......,.......................................,...#############
+##############.,.................................,......................................,..#############
+##############..lllllllllllllllllllllllllllllllllll...lllllllllllllllllllllllllllllllllll..#############
+##############,.lllllllllllllllllllllllllllllllllll...lllllllllllllllllllllllllllllllllll..#############
+##############..llllllllll.,..,..llllllllllllllllll...llllllllllllllll.......llllllllllll..#############
+##############..llllllllll.a.....llllllllllllllllll...llllllllllllllll.s.....llllllllllll..#############
+##############..llllllllll...p...llllllllllllllllll,..llllllllllllllll...p...llllllllllll..#############
+##############,.llllllllll.......llllllllllllllllll...llllllllllllllll.......llllllllllll..#############
+##############..llllllllll.......llllllllllllllllll...llllllllllllllll.......llllllllllll..#############
+##############,,lllllllllllllllllllllllllllllllllll.,.lllllllllllllllllllllllllllllllllll..#############
+##############..lllllllllllllllllllllllllllllllllll...lllllllllllllllllllllllllllllllllll..#############
+##############...............................................................,,.....,...,..#############
+##############.........,..,................................................,...............#############
+#################################################.......################################################
+#############################################...............############################################
+############################################.................###########################################
+############################################.................###########################################
+############################################.................###########################################
+############################################.................###########################################
+############################################........P........###########################################
+############################################.................###########################################
+############################################.................###########################################
+############################################.................###########################################
+#############################################...............############################################
+########################################################################################################
+########################################################################################################
+`},
+  {n:10, name:'Bottom of the Great Reservoir', boss:'admiral', bossHp:10500, boss2:'leviathan', boss2Hp:10000, boss2At:[30, 16], hpMul:2.2, xpMul:1.9, coinMul:2.5, themeEnd:true,
+   bossBreak:'THE WATER STIRS', bossBreakSub:'Something huge rises from the reservoir...', flood:{mode:'arena'}, rising:{time:85, wait:8, dmg:4},
+   packs:{z:{elite:'sailor', make:() => ({sailor:4, harpooner:3})}, s:{elite:'crab', make:() => ({crab:3, jelly:3})}, a:{elite:'siren', make:() => ({siren:3, eel:3})}, x:{elite:'crab', make:() => ({sailor:2, crab:2, siren:2, eel:2})}},
+   trickle:null, foes:['drowned','harpooner','ironcrab','siren','eel','jelly'],
+   desc:'Climb out of the drained reservoir while the water rises behind you, then face the Drowned Admiral and the beast of the deep.',
+   tags:['Rising water','No turning back','2 bosses'], reward:{coins:500, items:[]},
+   zones:{
+     1:{waves:[{sailor:10, harpooner:3}, {sailor:11, harpooner:4}, {sailor:10, harpooner:5}, {sailor:10, harpooner:4, elite:'sailor'}]},
+     2:{waves:[{crab:6, jelly:5}, {crab:6, jelly:5, sailor:4}, {crab:8, jelly:6}, {crab:6, jelly:5, sailor:4, elite:'crab'}]},
+     3:{waves:[{siren:5, eel:8, crab:4}, {siren:6, eel:8, harpooner:4}, {siren:6, eel:10, crab:4, harpooner:3}, {siren:6, eel:8, crab:5, harpooner:4, elite:'siren'}]},
+   }, map:`
+############################################################
+############################################################
+#####lllllllllllllllllllllllllllllllllllllllllllllllllll####
+####lllllllllllllllllllllllllllllllllllllllllllllllllllll###
+####lllllllllllllllllllllllllllllllllllllllllllllllllllll###
+####lllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbbbbbbBbbbbbbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbpbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbpbbbbblll###
+####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbdddddddddddddbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbpbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbpbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbXbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbblll###
+####lllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbblll###
+####lllllllllllllllllllllllllllllllllllllllllllllllllllll###
+####lllllllllllllllllllllllllllllllllllllllllllllllllllll###
+#####lllllllllllllllllllllllllllllllllllllllllllllllllll####
+##############=================================#############
+##############333333333333333333333333333333333#############
+##############333333333333333333333333333333333#############
+##############333333333333333333333333333333333#############
+##############33p333333333333333333333333333p33#############
+##############333333333333333333333333333333333#############
+##############333333333333333333333333333333333#############
+##############333333333333333333333333333333333#############
+##############333333333333333333333333333333333#############
+##############333333333333333333333333333333333#############
+##############33p333333333333333333333333333p33#############
+##############33333333r333333333333333333333333#############
+##############333333333333333333333333333333333#############
+##############333333333333333333333333333333333#############
+##############333333333333333333333333333333333#############
+##############333333333333333333333333333333333#############
+##############33p33333333333333333333r333333p33#############
+##############333333333333333333333333333333333#############
+##############333333333333333333333333333333333#############
+##############333333333333333333333333333333333#############
+##############333333333333333333333333333333333#############
+##############33p333333333333333333333333333p33#############
+##############333333333333333333333333333333333#############
+##############=================================#############
+##############222222222222222222222222222222222#############
+##############222222222222222222222222222222222#############
+##############222222222222222222222222222222222#############
+##############22p222222222222222222222222222p22#############
+##############222222222222222222222222222222222#############
+##############222222222222222222222222222222222#############
+##############222222222222222222222222222222222#############
+##############222222222222222222222222222222222#############
+##############222222222222222222222222222222222#############
+##############22p22222222r222222222222222222p22#############
+##############222222222222222222222222222222222#############
+##############222222222222222222222222222222222#############
+##############222222222222222222222222222222222#############
+##############222222222222222222222222222222222#############
+##############22222222222222222222r222222222222#############
+##############22p222222222222222222222222222p22#############
+##############222222222222222222222222222222222#############
+##############222222222222222222222222222222222#############
+##############222222222222222222222222222222222#############
+##############222222222222222222222222222222222#############
+##############22p222222222222222222222222222p22#############
+##############222222222222222222222222222222222#############
+##############=================================#############
+##############111111111111111111111111111111111#############
+##############111111111111111111111111111111111#############
+##############111111111111111111111111111111111#############
+##############11p111111111111111111111111111p11#############
+##############111111111111111111111111111111111#############
+##############111111111111111111111111111111111#############
+##############111111111111111111111111111111111#############
+##############111111111111111111111111111111111#############
+##############111111111111111111111111111111111#############
+##############11p1111r1111111111111111111111p11#############
+##############111111111111111111111111111111111#############
+##############111111111111111111111111111111111#############
+##############111111111111111111111111111111111#############
+##############111111111111111111111111111111111#############
+##############111111111111111111111111111111111#############
+##############11p111111111111111111111r11111p11#############
+##############111111111111111111111111111111111#############
+##############111111111111111111111111111111111#############
+##############111111111111111111111111111111111#############
+##############111111111111111111111111111111111#############
+##############11p111111111111111111111111111p11#############
+##############111111111111111111111111111111111#############
+##############=================================#############
+#######...............................................######
+######..,...........,.,.....,..........................#####
+######......z....,................,............,s......#####
+######.....,..........,.......a.......,,...,...........#####
+######....ddddddddddd.........,.........ddddddddddd....#####
+######....ddddddddddd...................ddddddddddd....#####
+##........ddddddddddd...p....,......p...ddddddddddd........#
+##........ddddddddddd........,..........ddddddddddd........#
+##.$......ddddddddddd,..................ddddddddddd......$.#
+##........ddddddddddd...................ddddddddddd........#
+##...........,......,..........................k...........#
+##...........,...k....,....k...............................#
+##........ddddddddddd......,...........,ddddddddddd........#
+##.......,ddddddddddd..,................ddddddddddd........#
+##........ddddddddddd...................ddddddddddd........#
+######....ddddddddddd........k..........ddddddddddd....#####
+######....ddddddddddd...p...........p...ddddddddddd....#####
+######....ddddddddddd...................ddddddddddd....#####
+######....ddddddddddd...,...............ddddddddddd,...#####
+######...,....................,........................#####
+######..x...........................................z..#####
+######...........,.,..k................................#####
+#######...............................................######
+############################.....###########################
+############################.....###########################
+############################.....###########################
+#######################...............######################
+######################.................#####################
+######################.................#####################
+######################.................#####################
+######################........P........#####################
+######################.................#####################
+######################.................#####################
+#######################...............######################
+############################################################
+############################################################
+`},
+);
+Object.assign(ATK_NAME, {cannon:'Water Cannon', anchor:'Anchor', gateslam:'Gate Slam', floodgates:'Floodgates', clawsnap:'Claw Snap', scuttle:'Scuttle',
+  shellguard:'Shell Guard', burrow:'Burrow', hermits:'Hermit Crabs', lure:'Lure Song', orbs:'Seeking Orbs', prison:'Bubble Prison', mirror:'Mirror Images',
+  submerge:'Submerge', electrify:'Electrify', bolts:'Lightning Cross', coil:'Coil', sparks:'Sparks', broadside:'Broadside', cannons:'Cannon Barrage',
+  crew:'All Hands', cutlass:'Cutlass Spin', bite:'Bite', tidal:'Tidal Wave', spit:'Spit', whirlpool:'Whirlpool', tailsweep:'Tail Sweep', eels:'Eels', torrent:'Torrent', eeldash:'Lightning Dash'});
+Object.assign(SONGS, {
+  aqueduct:{bpm:88, root:50, scale:'minor', prog:[0,5,6,4], bass:'triangle', bp:'pulse', lead:'sine', arp:'triangle', drums:1, pad:1, density:.26, seed:307},
+});
+Object.assign(SFX, {
+  splash:{gap:.15, play(){ noise(.3, {filter:'bandpass', f:900, fto:300, q:1.2, vol:.1}); }},
+  shock: {gap:.15, play(){ noise(.25, {filter:'bandpass', f:3200, q:4, vol:.12}); tone(90, .3, {type:'sawtooth', vol:.06, to:60}); }},
+});
 /* ---------- dungeon: map parsing, collisions and pathing ---------- */
 function dgParse(def){
   const rows = def.map.split('\n').filter(r => r.trim().length);
   const H = rows.length, W = Math.max(...rows.map(r => r.length)), N = W * H;
   const L = {W, H, t:new Uint8Array(N), z:new Uint8Array(N), moss:new Uint8Array(N), prop:new Uint8Array(N), closed:new Uint8Array(N),
-    props:[], packs:[], chests:[], gates:[], zoneIds:[], zoneTiles:{}, open:[], start:{x:1, y:1}, boss:null, exit:null};
+    cur:new Uint8Array(N), low:new Uint8Array(N), props:[], packs:[], chests:[], gates:[], lanterns:[], zoneIds:[], zoneTiles:{}, zoneBox:{}, open:[],
+    start:{x:1, y:1}, boss:null, exit:null};
+  const PK = def.packs || DG_PACKS;
   for(let y = 0; y < H; y++) for(let x = 0; x < W; x++){
     const c = rows[y][x] || '#', i = y * W + x;
     let t = TT.FLOOR, z = 0;
@@ -5155,6 +6076,11 @@ function dgParse(def){
       case 'w': t = TT.WEB; break;
       case 'u': t = TT.STAIR; break;
       case 'p': case 'r': case 'k': case 'o': t = TT.PROP; L.prop[i] = c.charCodeAt(0); L.props.push({x, y, kind:c}); break;
+      case 'L': t = TT.PROP; L.prop[i] = c.charCodeAt(0); L.props.push({x, y, kind:c}); L.lanterns.push({x, y, i, lit:false}); break;
+      case 'd': t = TT.DEEP; break;
+      case 'g': t = TT.SLICK; break;
+      case 'l': L.low[i] = 1; break;
+      case '>': case '<': case 'v': case '^': t = TT.CURRENT; L.cur[i] = '><v^'.indexOf(c); break;
       case '=': t = TT.GATE; L.gates.push({x, y, i, zones:[], open:true, h:0}); break;
       case 'P': L.start = {x, y}; break;
       case '$': L.chests.push({x, y, open:false, t:0}); break;
@@ -5163,21 +6089,29 @@ function dgParse(def){
       case 'X': z = 10; L.exit = {x, y}; break;
       default:
         if(c >= '1' && c <= '9') z = +c;
-        else if(DG_PACKS[c.toLowerCase()]) L.packs.push({x, y, kind:c.toLowerCase(), elite:c !== c.toLowerCase(), done:false});
+        else if(PK[c.toLowerCase()]) L.packs.push({x, y, kind:c.toLowerCase(), elite:c !== c.toLowerCase(), done:false});
     }
     L.t[i] = t; L.z[i] = z;
   }
-  // tiles drawn with their own letter inside a zone (webs, pools, pillars) join the zone around them
-  for(let pass = 0; pass < 3; pass++) for(let y = 1; y < H - 1; y++) for(let x = 1; x < W - 1; x++){
-    const i = y * W + x;
-    if(L.z[i] || L.t[i] === TT.WALL || L.t[i] === TT.GATE) continue;
-    const cnt = {}; let best = 0, bz = 0;
-    for(const [dx, dy] of N4){ const zz = L.z[i + dy * W + dx]; if(zz){ cnt[zz] = (cnt[zz] || 0) + 1; if(cnt[zz] > best){ best = cnt[zz]; bz = zz; } } }
-    if(best >= 2) L.z[i] = bz;
+  // tiles drawn with their own letter inside a zone (webs, pools, water, pillars) join the zone around them
+  for(let pass = 0, changed = true; pass < 60 && changed; pass++){
+    changed = false;
+    for(let y = 1; y < H - 1; y++) for(let x = 1; x < W - 1; x++){
+      const i = y * W + x;
+      if(L.z[i] || L.t[i] === TT.WALL || L.t[i] === TT.GATE) continue;
+      const cnt = {}; let best = 0, bz = 0;
+      for(const [dx, dy] of N4){ const zz = L.z[i + dy * W + dx]; if(zz){ cnt[zz] = (cnt[zz] || 0) + 1; if(cnt[zz] > best){ best = cnt[zz]; bz = zz; } } }
+      if(best >= 2){ L.z[i] = bz; changed = true; }
+    }
   }
   for(let i = 0; i < N; i++){
     const z = L.z[i];
-    if(z){ if(!L.zoneTiles[z]){ L.zoneTiles[z] = []; L.zoneIds.push(z); } if(dgWalkable(L.t[i])) L.zoneTiles[z].push(i); }
+    if(z){
+      if(!L.zoneTiles[z]){ L.zoneTiles[z] = []; L.zoneIds.push(z); L.zoneBox[z] = {x0:1e9, y0:1e9, x1:-1, y1:-1}; }
+      if(dgWalkable(L.t[i])) L.zoneTiles[z].push(i);
+      const bx = L.zoneBox[z], x = i % W, y = (i - x) / W;
+      bx.x0 = Math.min(bx.x0, x); bx.x1 = Math.max(bx.x1, x); bx.y0 = Math.min(bx.y0, y); bx.y1 = Math.max(bx.y1, y);
+    }
     else if(L.t[i] === TT.FLOOR || L.t[i] === TT.STAIR) L.open.push(i);
   }
   for(const g of L.gates) for(const [dx, dy] of N4){ const z = L.z[g.i + dy * W + dx]; if(z && !g.zones.includes(z)) g.zones.push(z); }
@@ -5241,6 +6175,7 @@ function dgFlow(){
   }
 }
 function dgChase(e, sp, dt, dx, dy, d){
+  sp *= dgWadeMul(e);
   const D = G.dg, L = D.L, tx = Math.floor(e.x / DT), ty = Math.floor(e.y / DT);
   let mx = dx / d, my = dy / d;
   const i = ty * L.W + tx, cd = (tx >= 0 && ty >= 0 && tx < L.W && ty < L.H) ? D.flow[i] : -1;
@@ -5281,7 +6216,7 @@ function dgNearest(x, y, maxD){
 
 /* ---------- dungeon: run flow ---------- */
 function dgEnter(n){
-  startRun(Object.assign({}, DG_STAGE), B.char, B.items.slice());
+  startRun(Object.assign({}, dgStageOf(n)), B.char, B.items.slice());
   G.dg = {start:n, floor:0, carried:{coins:0, items:[]}, secured:{coins:0, items:[]}, floorsCleared:0, roll:{t:0, cd:0, dx:0, dy:1}};
   document.body.classList.add('dg');
   $('#dgobj').hidden = $('#dgcarry').hidden = $('#rollBtn').hidden = false;
@@ -5296,16 +6231,18 @@ function dgLoadFloor(n){
   for(const k of ['enemies','projs','ebullets','gems','pickups','puddles','fx','parts','texts','hazards']) G[k] = [];
   G.boss = null; $('#bossbar').hidden = true;
   G.stage.hpMul = def.hpMul;
-  G.stage.name = `${DG_THEMES[0].name} · Floor ${n}`;
+  G.stage.name = `${dgThemeOf(n).name} · Floor ${n}`;
   const p = G.p;
   p.x = (L.start.x + .5) * DT; p.y = (L.start.y + .5) * DT; p.vx = p.vy = 0; p.fx = 0; p.fy = -1; p.trail.length = 0;
   p.rootT = 0; p.poisonT = 0; p.poisonDps = 0;
   D.safe = {x:p.x, y:p.y};
   D.roll.t = 0; D.roll.cd = 0;
   dgResetBuild();
+  dgDistField();
+  dgWaterInit();
   G.state = 'play';
   d3BuildLevel();
-  setMusic('ruins', 0); setDuck(false);
+  setMusic(dgThemeOf(n).song, 0); setDuck(false);
   showBanner(`FLOOR ${n}`, '', n > D.start ? `${def.name} · back to level 1` : def.name);
   dgObjective();
 }
@@ -5357,7 +6294,10 @@ function dgSpawn(type, x, y, elite, zone){
   spawnEnemy(type, x, y, elite);
   const e = G.enemies[G.enemies.length - 1];
   e.rise = e.riseMax = .75; e.zone = zone || 0; e.xp *= G.dg.def.xpMul;
-  if(type !== 'egg'){ e.hp *= DG_MOB.hp; e.maxHp = e.hp; e.dmg *= DG_MOB.dmg; }
+  // enemies get tougher (and a little bigger) the farther they are from the start
+  const k = dgFar(x, y), s = DG_DIST.near + (DG_DIST.far - DG_DIST.near) * k;
+  e.pow = 1; e.vis = .92 + .18 * k;
+  if(type !== 'egg'){ e.hp *= DG_MOB.hp * s; e.maxHp = e.hp; e.dmg *= DG_MOB.dmg * s; e.pow = DG_MOB.dmg * s; e.xp *= .85 + .4 * k; }
   dgCollide(e, e.r);
   if(G.parts.length < 600) burst(e.x, e.y, '#9a8a6a', 5, 110);
   return e;
@@ -5400,10 +6340,11 @@ function dgTick(dt){
   for(const pk of L.packs){
     if(pk.done) continue;
     const fd = D.flow[pk.y * L.W + pk.x], dd = Math.hypot((pk.x + .5) * DT - p.x, (pk.y + .5) * DT - p.y);
-    if((fd >= 0 && fd <= 9) || dd < 5 * DT){ pk.done = true; const comp = DG_PACKS[pk.kind].make(D.floor); if(pk.elite) comp.elite = DG_PACKS[pk.kind].elite; dgSpawnGroup(comp, (pk.x + .5) * DT, (pk.y + .5) * DT, 0); }
+    if((fd >= 0 && fd <= 9) || dd < 5 * DT){ pk.done = true; const PK = def.packs || DG_PACKS, comp = PK[pk.kind].make(D.floor); if(pk.elite) comp.elite = PK[pk.kind].elite; dgSpawnGroup(comp, (pk.x + .5) * DT, (pk.y + .5) * DT, 0); }
   }
   for(const c of L.chests) if(!c.open && Math.hypot((c.x + .5) * DT - p.x, (c.y + .5) * DT - p.y) < 42){ dgOpenChest(c); if(G.state !== 'play') return; }
   dgZones(dt, pi);
+  dgWaterTick(dt);
   const bb = G.boss;
   if(bb && bb.recoil && bb.recoil.t > 0 && !bb.noTouch){ bb.recoil.t -= dt; bb.x += bb.recoil.x * 380 * dt; bb.y += bb.recoil.y * 380 * dt; dgCollide(bb, bb.r); }
   if(D.bossQ){ D.bossQ.t -= dt; if(D.bossQ.t <= 0){ const q = D.bossQ; D.bossQ = null; dgSpawnBoss(q.skin, q.hp, q.second); } }
@@ -5460,8 +6401,9 @@ function dgTrigger(Z){
 function dgSpawnWave(Z){
   const D = G.dg, L = D.L, p = G.p, w = Z.waves[Z.wi], tiles = L.zoneTiles[Z.id];
   Z.wi++;
-  const far = tiles.filter(i => Math.hypot((i % L.W + .5) * DT - p.x, (Math.floor(i / L.W) + .5) * DT - p.y) > 4 * DT);
-  const pool = far.length ? far : tiles;
+  const dry = Z.water ? tiles.filter(i => (Math.floor(i / L.W) + 1) * DT < Z.water.y - 20) : tiles;   // never spawn under rising water
+  const far = dry.filter(i => Math.hypot((i % L.W + .5) * DT - p.x, (Math.floor(i / L.W) + .5) * DT - p.y) > 4 * DT);
+  const pool = far.length ? far : dry.length ? dry : tiles;
   // spread the wave over the whole section, a little apart from each other
   const used = [];
   const spot = () => {
@@ -5502,13 +6444,15 @@ function dgTrickle(){
 }
 function dgSpawnBoss(skin, hp, second){
   const D = G.dg, L = D.L, sk = SKINS[skin], rig = RIGS[sk.rig];
-  const x = (L.boss.x + .5) * DT, y = (L.boss.y + .5) * DT, H = hp * G.s.enemyHp;
+  const at = second && D.def.boss2At ? {x:D.def.boss2At[0], y:D.def.boss2At[1]} : L.boss;
+  const x = (at.x + .5) * DT, y = (at.y + .5) * DT, H = hp * G.s.enemyHp;
   const b = {type:'boss', skin, boss:true, x, y, r:rig.r, hp:H, maxHp:H, speed:sk.speed, dmg:Math.round(sk.dmg * .6), xp:0, color:sk.body, armor:sk.armor,
     slow:0, flash:0, oT:-9, dead:false, seed:0, shape:SHAPE, atkT:2.2, rise:1.4, riseMax:1.4, zone:10};
+  b.home = {x, y}; b.face = Math.atan2(G.p.y - y, G.p.x - x);
   G.enemies.push(b); G.boss = b;
   $('#bossName').textContent = sk.name; $('#bossbar').hidden = false;
   showBanner(second ? 'THEME BOSS' : 'FLOOR BOSS', 'warn', sk.name);
-  sfx('warning'); setMusic('ruins', 2); G.shake = .5;
+  sfx('warning'); setMusic(dgThemeOf(D.floor).song, 2); G.shake = .5;
   burst(x, y, '#9a8a6a', 40, 260, 1.6);
   G.fx.push({type:'ring', x, y, r:10, maxR:220, life:.6, max:.6, color:sk.glow, fill:true});
   dgObjective();
@@ -5522,13 +6466,13 @@ function dgBossDead(b){
   G.ebullets.length = 0; G.hazards.length = 0;
   for(const e of G.enemies) if(!e.dead && !e.boss){ e.dead = true; burst(e.x, e.y, e.color, 5, 160); G.gems.push({x:e.x, y:e.y, v:e.xp, mag:false}); }
   if(def.boss2 && b.skin === def.boss){
-    showBanner('IT CRUMBLES', 'elite', 'The ground is shaking...'); sfx('clear');
+    showBanner(def.bossBreak || 'IT CRUMBLES', 'elite', def.bossBreakSub || 'The ground is shaking...'); sfx('clear');
     D.bossQ = {skin:def.boss2, hp:def.boss2Hp, t:3.4, second:true};
     dgObjective();
     return;
   }
   showBanner(def.themeEnd ? 'THEME CLEAR' : 'FLOOR CLEAR', 'elite', `${sk.name} defeated! Step into the portal`);
-  sfx('clear'); setMusic('ruins', 0);
+  sfx('clear'); setMusic(dgThemeOf(D.floor).song, 0);
   dgClearZone(D.zones[10]);
   D.portal = {x:(L.exit.x + .5) * DT, y:(L.exit.y + .5) * DT, t:0, home:!!def.themeEnd || !DG_FLOORS[D.floor]};
   dgObjective();
@@ -5537,6 +6481,8 @@ function dgOnKill(e){
   const D = G.dg;
   D.carried.coins += .3 * D.def.coinMul * (e.elite ? 6 : 1);
   if(e.elite) G.pickups.push({kind:'relic', x:e.x, y:e.y + 26, t:0, family:DG_FAMILY[e.type] || 'melee'});
+  const ds = SKINS[e.skin].deathShock;
+  if(ds) addCircle(e.x, e.y, ds.r, ds.warn, ds.dmg * (e.pow || 1), SKINS[e.skin].glow);
 }
 function dgCollectRelic(pk){
   const D = G.dg, fam = DG_RELICS[pk.family] || DG_RELICS.melee;
@@ -5588,8 +6534,11 @@ function dgMovePlayer(dt){
     if(p.webT > 0) p.webT -= dt;
     const m = t === TT.WEB || p.webT > 0 ? .55 : t === TT.POOL ? .7 : 1;
     p.vx *= m; p.vy *= m;
+    dgWaterMove(dt);
   }
+  dgPullMove(dt);
   p.x += p.vx * dt; p.y += p.vy * dt;
+  dgCurrentPush(p, dt);
   dgCollide(p, p.r);
 }
 function dgRoll(){
@@ -5598,7 +6547,7 @@ function dgRoll(){
   if(R.cd > 0 || R.t > 0) return;
   let dx = p.vx, dy = p.vy, l = Math.hypot(dx, dy);
   if(l < 5){ dx = p.fx; dy = p.fy; l = Math.hypot(dx, dy) || 1; }
-  R.dx = dx / l; R.dy = dy / l; R.t = DG_ROLL.time; R.cd = DG_ROLL.cd; p.rootT = 0;
+  R.dx = dx / l; R.dy = dy / l; R.t = DG_ROLL.time; R.cd = DG_ROLL.cd; p.rootT = 0; p.pull = null;
   p.inv = Math.max(p.inv, DG_ROLL.time + .05);
   sfx('dash'); burst(p.x, p.y, '#cfd8e8', 6, 90);
 }
@@ -5607,6 +6556,9 @@ function dgContact(e){
   const v = e.venom || (SKINS[e.skin] && SKINS[e.skin].venom), p = G.p;
   // a boss that bumps into you bounces back, so it can never pin you in a corner
   if(e.boss){ const dx = e.x - p.x, dy = e.y - p.y, d = Math.hypot(dx, dy) || 1; e.recoil = {x:dx / d, y:dy / d, t:.3}; }
+  const sk = SKINS[e.skin];
+  if(sk && sk.grab && G.t > (e.grabT || 0)){ e.grabT = G.t + sk.grab.cd; p.rootT = Math.max(p.rootT || 0, sk.grab.t); addText(p.x, p.y - 34, 'GRABBED · ROLL!', 2); }
+  if(sk && sk.zap) p.slowT = Math.max(p.slowT, sk.zap.slow);
   if(!v) return;
   p.poisonT = Math.max(p.poisonT, v.dur); p.poisonDps = Math.max(p.poisonDps, v.dps);
 }
@@ -5618,7 +6570,8 @@ function dgObjective(){
   else {
     const Z = dgActiveZone();
     if(Z) s = `Survive the ambush · wave ${Math.max(1, Z.wi)} / ${Z.waves.length}`;
-    else if(D.def.zones && Object.values(D.zones).some(z => !z.boss && z.state === 'idle')) s = 'Fight through the sealed corridor';
+    else if(D.def.zones && Object.values(D.zones).some(z => !z.boss && z.state === 'idle')) s = D.def.rising ? 'Climb toward the reservoir' : 'Fight through the sealed corridor';
+    else if(D.def.dark && D.L.lanterns.some(o => !o.lit)) s = 'Find the boss chamber · walk up to lanterns to light them';
     else s = 'Find the boss chamber';
   }
   D.objective = s;
@@ -5640,19 +6593,20 @@ function dgFloorClear(){
   const total = coins + first;
   save.coins += total;
   save.dg.reached = Math.max(save.dg.reached, Math.min(n + 1, DG_FLOORS.length));
-  if(def.themeEnd) save.dg.themes[DG_THEMES[0].id] = true;
+  if(def.themeEnd) save.dg.themes[dgThemeOf(n).id] = true;
   persist();
   D.secured.coins += total; D.secured.items.push(...unlocked); D.floorsCleared++;
   D.carried = {coins:0, items:[]};
   const next = !def.themeEnd && DG_FLOORS[n] ? n + 1 : 0;
   mbox.className = 'mbox res';
-  mbox.innerHTML = `<h2 class="win">${def.themeEnd ? 'MOSSY RUINS CLEARED' : `FLOOR ${n} SECURED`}</h2>
+  mbox.innerHTML = `<h2 class="win">${def.themeEnd ? `${dgThemeOf(n).name.toUpperCase()} CLEARED` : `FLOOR ${n} SECURED`}</h2>
     <div class="sub">${esc(def.name)}</div>
     <p class="mnote" style="text-align:center">Everything you carried is now safe in your base. ${next ? 'You can also start from floor ' + next + ' next time. On the next floor your level starts again from 1.' : ''}</p>
     <h3>Secured</h3>${lines.map(l => `<div class="row"><span>${l[0]}</span><b>+${l[1]}</b></div>`).join('')}
     <div class="row total"><span>Total</span><b>+${total} ${ico('coin')}</b></div>
     ${unlocked.length ? `<h3>Unlocked</h3><div class="unl">${unlocked.map(id => `<span class="rchip rew">${ico(id)} ${ITEMS[id].name}</span>`).join('')}</div>` : ''}
-    ${def.themeEnd ? `<p class="note" style="margin-top:12px">You beat the first theme. Floors ${DG_FLOORS.length + 1}–${DG_FLOORS_TOTAL} (${DG_THEMES_TOTAL - 1} more themes) are not built yet.</p>` : ''}
+    ${def.themeEnd ? (DG_FLOORS[n] ? `<p class="note" style="margin-top:12px">Floor ${n + 1} is open: ${esc(dgThemeOf(n + 1).name)} starts there, with its own loadout budget.</p>`
+      : `<p class="note" style="margin-top:12px">You reached the deepest built floor. Floors ${DG_FLOORS.length + 1}–${DG_FLOORS_TOTAL} (${DG_THEMES_TOTAL - DG_THEMES.length} more themes) are not built yet.</p>`) : ''}
     <div class="mfoot"><button class="btn ${next ? 'ghost' : 'hot'}" data-act="dgHome">Return to base</button>
     ${next ? `<button class="btn hot" data-act="dgNext">${ico('stairs')} Descend to floor ${next}</button>` : ''}</div>`;
   modal.hidden = false;
@@ -5695,6 +6649,253 @@ function dgHud(){
   rb.style.setProperty('--cd', R.cd > 0 ? (R.cd / DG_ROLL.cd * 100) + '%' : '0%');
   rb.classList.toggle('ready', R.cd <= 0);
 }
+/* ---------- dungeon: distance from the start, water, currents, lanterns ---------- */
+// walking distance from the start to every tile; enemies scale with it (see dgSpawn)
+function dgDistField(){
+  const D = G.dg, L = D.L, N = L.W * L.H, f = new Int32Array(N).fill(-1), q = new Int32Array(N);
+  let h = 0, tl = 0, max = 1;
+  const s = L.start.y * L.W + L.start.x; f[s] = 0; q[tl++] = s;
+  while(h < tl){
+    const i = q[h++], x = i % L.W, y = (i - x) / L.W;
+    for(const [dx, dy] of N4){
+      const nx = x + dx, ny = y + dy;
+      if(nx < 0 || ny < 0 || nx >= L.W || ny >= L.H) continue;
+      const j = ny * L.W + nx, t = L.t[j];
+      if(f[j] >= 0 || t === TT.WALL || t === TT.PROP || t === TT.PIT) continue;
+      f[j] = f[i] + 1; if(f[j] > max) max = f[j]; q[tl++] = j;
+    }
+  }
+  D.sdist = f; D.sdistMax = max;
+}
+// 0 at the start, 1 at the farthest point of the floor
+function dgFar(x, y){
+  const D = G.dg, L = D.L, i = tileAt(L, x, y), v = D.sdist ? D.sdist[i] : -1;
+  return v < 0 ? .5 : Math.min(1, v / (D.sdistMax * .9));
+}
+function dgWaterInit(){
+  const D = G.dg, def = D.def;
+  D.flood = def.flood ? {mode:def.flood.mode, t:def.flood.dry || 20, state:'dry', level:0} : null;
+  D.vision = def.dark ? def.dark.base : Infinity;
+  D.curFlip = 0;
+  for(const k in D.zones) if(def.rising && D.zones[k].waves) D.zones[k].water = null;
+}
+const AQUATIC = new Set(['eel', 'jelly', 'crab', 'hermit']);
+// how deep the water is where (x, y) stands: 0 dry, 1 current or shallow flood, 2 deep
+function dgWaterAt(x, y){
+  const D = G.dg, L = D.L, tx = Math.floor(x / DT), ty = Math.floor(y / DT);
+  if(tx < 0 || ty < 0 || tx >= L.W || ty >= L.H) return 0;
+  const i = ty * L.W + tx, t = L.t[i];
+  if(t === TT.DEEP) return 2;
+  if(t === TT.CURRENT) return 1;
+  if(L.low[i] && D.flood && D.flood.level > .5) return 2;
+  const z = L.z[i], Z = z && D.zones[z];
+  if(Z && Z.water && y > Z.water.y) return 2;
+  return 0;
+}
+// rising water and a flooded arena hurt; plain deep water only slows you
+function dgWaterHurts(x, y){
+  const D = G.dg, L = D.L, i = tileAt(L, x, y), z = L.z[i], Z = z && D.zones[z];
+  if(Z && Z.water && y > Z.water.y) return true;
+  return !!(D.flood && D.flood.mode === 'arena' && L.low[i] && D.flood.level > .5);
+}
+function dgWadeMul(e){
+  if(!G.dg) return 1;
+  const w = dgWaterAt(e.x, e.y);
+  if(e.type === 'eel') return w ? 1.7 : .55;
+  if(AQUATIC.has(e.type) || e.boss) return 1;
+  return w === 2 ? .7 : w === 1 ? .85 : 1;
+}
+function dgWaterMove(dt){
+  const D = G.dg, L = D.L, p = G.p, i = tileAt(L, p.x, p.y), t = L.t[i], w = dgWaterAt(p.x, p.y);
+  if(w === 2){ p.vx *= .62; p.vy *= .62; } else if(w === 1){ p.vx *= .85; p.vy *= .85; }
+  // slick algae: you keep sliding the way you were going
+  if(t === TT.SLICK){
+    p.svx = p.svx === undefined ? p.vx : p.svx + (p.vx - p.svx) * Math.min(1, dt * 2.2);
+    p.svy = p.svy === undefined ? p.vy : p.svy + (p.vy - p.svy) * Math.min(1, dt * 2.2);
+    p.vx = p.svx; p.vy = p.svy;
+  } else { p.svx = p.vx; p.svy = p.vy; }
+}
+// harpoons and songs drag you; rolling breaks free
+function dgPullMove(dt){
+  const p = G.p, P = p.pull;
+  if(!P) return;
+  P.t -= dt;
+  const tx = P.e ? P.e.x : P.x, ty = P.e ? P.e.y : P.y, dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy) || 1;
+  if(P.t <= 0 || d < (P.stop || 70) || (P.e && P.e.dead)){ p.pull = null; return; }
+  p.vx += dx / d * P.sp; p.vy += dy / d * P.sp;
+}
+function dgCurrentPush(o, dt){
+  const L = G.dg.L, i = tileAt(L, o.x, o.y);
+  if(L.t[i] !== TT.CURRENT) return;
+  const [dx, dy] = CUR_DIR[L.cur[i] ^ (G.dg.curFlip > 0 && L.z[i] === 10 ? 1 : 0)];
+  o.x += dx * 120 * dt; o.y += dy * 120 * dt;
+  dgCollide(o, o.r);
+}
+function dgWaterTick(dt){
+  const D = G.dg, L = D.L, p = G.p, def = D.def;
+  for(const e of G.enemies) if(!e.dead && !e.boss && !(e.rise > 0)) dgCurrentPush(e, dt);
+  if(D.curFlip > 0) D.curFlip -= dt;
+  // the halls flood and drain on a timer
+  const F = D.flood;
+  if(F && F.mode === 'cycle'){
+    F.t -= dt;
+    if(F.t <= 0){
+      const next = {dry:['warn', 3], warn:['rise', 3], rise:['high', def.flood.high || 14], high:['fall', 3], fall:['dry', def.flood.dry || 20]}[F.state];
+      F.state = next[0]; F.t = next[1]; D.mapDirty = true;
+      if(F.state === 'warn'){ showBanner('THE WATER IS RISING', 'warn', 'Get to the raised walkways'); sfx('swarm'); }
+      if(F.state === 'fall') addText(p.x, p.y - 40, 'The water drains', 2);
+    }
+    const target = F.state === 'rise' ? 1 - F.t / 3 : F.state === 'high' ? 1 : F.state === 'fall' ? F.t / 3 : 0;
+    F.level += (target - F.level) * Math.min(1, dt * 6);
+  } else if(F && F.mode === 'arena'){
+    F.level += ((F.on ? 1 : 0) - F.level) * Math.min(1, dt * 1.2);
+  }
+  // rising water behind you in the sealed climb
+  if(def.rising) for(const k in D.zones){
+    const Z = D.zones[k], bx = L.zoneBox[k];
+    if(!Z.waves) continue;
+    if(Z.state === 'active' && !Z.water) Z.water = {y:(bx.y1 + 1.2) * DT, speed:(bx.y1 - bx.y0 + 1) * DT / def.rising.time, wait:def.rising.wait};
+    if(!Z.water) continue;
+    if(Z.state === 'active'){
+      // a few seconds of grace after the gates drop, then it climbs until only the top four rows are dry
+      if(Z.water.wait > 0){ Z.water.wait -= dt; if(Z.water.wait <= 0){ addText(p.x, p.y - 40, 'THE WATER RISES · CLIMB', 2); sfx('splash'); } continue; }
+      Z.water.y = Math.max(bx.y0 * DT + DT * 4, Z.water.y - Z.water.speed * dt);
+    } else if(Z.water.y < (bx.y1 + 1.2) * DT) Z.water.y += Z.water.speed * 4 * dt;   // cleared: it drains away
+  }
+  // XP that falls into the rising water floats up to you
+  if(def.rising) for(const gm of G.gems) if(!gm.mag && dgWaterHurts(gm.x, gm.y)) gm.mag = true;
+  if(dgWaterHurts(p.x, p.y) && !(D.roll.t > 0)){
+    p.drownT = (p.drownT || 0) + dt;
+    if(p.drownT > .5){ p.drownT = 0; hurtPlayer(def.rising ? def.rising.dmg : 8); }
+  }
+  // lanterns: walk up to one to light it; while you stand in its light you can see far
+  if(def.dark){
+    let near = false;
+    for(const o of L.lanterns){
+      const d = Math.hypot((o.x + .5) * DT - p.x, (o.y + .5) * DT - p.y);
+      if(!o.lit && d < 110){ o.lit = true; D.mapDirty = true; sfx('select'); addText((o.x + .5) * DT, (o.y + .5) * DT - 50, 'LIT', 2); D3.lightT = 0; }
+      if(o.lit && d < def.dark.lit) near = true;
+    }
+    // the boss glows, so the whole chamber is visible during the fight
+    const want = near || G.boss ? def.dark.far : def.dark.base;
+    D.vision += (want - D.vision) * Math.min(1, dt * 2);
+  }
+  // shells turn slowly toward you, and barely at all while they are busy attacking: that is when you get behind them
+  const b = G.boss;
+  if(b && SKINS[b.skin].shell){ const want = Math.atan2(p.y - b.y, p.x - b.x); b.face = turnToward(b.face, want, (SKINS[b.skin].turn || 1.4) * (b.act ? .35 : 1) * dt); }
+}
+function turnToward(a, b, max){ let d = (b - a) % TAU; if(d > Math.PI) d -= TAU; if(d < -Math.PI) d += TAU; return a + Math.max(-max, Math.min(max, d)); }
+
+// armored fronts: hits from the side or behind do full damage (a bit more, even)
+let HITFROM = null;
+function dgShell(e){
+  const sh = SKINS[e.skin].shell, from = HITFROM || G.p;
+  const dx = from.x - e.x, dy = from.y - e.y;
+  if(dx * dx + dy * dy < 36) return 1;
+  const face = e.face === undefined ? Math.atan2(G.p.y - e.y, G.p.x - e.x) : e.face;
+  let diff = Math.abs((Math.atan2(dy, dx) - face) % TAU); if(diff > Math.PI) diff = TAU - diff;
+  if(diff < sh.arc){
+    if(G.t - (e.blkT || -9) > .5){ e.blkT = G.t; addText(e.x, e.y - e.r - 18, 'BLOCKED', 0); sfx('block'); }
+    return e.guard ? .03 : sh.mul;
+  }
+  return 1.2;
+}
+
+/* ---------- dungeon: enemy bullets (homing, bouncing, harpoons) ---------- */
+// returns true when the bullet is finished for this frame
+function dgBullet(b, dt){
+  const L = G.dg.L, p = G.p;
+  if(b.home && b.homeT > 0){
+    b.homeT -= dt;
+    const a = Math.atan2(b.vy, b.vx), na = turnToward(a, Math.atan2(p.y - b.y, p.x - b.x), b.home * dt), sp = Math.hypot(b.vx, b.vy);
+    b.vx = Math.cos(na) * sp; b.vy = Math.sin(na) * sp;
+  }
+  if(dgShotBlocked(L, b.x, b.y)){
+    if(b.bounce && b.bounce > 0){
+      b.bounce--;
+      const px = b.x - b.vx * dt, py = b.y - b.vy * dt;
+      if(dgShotBlocked(L, b.x, py)) b.vx = -b.vx;
+      if(dgShotBlocked(L, px, b.y)) b.vy = -b.vy;
+      b.x = px; b.y = py;
+      return false;
+    }
+    b.life = 0; return true;
+  }
+  return G.dg.roll.t > 0;
+}
+function dgBulletHit(b){
+  const p = G.p;
+  if(b.venom && p.inv <= 0) dgContact({skin:'', venom:b.venom});
+  if(b.from && p.inv <= 0 && !p.shield){ p.pull = {e:b.from, t:b.pullT || .5, sp:430, stop:80}; addText(p.x, p.y - 34, 'HOOKED · ROLL!', 2); }
+}
+
+/* ---------- dungeon: enemy AI for the Flooded Aqueducts ---------- */
+const DG_AI = {
+  // keeps away, aims for a moment (a red line), then throws a harpoon that drags you in
+  harpoon(e, ai, dt, d, dx, dy, sp){
+    const p = G.p;
+    if(e.st === 'aim'){
+      e.stT -= dt;
+      if(e.stT > ai.warn * .35){ e.aimA = Math.atan2(dy, dx); if(e.tele){ e.tele.x = e.x; e.tele.y = e.y; e.tele.a = e.aimA; } }
+      if(e.stT <= 0){
+        e.st = null; e.aT = ai.cd;
+        ebullet(e.x, e.y, e.aimA, ai.bs, ai.dmg * (e.pow || 1), '#c8d0d8', {arrow:true, harpoon:true, from:e, pullT:ai.pull, r:8});
+        sfx('whoosh');
+      }
+      return true;
+    }
+    if(e.aT <= 0 && d < ai.range && dgLos(e.x, e.y, p.x, p.y)){
+      e.st = 'aim'; e.stT = ai.warn; e.aimA = Math.atan2(dy, dx);
+      e.tele = {kind:'tele', x:e.x, y:e.y, a:e.aimA, len:ai.range, w:14, warn:ai.warn, max:ai.warn};
+      G.hazards.push(e.tele);
+      return true;
+    }
+    if(d < ai.keep){ e.x -= dx / d * sp * .8 * dt; e.y -= dy / d * sp * .8 * dt; return true; }
+    return d < ai.keep + 80;
+  },
+  // walks sideways toward you and turns slowly; its front is armored
+  crab(e, ai, dt, d, dx, dy, sp){
+    const want = Math.atan2(dy, dx);
+    e.face = turnToward(e.face === undefined ? want : e.face, want, ai.turn * dt);
+    if(d < e.r + 30){ e.x += dx / d * sp * .6 * dt; e.y += dy / d * sp * .6 * dt; return true; }
+    e.side = e.side || (Math.random() < .5 ? 1 : -1);
+    if(G.t > (e.sideT || 0)){ e.sideT = G.t + rand(1.5, 3); e.side = -e.side; }
+    const a = want + e.side * .95;
+    e.x += Math.cos(a) * sp * dt; e.y += Math.sin(a) * sp * dt;
+    return true;
+  },
+  // floats in place-ish and fires slowing bubbles; every few shots a bubble that traps you
+  siren(e, ai, dt, d, dx, dy, sp){
+    const p = G.p;
+    if(e.aT <= 0 && d < ai.range && dgLos(e.x, e.y, p.x, p.y)){
+      e.aT = ai.cd; e.shots = (e.shots || 0) + 1;
+      const a0 = Math.atan2(dy, dx);
+      if(e.shots % ai.trapEvery === 0) ebullet(e.x, e.y, a0, ai.bs * .75, ai.dmg * (e.pow || 1), '#e6fbff', {root:ai.trap, r:15, bubble:true});
+      else for(const o of [-.16, 0, .16]) ebullet(e.x, e.y, a0 + o, ai.bs, ai.dmg * .7 * (e.pow || 1), '#9fe8ff', {slow:ai.slow, r:7, bubble:true});
+    }
+    if(d < ai.keep){ e.x -= dx / d * sp * .7 * dt; e.y -= dy / d * sp * .7 * dt; return true; }
+    return d < ai.keep + 60;
+  },
+  // quick in water, sluggish on land; now and then it charges the water around itself
+  eel(e, ai, dt, d, dx, dy, sp){
+    if(e.aT <= 0 && d < 300 && dgWaterAt(e.x, e.y)){
+      e.aT = ai.cd;
+      addCircle(e.x, e.y, ai.r, ai.warn, ai.dmg * (e.pow || 1), '#fff07a');
+      e.stunT = ai.warn * .7;
+    }
+    dgChase(e, sp, dt, dx, dy, d);
+    return true;
+  },
+  // drifts toward you
+  jelly(e, ai, dt, d, dx, dy, sp){ dgChase(e, sp, dt, dx, dy, d); return true; },
+  // the Siren Matriarch's mirror images: they stay put, shoot bubbles and fade away
+  decoy(e, ai, dt, d, dx, dy){
+    e.lifeT = (e.lifeT === undefined ? ai.life : e.lifeT) - dt;
+    if(e.lifeT <= 0){ e.dead = true; burst(e.x, e.y, '#9fe8ff', 16, 180); return true; }
+    if(e.aT <= 0){ e.aT = ai.cd; ebullet(e.x, e.y, Math.atan2(dy, dx), 200, ai.dmg, '#9fe8ff', {slow:1, r:8, bubble:true}); }
+    return true;
+  },
+};
 /* ---------- dungeon: 3D models ----------
    Every model is a blocky rig of boxes facing +z, feet at y = 0.
    part: [name, [w,h,d], pivot [x,y,z], offset from pivot [x,y,z], color, anim, extra]
@@ -5904,6 +7105,200 @@ const RIGS = {
     ['blade', [2.5, 1.6, 26], [10.5, 29, 0], [0, -14, 14], '#e6eeff', 'sword'],
   ]},
 };
+// ---- Flooded Aqueducts models. `float` lifts a model off the ground (jellyfish, sirens). ----
+const legs6 = (n, dx, y, z0, step, len, col) => [0, 1, 2].slice(0, n).flatMap(i => [-1, 1].map(s =>
+  ['leg', [len, 3, 3], [s * dx, y, z0 - i * step], [s * len * .45, 0, 0], col, 'legS', {ry:-s * (.45 - i * .45), rz:-s * .6, k:i * 1.6 + (s > 0 ? Math.PI : 0)}]));
+Object.assign(RIGS, {
+  sailor:{r:13, parts:[
+    ['legL', [6, 15, 6], [-4, 15, 0], [0, -7.5, 0], 'dark', 'legL'],
+    ['legR', [6, 15, 6], [4, 15, 0], [0, -7.5, 0], 'dark', 'legR'],
+    ['torso', [15, 16, 9], [0, 15, 0], [0, 8, 0], '#d6dde2', 'body', {rx:.15}],
+    ['stripeA', [15.6, 2.4, 9.6], [0, 15, 0], [0, 5, 0], 'dark', 'body', {rx:.15}],
+    ['stripeB', [15.6, 2.4, 9.6], [0, 15, 0], [0, 11, 0], 'dark', 'body', {rx:.15}],
+    ['head', [12, 12, 12], [0, 30, 2], [0, 6, 1], 'body', 'head'],
+    ['cap', [13, 4, 13], [0, 30, 2], [0, 13, 1], 'dark', 'head'],
+    ['eyeL', [3, 2.4, 1], [0, 30, 2], [-2.8, 7, 7.3], 'glow', 'head', {g:1}],
+    ['eyeR', [3, 2.4, 1], [0, 30, 2], [2.8, 7, 7.3], 'glow', 'head', {g:1}],
+    ['weed', [3, 11, 1.4], [0, 30, 2], [4, 1, 7.4], '#3f8a6a', 'head'],
+    ['armL', [5, 17, 5], [-10.5, 28, 2], [0, -8.5, 0], 'body', 'zarmL', {rx:-1.35}],
+    ['armR', [5, 17, 5], [10.5, 28, 2], [0, -8.5, 0], 'body', 'zarmR', {rx:-1.2}],
+  ]},
+  harpooner:{r:12, parts:[
+    ['legL', [5, 15, 5], [-3.5, 15, 0], [0, -7.5, 0], 'dark', 'legL'],
+    ['legR', [5, 15, 5], [3.5, 15, 0], [0, -7.5, 0], 'dark', 'legR'],
+    ['coat', [14, 18, 9], [0, 14, 0], [0, 8, 0], 'dark', 'body'],
+    ['belt', [14.6, 2.5, 9.6], [0, 14, 0], [0, 3, 0], '#8a6a42', 'body'],
+    ['head', [10, 10, 10], [0, 31, 0], [0, 5, 0], 'body', 'head'],
+    ['brim', [16, 2, 16], [0, 31, 0], [0, 10.5, 0], 'dark', 'head'],
+    ['hat', [9, 6, 9], [0, 31, 0], [0, 14, 0], 'dark', 'head'],
+    ['eyeL', [2.4, 2, 1], [0, 31, 0], [-2.4, 5.5, 5.2], 'glow', 'head', {g:1}],
+    ['eyeR', [2.4, 2, 1], [0, 31, 0], [2.4, 5.5, 5.2], 'glow', 'head', {g:1}],
+    ['armL', [4.5, 14, 4.5], [-9.5, 28, 0], [0, -7, 0], 'body', 'armL', {rx:-.6}],
+    ['armR', [4.5, 14, 4.5], [9.5, 28, 0], [0, 7, 0], 'body', 'throw', {rx:-.4}],
+    ['shaft', [2, 2, 42], [9.5, 28, 0], [0, 14, 4], '#8a6a42', 'throw', {rx:-.4}],
+    ['tip', [4, 4, 8], [9.5, 28, 0], [0, 14, 28], 'alt', 'throw', {rx:-.4}],
+    ['rope', [1.5, 10, 1.5], [9.5, 28, 0], [0, 9, -16], '#c9b88a', 'throw', {rx:-.4}],
+  ]},
+  crab:{r:14, parts:[
+    ['shell', [26, 9, 20], [0, 10, 0], [0, 0, 0], 'body', 'breathe'],
+    ['ridge', [20, 3, 14], [0, 10, 0], [0, 5.5, -1], 'alt', 'breathe'],
+    ['belly', [22, 4, 18], [0, 10, 0], [0, -5, 0], 'alt', 'body'],
+    ['stalkL', [2, 7, 2], [0, 10, 0], [-4, 7.5, 9], 'dark', 'body'],
+    ['stalkR', [2, 7, 2], [0, 10, 0], [4, 7.5, 9], 'dark', 'body'],
+    ['pupL', [3, 3, 3], [0, 10, 0], [-4, 12, 9], 'glow', 'body', {g:1}],
+    ['pupR', [3, 3, 3], [0, 10, 0], [4, 12, 9], 'glow', 'body', {g:1}],
+    ['clawL', [9, 8, 12], [-12, 10, 8], [-2, 0, 6], 'body', 'clawL'],
+    ['pinL', [8, 3, 9], [-12, 10, 8], [-2, -4.5, 10], 'alt', 'clawL'],
+    ['clawR', [9, 8, 12], [12, 10, 8], [2, 0, 6], 'body', 'clawR'],
+    ['pinR', [8, 3, 9], [12, 10, 8], [2, -4.5, 10], 'alt', 'clawR'],
+    ...legs6(3, 11, 8, 3, 5.5, 16, 'dark'),
+  ]},
+  siren:{r:12, float:16, parts:[
+    ['tailA', [10, 8, 10], [0, 9, -2], [0, 0, 0], 'alt', 'wig', {k:0, R:1.5}],
+    ['tailB', [8, 7, 9], [0, 6, -9], [0, 0, 0], 'alt', 'wig', {k:1, R:3.5}],
+    ['tailC', [6, 5, 8], [0, 4, -16], [0, 0, 0], 'alt', 'wig', {k:2, R:5.5}],
+    ['fin', [16, 2, 8], [0, 3, -22], [0, 0, 0], 'glow', 'wig', {k:3, R:7, g:1}],
+    ['torso', [12, 13, 8], [0, 14, 0], [0, 6, 0], 'body', 'body'],
+    ['shell', [12.6, 4, 8.6], [0, 14, 0], [0, 9, 0], 'alt', 'body'],
+    ['head', [10, 10, 10], [0, 26, 0], [0, 5, 0], 'body', 'head'],
+    ['hair', [11, 13, 6], [0, 26, 0], [0, 3, -4], 'dark', 'head'],
+    ['crest', [2, 9, 11], [0, 26, 0], [0, 12, -1], 'glow', 'head', {g:1}],
+    ['eyeL', [2.4, 2, 1], [0, 26, 0], [-2.4, 6, 5.2], 'glow', 'head', {g:1}],
+    ['eyeR', [2.4, 2, 1], [0, 26, 0], [2.4, 6, 5.2], 'glow', 'head', {g:1}],
+    ['armL', [4, 12, 4], [-8, 24, 0], [0, -6, 0], 'body', 'armL', {rx:-.5, rz:.3}],
+    ['armR', [4, 12, 4], [8, 24, 0], [0, -6, 0], 'body', 'staff', {rx:-.4, rz:-.3}],
+    ['orb', [6, 6, 6], [8, 24, 0], [0, -13, 2], '#e6fbff', 'staff', {rx:-.4, rz:-.3, g:1}],
+  ]},
+  eel:{r:12, parts:[
+    ['head', [10, 9, 14], [0, 7, 14], [0, 0, 0], 'body', 'wig', {k:0, R:2}],
+    ['jaw', [8, 3, 11], [0, 7, 14], [0, -5, 1], 'alt', 'wig', {k:0, R:2}],
+    ['eyeL', [2, 2.4, 2.4], [0, 7, 14], [-5, 2, 4], 'glow', 'wig', {k:0, R:2, g:1}],
+    ['eyeR', [2, 2.4, 2.4], [0, 7, 14], [5, 2, 4], 'glow', 'wig', {k:0, R:2, g:1}],
+    ...[0, 1, 2, 3, 4].flatMap(i => [
+      ['seg', [9 - i * 1.1, 8 - i * .8, 10], [0, 7, 4 - i * 9], [0, 0, 0], i % 2 ? 'body' : 'dark', 'wig', {k:(i + 1) * .9, R:3 + i * 1.6}],
+      ['spark', [2, 1.4, 6], [0, 7, 4 - i * 9], [0, 4.6 - i * .4, 0], 'glow', 'wig', {k:(i + 1) * .9, R:3 + i * 1.6, g:1}]]),
+    ['tailfin', [2, 11, 10], [0, 7, -44], [0, 0, 0], 'alt', 'wig', {k:5.4, R:11}],
+  ]},
+  jelly:{r:13, float:20, parts:[
+    ['bell', [22, 12, 22], [0, 14, 0], [0, 4, 0], 'body', 'pulse'],
+    ['cap', [14, 5, 14], [0, 14, 0], [0, 12, 0], 'alt', 'pulse'],
+    ['core', [10, 7, 10], [0, 14, 0], [0, 3, 0], 'glow', 'pulse', {g:1}],
+    ['rim', [24, 2, 24], [0, 14, 0], [0, -2, 0], 'dark', 'pulse'],
+    ...[0, 1, 2, 3].map(i => ['tent', [2, 18, 2], [i % 2 ? 7 : -7, 12, i < 2 ? 6 : -6], [0, -9, 0], 'glow', 'tent', {k:i * 1.3, g:1}]),
+    ['tentM', [3, 22, 3], [0, 12, 0], [0, -11, 0], 'alt', 'tent', {k:2.2}],
+  ]},
+  sluice:{r:46, parts:[
+    ['legL', [16, 26, 16], [-13, 26, 0], [0, -13, 0], 'dark', 'legL'],
+    ['legR', [16, 26, 16], [13, 26, 0], [0, -13, 0], 'dark', 'legR'],
+    ['hips', [36, 10, 22], [0, 26, 0], [0, 5, 0], 'dark', 'body'],
+    ['torso', [46, 34, 28], [0, 26, 0], [0, 22, 0], 'body', 'body'],
+    ['tank', [32, 28, 14], [0, 26, 0], [0, 24, -19], 'alt', 'body'],
+    ['gauge', [9, 9, 1], [0, 26, 0], [0, 28, 14.4], 'glow', 'body', {g:1}],
+    ['band', [47, 4, 29], [0, 26, 0], [0, 12, 0], 'alt', 'body'],
+    ['head', [24, 20, 22], [0, 62, 2], [0, 10, 0], 'body', 'head'],
+    ['wheel', [26, 26, 3], [0, 72, 14.5], [0, 0, 0], 'alt', 'wheel'],
+    ['hub', [7, 7, 4], [0, 72, 14.5], [0, 0, 1], 'glow', 'wheel', {g:1}],
+    ['spokeA', [24, 3, 2], [0, 72, 14.5], [0, 0, 0], 'dark', 'wheel'],
+    ['spokeB', [3, 24, 2], [0, 72, 14.5], [0, 0, 0], 'dark', 'wheel'],
+    ['armL', [14, 30, 14], [-31, 56, 0], [0, -15, 0], 'body', 'armL'],
+    ['pipeL', [10, 22, 10], [-31, 56, 0], [0, -38, 0], 'dark', 'armL'],
+    ['nozzle', [15, 9, 15], [-31, 56, 0], [0, -52, 0], 'alt', 'armL'],
+    ['armR', [14, 30, 14], [31, 56, 0], [0, -15, 0], 'body', 'armR'],
+    ['chain', [4, 30, 4], [31, 56, 0], [0, -44, 0], 'dark', 'armR'],
+    ['anchor', [24, 6, 5], [31, 56, 0], [0, -60, 0], '#8a9099', 'armR'],
+    ['fluke', [5, 14, 5], [31, 56, 0], [0, -54, 0], '#8a9099', 'armR'],
+  ]},
+  crabking:{r:52, parts:[
+    ['shell', [86, 30, 66], [0, 34, 0], [0, 0, 0], 'body', 'breathe'],
+    ['ridge', [64, 10, 46], [0, 34, 0], [0, 18, -4], 'alt', 'breathe'],
+    ['spikeA', [8, 16, 8], [0, 34, 0], [-22, 28, -6], 'dark', 'breathe'],
+    ['spikeB', [8, 20, 8], [0, 34, 0], [0, 30, -6], 'dark', 'breathe'],
+    ['spikeC', [8, 16, 8], [0, 34, 0], [22, 28, -6], 'dark', 'breathe'],
+    ['crown', [30, 6, 10], [0, 34, 0], [0, 17, 26], '#ffcf6a', 'body'],
+    ['belly', [72, 10, 56], [0, 34, 0], [0, -18, 0], 'alt', 'body'],
+    ['stalkL', [5, 20, 5], [0, 34, 0], [-12, 22, 28], 'dark', 'body'],
+    ['stalkR', [5, 20, 5], [0, 34, 0], [12, 22, 28], 'dark', 'body'],
+    ['eyeL', [9, 9, 9], [0, 34, 0], [-12, 34, 28], 'glow', 'body', {g:1}],
+    ['eyeR', [9, 9, 9], [0, 34, 0], [12, 34, 28], 'glow', 'body', {g:1}],
+    ['clawL', [30, 24, 40], [-44, 30, 24], [-6, 0, 20], 'body', 'clawL'],
+    ['pinL', [26, 10, 28], [-44, 30, 24], [-6, -14, 30], 'alt', 'clawL'],
+    ['clawR', [30, 24, 40], [44, 30, 24], [6, 0, 20], 'body', 'clawR'],
+    ['pinR', [26, 10, 28], [44, 30, 24], [6, -14, 30], 'alt', 'clawR'],
+    ...legs6(3, 38, 26, 6, 20, 54, 'dark').map(p => (p[1] = [54, 9, 9], p)),
+  ]},
+  matriarch:{r:40, float:30, parts:[
+    ['tailA', [30, 24, 30], [0, 30, -8], [0, 0, 0], 'alt', 'wig', {k:0, R:3}],
+    ['tailB', [24, 20, 26], [0, 20, -30], [0, 0, 0], 'alt', 'wig', {k:1, R:8}],
+    ['tailC', [18, 14, 22], [0, 12, -50], [0, 0, 0], 'alt', 'wig', {k:2, R:13}],
+    ['fin', [48, 5, 22], [0, 8, -66], [0, 0, 0], 'glow', 'wig', {k:3, R:16, g:1}],
+    ['torso', [34, 36, 22], [0, 40, 0], [0, 18, 0], 'body', 'body'],
+    ['shell', [36, 10, 24], [0, 40, 0], [0, 28, 0], 'alt', 'body'],
+    ['pearl', [8, 8, 4], [0, 40, 0], [0, 28, 12.5], '#ffffff', 'body', {g:1}],
+    ['head', [28, 28, 28], [0, 76, 0], [0, 14, 0], 'body', 'head'],
+    ['hair', [32, 40, 18], [0, 76, 0], [0, 8, -12], 'dark', 'head'],
+    ['crown', [30, 8, 30], [0, 76, 0], [0, 32, 0], '#e8d8a8', 'head'],
+    ['crest', [5, 26, 30], [0, 76, 0], [0, 38, -2], 'glow', 'head', {g:1}],
+    ['eyeL', [6, 5, 1], [0, 76, 0], [-6.5, 16, 14.3], 'glow', 'head', {g:1}],
+    ['eyeR', [6, 5, 1], [0, 76, 0], [6.5, 16, 14.3], 'glow', 'head', {g:1}],
+    ['armL', [10, 34, 10], [-22, 70, 0], [0, -17, 0], 'body', 'armL', {rx:-.5, rz:.35}],
+    ['armR', [10, 34, 10], [22, 70, 0], [0, -17, 0], 'body', 'staff', {rx:-.6, rz:-.3}],
+    ['trident', [4, 90, 4], [22, 70, 0], [0, -10, 6], '#e8d8a8', 'staff', {rx:-.6, rz:-.3}],
+    ['prongs', [20, 4, 4], [22, 70, 0], [0, 34, 6], '#e8d8a8', 'staff', {rx:-.6, rz:-.3}],
+    ['tips', [22, 10, 3], [22, 70, 0], [0, 40, 6], 'glow', 'staff', {rx:-.6, rz:-.3, g:1}],
+  ]},
+  bigeel:{r:44, parts:[
+    ['head', [36, 30, 46], [0, 30, 50], [0, 0, 0], 'body', 'wig', {k:0, R:6}],
+    ['jaw', [30, 10, 38], [0, 30, 50], [0, -18, 4], 'alt', 'wig', {k:0, R:6}],
+    ['fangs', [26, 6, 4], [0, 30, 50], [0, -12, 22], '#f0f0e0', 'wig', {k:0, R:6}],
+    ['eyeL', [5, 8, 8], [0, 30, 50], [-18, 6, 12], 'glow', 'wig', {k:0, R:6, g:1}],
+    ['eyeR', [5, 8, 8], [0, 30, 50], [18, 6, 12], 'glow', 'wig', {k:0, R:6, g:1}],
+    ['whiskL', [3, 3, 30], [0, 30, 50], [-14, -6, 34], 'glow', 'wig', {k:0, R:6, g:1, ry:-.4}],
+    ['whiskR', [3, 3, 30], [0, 30, 50], [14, -6, 34], 'glow', 'wig', {k:0, R:6, g:1, ry:.4}],
+    ...[0, 1, 2, 3, 4, 5, 6].flatMap(i => [
+      ['seg', [32 - i * 3, 28 - i * 2.4, 34], [0, 24 - i * 2, 18 - i * 32], [0, 0, 0], i % 2 ? 'body' : 'dark', 'wig', {k:(i + 1) * .8, R:8 + i * 5}],
+      ['bolt', [6, 4, 20], [0, 24 - i * 2, 18 - i * 32], [0, 15 - i * 1.2, 0], 'glow', 'wig', {k:(i + 1) * .8, R:8 + i * 5, g:1}]]),
+    ['tailfin', [4, 34, 30], [0, 12, -214], [0, 0, 0], 'alt', 'wig', {k:6.4, R:44}],
+  ]},
+  admiral:{r:40, parts:[
+    ['legL', [12, 34, 12], [-9, 34, 0], [0, -17, 0], 'dark', 'legL'],
+    ['legR', [12, 34, 12], [9, 34, 0], [0, -17, 0], 'dark', 'legR'],
+    ['coat', [38, 46, 24], [0, 30, 0], [0, 20, 0], 'dark', 'body'],
+    ['tails', [36, 22, 4], [0, 30, 0], [0, 2, -12], 'dark', 'cape'],
+    ['vest', [20, 30, 25], [0, 30, 0], [0, 24, 0], 'body', 'body'],
+    ['buttons', [4, 24, 1], [0, 30, 0], [0, 24, 12.8], 'alt', 'body'],
+    ['epL', [16, 6, 20], [0, 30, 0], [-22, 44, 0], 'alt', 'body'],
+    ['epR', [16, 6, 20], [0, 30, 0], [22, 44, 0], 'alt', 'body'],
+    ['head', [24, 24, 24], [0, 76, 0], [0, 12, 0], 'body', 'head'],
+    ['beard', [24, 14, 6], [0, 76, 0], [0, 2, 10], '#c8f8f0', 'head'],
+    ['hat', [44, 10, 22], [0, 76, 0], [0, 28, 0], 'dark', 'head'],
+    ['hatTop', [26, 12, 18], [0, 76, 0], [0, 36, 0], 'dark', 'head'],
+    ['badge', [8, 8, 1], [0, 76, 0], [0, 34, 9.4], 'alt', 'head'],
+    ['eyeL', [5, 4, 1], [0, 76, 0], [-5.5, 14, 12.3], 'glow', 'head', {g:1}],
+    ['eyeR', [5, 4, 1], [0, 76, 0], [5.5, 14, 12.3], 'glow', 'head', {g:1}],
+    ['armL', [10, 34, 10], [-25, 70, 0], [0, -17, 0], 'dark', 'armL', {rx:-.4}],
+    ['pistol', [5, 6, 20], [-25, 70, 0], [0, -34, 8], '#5a4a38', 'armL', {rx:-.4}],
+    ['armR', [10, 34, 10], [25, 70, 0], [0, -17, 0], 'dark', 'sword'],
+    ['guard', [12, 3, 5], [25, 70, 0], [0, -34, 0], 'alt', 'sword'],
+    ['blade', [3, 2, 52], [25, 70, 0], [0, -34, 26], '#e6eeff', 'sword'],
+  ]},
+  leviathan:{r:70, parts:[
+    ['neckA', [62, 40, 56], [0, 0, -30], [0, 10, 0], 'dark', 'wig', {k:2, R:4}],
+    ['neckB', [54, 40, 50], [0, 30, -14], [0, 10, 0], 'body', 'wig', {k:1.4, R:7}],
+    ['neckC', [48, 36, 46], [0, 58, 0], [0, 10, 0], 'dark', 'wig', {k:.8, R:9}],
+    ['finL', [6, 50, 40], [0, 58, 0], [-28, 30, -10], 'alt', 'wig', {k:.8, R:9, rz:.4}],
+    ['finR', [6, 50, 40], [0, 58, 0], [28, 30, -10], 'alt', 'wig', {k:.8, R:9, rz:-.4}],
+    ['head', [60, 44, 70], [0, 86, 16], [0, 8, 20], 'body', 'bite'],
+    ['brow', [64, 10, 24], [0, 86, 16], [0, 30, 26], 'dark', 'bite'],
+    ['hornL', [8, 34, 8], [0, 86, 16], [-22, 42, 4], 'alt', 'bite', {rx:-.6}],
+    ['hornR', [8, 34, 8], [0, 86, 16], [22, 42, 4], 'alt', 'bite', {rx:-.6}],
+    ['eyeL', [10, 10, 10], [0, 86, 16], [-27, 18, 34], 'glow', 'bite', {g:1}],
+    ['eyeR', [10, 10, 10], [0, 86, 16], [27, 18, 34], 'glow', 'bite', {g:1}],
+    ['jaw', [52, 14, 60], [0, 78, 22], [0, -8, 24], 'alt', 'jaw'],
+    ['teeth', [46, 6, 4], [0, 78, 22], [0, -1, 52], '#f0f0e0', 'jaw'],
+    ['teethU', [46, 6, 4], [0, 86, 16], [0, -12, 54], '#f0f0e0', 'bite'],
+    ['glowThroat', [30, 8, 30], [0, 86, 16], [0, -10, 26], 'glow', 'bite', {g:1}],
+  ]},
+});
 /* ---------- dungeon: 3D renderer (Three.js, loaded only when needed) ----------
    World x/y map to 3D x/z; y is up. Static level parts are instanced meshes;
    characters are instanced per body part so a whole horde costs a few draw
@@ -5948,7 +7343,7 @@ function d3Init(){
   D3.torchLights = Array.from({length:6}, () => { const l = new T.PointLight('#ff9a48', 0, 380, 0); scene.add(l); return l; });
   scene.add(D3.pLight = new T.PointLight('#d6eaff', 1.1, 330, 0));
   scene.add(D3.portalLight = new T.PointLight('#7df9ff', 0, 440, 0));
-  d3Textures(); d3Materials(); d3Geometries();
+  d3Textures(); d3Materials(); d3Geometries(); d3TexturesAQ(); d3GeometriesAQ();
   scene.add(D3.level = new T.Group());
   scene.add(D3.dyn = new T.Group());
   d3Dynamic();
@@ -6205,23 +7600,26 @@ function d3BuildLevel(){
     c.traverse(o => { if(o.isInstancedMesh) o.dispose(); if(o.geometry && !o.geometry.userData.keep) o.geometry.dispose(); });
   }
   D3.occ.clear(); D3.cut.clear(); D3.torches = []; D3.gates = []; D3.chests = []; D3.falling = []; D3.crumbleIdx.clear();
+  d3ApplyLook();
+  const AQ = D3.theme === 'aqueduct', MS = AQ ? D3.MA : M;
   const isWall = (x, y) => x < 0 || y < 0 || x >= W || y >= L.H || L.t[y * W + x] === TT.WALL;
   const h3 = (x, y, s) => hash3(x, y, D.floor * 31 + s);
   const occ = (i, o) => { let a = D3.occ.get(i); if(!a){ a = []; D3.occ.set(i, a); } a.push(o); };
   const col = (m, i, k) => { D3.RT.col.setRGB(k, k, k * .98); m.setColorAt(i, D3.RT.col); };
   // floors
-  const fl = {floor:[], moss:[], stair:[], crumble:[]}, pools = [], webs = [];
+  const fl = {floor:[], moss:[], stair:[], crumble:[], slick:[], bed:[]}, pools = [], webs = [];
   for(let y = 0; y < L.H; y++) for(let x = 0; x < W; x++){
     const i = y * W + x, t = L.t[i];
     if(t === TT.WALL || t === TT.PIT) continue;
     let near = 0; for(const [dx, dy] of N8) if(isWall(x + dx, y + dy)) near++;
-    const kind = t === TT.STAIR ? 'stair' : t === TT.CRUMBLE ? 'crumble' : (L.moss[i] || t === TT.POOL || (near && h3(x, y, 1) < .22)) ? 'moss' : 'floor';
-    fl[kind].push({x, y, i, k:(.86 + h3(x, y, 2) * .16) * Math.max(.7, 1 - near * .05), r:Math.floor(h3(x, y, 3) * 4)});
+    const y0 = d3TileDepth(L, i);
+    const kind = y0 ? 'bed' : t === TT.SLICK ? 'slick' : t === TT.STAIR ? 'stair' : t === TT.CRUMBLE ? 'crumble' : (L.moss[i] || t === TT.POOL || (near && h3(x, y, 1) < .22)) ? 'moss' : 'floor';
+    fl[kind].push({x, y, i, y0, k:(.86 + h3(x, y, 2) * .16) * Math.max(.7, 1 - near * .05) * (y0 < -20 ? .55 : y0 ? .78 : 1), r:Math.floor(h3(x, y, 3) * 4)});
     if(t === TT.POOL) pools.push({x, y});
     if(t === TT.WEB) webs.push({x, y, r:h3(x, y, 4) * TAU});
   }
   for(const kind in fl){
-    const m = d3Instanced(G3.floor, M[kind], fl[kind], (m, i, o) => { d3Inst(m, i, o.x * DT + 32, 0, o.y * DT + 32, o.r * Math.PI / 2, 1, 1, 1); col(m, i, o.k); });
+    const m = d3Instanced(G3.floor, kind === 'bed' ? MS.floor : MS[kind], fl[kind], (m, i, o) => { d3Inst(m, i, o.x * DT + 32, o.y0 || 0, o.y * DT + 32, o.r * Math.PI / 2, 1, 1, 1); col(m, i, o.k); });
     if(kind === 'crumble' && m){ fl.crumble.forEach((o, i) => D3.crumbleIdx.set(o.i, {m, idx:i, x:o.x * DT + 32, z:o.y * DT + 32, k:o.k})); }
   }
   const pm = d3Instanced(G3.ground, M.pool, pools, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 1.5, o.y * DT + 32, 0, 1, 1, 1), {recv:false});
@@ -6246,25 +7644,29 @@ function d3BuildLevel(){
       else if(h3(x, y, 9) < .4) vines.push({x, y, i:y * W + x, len:44 + h3(x, y, 10) * 60, off:(h3(x, y, 11) - .5) * 26, h:h * WALLH});
     }
   }
-  const wallM = d3Instanced(G3.wall, M.wall, walls, (m, i, o) => { d3Inst(m, i, o.x * DT + 32, 0, o.y * DT + 32, 0, 1, o.h, 1); col(m, i, o.k); }, {cast:true});
+  const wallM = d3Instanced(G3.wall, MS.wall, walls, (m, i, o) => { d3Inst(m, i, o.x * DT + 32, 0, o.y * DT + 32, 0, 1, o.h, 1); col(m, i, o.k); }, {cast:true});
   walls.forEach((o, i) => occ(o.i, {mesh:wallM, idx:i, x:o.x * DT + 32, y:0, z:o.y * DT + 32, ry:0, sx:1, sy:o.h, sz:1}));
   const torchM = d3Instanced(G3.torch, M.stone, torches, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 80, o.y * DT + 64 + 5, 0, 1, 1, 1), {recv:false});
   torches.forEach((o, i) => { occ(o.i, {mesh:torchM, idx:i, x:o.x * DT + 32, y:80, z:o.y * DT + 69, ry:0, sx:1, sy:1, sz:1, dep:true}); D3.torches.push({x:o.x * DT + 32, y:92, z:o.y * DT + 72, i:o.i, f:h3(o.x, o.y, 12) * 10}); });
   const vineM = d3Instanced(G3.plane, M.vine, vines, (m, i, o) => d3Inst(m, i, o.x * DT + 32 + o.off, o.h - o.len / 2, o.y * DT + 65.5, 0, 40, o.len, 1), {recv:false});
   vines.forEach((o, i) => occ(o.i, {mesh:vineM, idx:i, x:o.x * DT + 32 + o.off, y:o.h - o.len / 2, z:o.y * DT + 65.5, ry:0, sx:40, sy:o.len, sz:1, dep:true}));
   // props
-  const byKind = {p:[], pb:[], r0:[], r1:[], r2:[], k:[], o:[]};
+  const byKind = {p:[], pb:[], r0:[], r1:[], r2:[], k:[], o:[], L:[]};
   for(const pr of L.props){
     const i = pr.y * W + pr.x, o = {x:pr.x * DT + 32, z:pr.y * DT + 32, i, ry:0};
     if(pr.kind === 'p'){ (h3(pr.x, pr.y, 13) < .3 ? byKind.pb : byKind.p).push(Object.assign(o, {ry:Math.floor(h3(pr.x, pr.y, 14) * 4) * Math.PI / 2})); }
     else if(pr.kind === 'r') byKind['r' + Math.floor(h3(pr.x, pr.y, 15) * 3)].push(Object.assign(o, {ry:h3(pr.x, pr.y, 16) * TAU}));
     else byKind[pr.kind].push(o);
   }
-  const propGeo = {p:G3.pillar, pb:G3.pillarBroken, r0:G3.rubble[0], r1:G3.rubble[1], r2:G3.rubble[2], k:G3.shelf, o:G3.statue};
+  const A = G3.aq;
+  const propGeo = AQ ? {p:A.p, pb:A.pb, r0:A.r[0], r1:A.r[1], r2:A.r[2], k:A.k, o:A.o, L:A.L}
+    : {p:G3.pillar, pb:G3.pillarBroken, r0:G3.rubble[0], r1:G3.rubble[1], r2:G3.rubble[2], k:G3.shelf, o:G3.statue, L:G3.lanternRuins};
+  for(const o of L.lanterns) D3.torches.push({x:(o.x + .5) * DT, y:86, z:(o.y + .5) * DT, i:o.i, f:h3(o.x, o.y, 17) * 10, lan:o});
   for(const k in byKind){
     const m = d3Instanced(propGeo[k], M.stone, byKind[k], (m, i, o) => d3Inst(m, i, o.x, 0, o.z, o.ry, 1, 1, 1), {cast:true});
     if(m && k !== 'r0' && k !== 'r1' && k !== 'r2') byKind[k].forEach((o, i) => occ(o.i, {mesh:m, idx:i, x:o.x, y:0, z:o.z, ry:o.ry, sx:1, sy:1, sz:1}));
   }
+  d3BuildWater();
   // gates
   for(const g of L.gates){
     const horiz = (isWall(g.x - 1, g.y) || L.t[g.i - 1] === TT.GATE) && (isWall(g.x + 1, g.y) || L.t[g.i + 1] === TT.GATE);
@@ -6426,6 +7828,15 @@ function d3PartLocal(pt, st, out){
     case 'orbit': { const a = t * 1.3 + pt.k; ox = Math.cos(a) * pt.R; oz = Math.sin(a) * pt.R; oy = Math.sin(t * 2 + pt.k) * 6; ry = t * 2 + pt.k; break; }
     case 'staff': rx += -.45 + Math.sin(ph) * .25 * mv - st.cast * 1.1; break;
     case 'sword': rx += -.5 + Math.sin(ph) * .3 * mv - st.swing * 1.2; ry -= st.swing * 1.4; break;
+    case 'throw': rx -= pose * 1.8; break;
+    case 'clawL': ry += Math.sin(t * 3 + st.seed) * .15 + pose * .35; rx -= pose * .5; break;
+    case 'clawR': ry -= Math.sin(t * 3 + st.seed) * .15 + pose * .35; rx -= pose * .5; break;
+    case 'wig': ox = Math.sin(t * 6 + pt.k + st.seed) * pt.R; ry += Math.cos(t * 6 + pt.k + st.seed) * .22; break;
+    case 'pulse': sc = 1 + Math.sin(t * 4 + st.seed) * .08; oy += Math.sin(t * 4 + st.seed) * 1.5; break;
+    case 'tent': rx += Math.sin(t * 3 + pt.k) * .35; rz += Math.cos(t * 2.6 + pt.k) * .3; break;
+    case 'wheel': rz += t * (1.5 + pose * 5); break;
+    case 'bite': rx -= pose * .35 + Math.sin(t * 1.4 + st.seed) * .05; break;
+    case 'jaw': rx += .12 + pose * .55 + Math.sin(t * 2) * .05; break;
   }
   R.e.set(rx, ry, rz); R.q.setFromEuler(R.e);
   R.v.set(pt.px + ox, pt.py + oy, pt.pz + oz); R.sc.set(sc, sc, sc);
@@ -6478,7 +7889,7 @@ function d3Characters(dt){
   if(g.state !== 'over' && !blink){
     const face = Math.atan2(p.fy, p.fx), roll = rolling ? (1 - R.t / DG_ROLL.time) * TAU : 0;
     const tint = p.poisonT > 0 ? RT.green : null;
-    d3Entity(g.char, null, p.x, p.y, face, VIS, {ph:p._ph, mv:p._mv, t:g.t, seed:0, pose:0, cast:D3.castT / .22, swing}, false, tint, 0, roll);
+    d3Entity(g.char, null, p.x, p.y, face, VIS, {ph:p._ph, mv:p._mv, t:g.t, seed:0, pose:0, cast:D3.castT / .22, swing}, false, tint, d3Wade(p.x, p.y), roll);
   }
   // enemies
   const cx = D3.cx, cy = D3.cy, far = D3.dist * 1.6;
@@ -6495,11 +7906,12 @@ function d3Characters(dt){
     e._ph = (e._ph || e.seed || 0) + v * dt * .09 * (12 / rig.r);
     const toP = Math.atan2(p.y - e.y, p.x - e.x), moveA = v > 12 ? Math.atan2(my, mx) : toP;
     const want = e.boss || Math.hypot(p.x - e.x, p.y - e.y) < 260 ? toP : moveA;
-    e._fa = e._fa === undefined ? want : lerpAngle(e._fa, want, Math.min(1, dt * 9));
+    e._fa = e.face !== undefined && sk.shell ? e.face : e._fa === undefined ? want : lerpAngle(e._fa, want, Math.min(1, dt * 9));
     const acting = e.boss ? !!e.act : (e.st === 'wind' || e.st === 'fuse' || e.aT < .35);
     e._pose = (e._pose || 0) + ((acting ? 1 : 0) - (e._pose || 0)) * Math.min(1, dt * 8);
-    const scale = e.r / rig.r * VIS;
-    const yOff = (e.rise > 0 ? -(e.rise / e.riseMax) * rig.r * 4.4 * scale : 0) + (e.airH || 0);
+    const scale = e.r / rig.r * VIS * (e.vis || 1);
+    const yOff = (e.rise > 0 ? -(e.rise / e.riseMax) * rig.r * 4.4 * scale : 0) + (e.airH || 0)
+      + (rig.float ? rig.float + Math.sin(g.t * 2 + (e.seed || 0)) * 3 : d3Wade(e.x, e.y) * (e.boss ? .5 : 1));
     d3Entity(sk.rig, e.skin, e.x, e.y, e._fa, scale, {ph:e._ph, mv:e._mv, t:g.t, seed:e.seed || 0, pose:e._pose, cast:0, swing:0},
       e.flash > 0 ? (e.boss ? .35 : .75) : 0, e.elite ? RT.gold : null, yOff, 0);
   }
@@ -6573,21 +7985,29 @@ function d3UpdateLevel(dt, ts){
   D3.lightT -= dt;
   if(D3.lightT <= 0){
     D3.lightT = .25;
-    D3.lit = D3.torches.filter(o => !(D3.cut.get(o.i) < .7)).sort((a, b) => ((a.x - D3.cx) ** 2 + (a.z - D3.cy) ** 2) - ((b.x - D3.cx) ** 2 + (b.z - D3.cy) ** 2)).slice(0, 6);
+    D3.lit = D3.torches.filter(o => !(D3.cut.get(o.i) < .7) && (!o.lan || o.lan.lit)).sort((a, b) => ((a.x - D3.cx) ** 2 + (a.z - D3.cy) ** 2) - ((b.x - D3.cx) ** 2 + (b.z - D3.cy) ** 2)).slice(0, 6);
   }
   D3.torchLights.forEach((l, k) => {
     const o = D3.lit && D3.lit[k];
     if(!o){ l.intensity = 0; return; }
     l.position.set(o.x, o.y + 6, o.z + 18);
-    l.intensity = 2.3 * (.85 + .15 * Math.sin(ts * 9 + o.f) * Math.sin(ts * 5.3 + o.f * 2));
+    l.color.set(o.lan ? '#ffcf6a' : D3.look.torch);
+    l.intensity = (o.lan ? 3.2 : 2.3) * (.85 + .15 * Math.sin(ts * 9 + o.f) * Math.sin(ts * 5.3 + o.f * 2));
   });
   for(const o of D3.torches){
     if(Math.abs(o.x - D3.cx) > 1400 || Math.abs(o.z - D3.cy) > 1400 || D3.cut.get(o.i) < .7) continue;
     const fl = .8 + .2 * Math.sin(ts * 11 + o.f);
-    gp(o.x, o.y, o.z, '#ff8a2a', 46 * fl, .75, 0);
-    gp(o.x, o.y + 2, o.z, '#ffd27a', 18 * fl, 1, .9);
-    gp(o.x + Math.sin(ts * 7 + o.f) * 3, o.y + 10 + (ts * 30 + o.f * 9) % 14, o.z, '#ffb23d', 9, .7, .5);
+    if(o.lan){
+      if(o.lan.lit){ gp(o.x, o.y, o.z, '#ffb84a', 70 * fl, .8, 0); gp(o.x, o.y, o.z, '#fff2c4', 22 * fl, 1, .9); }
+      else gp(o.x, o.y, o.z, '#5a7a90', 18, .35 + .15 * Math.sin(ts * 3 + o.f), 0);
+      continue;
+    }
+    const F = D3.look.flame;
+    gp(o.x, o.y, o.z, F[0], 46 * fl, .75, 0);
+    gp(o.x, o.y + 2, o.z, F[1], 18 * fl, 1, .9);
+    gp(o.x + Math.sin(ts * 7 + o.f) * 3, o.y + 10 + (ts * 30 + o.f * 9) % 14, o.z, F[2], 9, .7, .5);
   }
+  d3UpdateWater(dt, ts);
   d3Cutaway(dt);
 }
 function d3Things(dt, ts){
@@ -6642,6 +8062,7 @@ function d3Things(dt, ts){
       RT.m.compose(RT.v, RT.q, RT.sc); D3.arrows.setMatrixAt(na++, RT.m);
       gp(b.x, 26, b.y, '#ffd27a', 26, .35, 0);
     } else if(b.root){ gp(b.x, 24, b.y, '#f4f4f4', 46, .9, .7); }
+    else if(b.bubble){ gp(b.x, 24, b.y, b.color, b.r * 5.5, .7, .25); gp(b.x - b.r * .3, 27, b.y - b.r * .3, '#ffffff', b.r * 1.6, .9, 1); }
     else { gp(b.x, 24, b.y, b.color, b.r * 5, .95, .9); }
   }
   D3.arrows.count = na; D3.arrows.instanceMatrix.needsUpdate = true;
@@ -6700,7 +8121,7 @@ function d3Things(dt, ts){
   for(const m of D3.motes){
     m.h += m.v * dt; if(m.h > 260) m.h = 10;
     const x = cx + mod(m.x + ts * 6 - cx + 900, 1800) - 900, z = cy - 200 + mod(m.y - cy + 1100, 1800) - 900;
-    gp(x + Math.sin(ts * .7 + m.f) * 12, m.h, z, '#c8ff8a', m.s, .35 * (.5 + .5 * Math.sin(ts * 2 + m.f)), 0);
+    gp(x + Math.sin(ts * .7 + m.f) * 12, m.h, z, D3.look.mote, m.s * (D3.look.bubbles ? .7 : 1), .35 * (.5 + .5 * Math.sin(ts * 2 + m.f)), D3.look.bubbles ? .5 : 0);
   }
   // toxic bubbles on moss pools near you
   const L = G.dg.L;
@@ -6804,8 +8225,9 @@ function dgRender(now){
   ctx.globalAlpha = 1;
   ctx.drawImage(vignette, 0, 0, W, H);
   const ps = d3Project(p.x, 20, p.y);
-  if(isFinite(g.s.vision) && ps){
-    const ppu = H / (2 * Math.tan(D3.cam.fov * Math.PI / 360) * D3.dist), v = g.s.vision * ppu;
+  const visR = Math.min(g.s.vision, G.dg.vision);
+  if(isFinite(visR) && ps){
+    const ppu = H / (2 * Math.tan(D3.cam.fov * Math.PI / 360) * D3.dist), v = visR * ppu;
     const grd = ctx.createRadialGradient(ps[0], ps[1], v * .55, ps[0], ps[1], v);
     grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(1, 'rgba(2,6,4,0.96)');
     ctx.fillStyle = grd; ctx.fillRect(0, 0, W, H);
@@ -6844,7 +8266,11 @@ function dgMinimap(ts){
       else if(t === TT.WEB) col = '#a8aeb6';
       else if(t === TT.GATE) col = L.closed[i] ? '#ff6a3d' : '#c8b48a';
       else if(t === TT.CRUMBLE) col = '#9a8a6a';
-      else if(t === TT.PROP) col = '#3c4a42';
+      else if(t === TT.PROP) col = L.prop[i] === 76 ? (L.lanterns.find(o => o.i === i) || {}).lit ? '#ffcf6a' : '#5a6a78' : '#3c4a42';
+      else if(t === TT.DEEP) col = '#1f5a72';
+      else if(t === TT.CURRENT) col = '#2f84a4';
+      else if(t === TT.SLICK) col = '#3f9a7a';
+      else if(L.low[i]) col = D.flood && D.flood.level > .5 ? '#1f5a72' : '#4f6670';
       else col = L.z[i] === 10 ? '#8a5058' : L.z[i] ? '#7a7058' : '#5f7a63';
       c.fillStyle = col; c.fillRect(x * ps, y * ps, ps, ps);
     }
@@ -6900,6 +8326,170 @@ function d3Portrait(skinId){
     return D3.portraits[skinId] = url;
   }catch(err){ return ''; }
 }
+/* ---------- dungeon 3D: per-theme looks, water and lanterns ---------- */
+const D3LOOK = {
+  ruins:   {bg:'#0b1110', sky:'#c9dcff', ground:'#3d3428', hemi:1.7, sun:'#ffeccc', sunI:1.9, torch:'#ff9a48', flame:['#ff8a2a', '#ffd27a', '#ffb23d'], mote:'#c8ff8a', bubbles:false},
+  aqueduct:{bg:'#061419', sky:'#bfe6ff', ground:'#1c2c34', hemi:1.55, sun:'#d4ecff', sunI:1.6, torch:'#6fd8ff', flame:['#2fb8ff', '#d8f8ff', '#7fe8ff'], mote:'#bff4ff', bubbles:true},
+};
+function d3ApplyLook(){
+  const D = G.dg, th = dgThemeOf(D.floor).id, lk = D3LOOK[th], dark = !!D.def.dark;
+  D3.look = lk; D3.theme = th;
+  const bg = dark ? '#020608' : lk.bg;
+  D3.scene.background.set(bg); D3.scene.fog.color.set(bg);
+  D3.hemi.color.set(lk.sky); D3.hemi.groundColor.set(lk.ground); D3.hemi.intensity = lk.hemi * (dark ? .32 : 1);
+  D3.sun.color.set(lk.sun); D3.sun.intensity = lk.sunI * (dark ? .25 : 1);
+  D3.pLight.intensity = dark ? 2.2 : 1.1; D3.pLight.distance = dark ? 420 : 330;
+  for(const l of D3.torchLights) l.color.set(lk.torch);
+}
+function paintWater(x, S, r, base, hi){
+  x.fillStyle = base; x.fillRect(0, 0, S, S);
+  const wrapDo = (px, py, fn) => { for(const ox of [-S, 0, S]) for(const oy of [-S, 0, S]) fn(px + ox, py + oy); };
+  for(let k = 0; k < 18; k++){
+    const px = r() * S, py = r() * S, rr = 10 + r() * 26, a = .12 + r() * .2;
+    wrapDo(px, py, (qx, qy) => { const g = x.createRadialGradient(qx, qy, 0, qx, qy, rr); g.addColorStop(0, `rgba(${hi},${a})`); g.addColorStop(1, `rgba(${hi},0)`); x.fillStyle = g; x.fillRect(qx - rr, qy - rr, rr * 2, rr * 2); });
+  }
+  x.strokeStyle = `rgba(${hi},.35)`; x.lineWidth = 1.2;
+  for(let k = 0; k < 16; k++){ const px = r() * S, py = r() * S, w = 6 + r() * 14; wrapDo(px, py, (qx, qy) => { x.beginPath(); x.moveTo(qx, qy); x.quadraticCurveTo(qx + w / 2, qy - 3, qx + w, qy); x.stroke(); }); }
+}
+function d3TexturesAQ(){
+  const X = D3.tex;
+  X.aqFloor = d3Tex(d3Canvas(128, (x, S, r) => {
+    paintStone(x, S, r, 96);
+    x.globalCompositeOperation = 'multiply'; x.fillStyle = '#9ab8c8'; x.fillRect(0, 0, S, S); x.globalCompositeOperation = 'source-over';
+    for(let k = 0; k < 5; k++){ x.fillStyle = 'rgba(160,220,255,.12)'; x.beginPath(); x.ellipse(r() * S, r() * S, 6 + r() * 12, 3 + r() * 6, r() * 3, 0, TAU); x.fill(); }
+    paintCracks(x, S, r, 3, 'rgba(0,0,0,.35)');
+  }));
+  X.aqAlgae = d3Tex(d3Canvas(128, (x, S, r) => {
+    paintStone(x, S, r, 88);
+    x.globalCompositeOperation = 'multiply'; x.fillStyle = '#9ab8c8'; x.fillRect(0, 0, S, S); x.globalCompositeOperation = 'source-over';
+    for(let k = 0; k < 12; k++){ x.fillStyle = `rgba(${40 + r() * 20 | 0},${130 + r() * 50 | 0},${110 + r() * 30 | 0},${.35 + r() * .3})`; x.beginPath(); x.arc(r() * S, r() * S, S * (.03 + r() * .09), 0, TAU); x.fill(); }
+  }));
+  X.aqSlick = d3Tex(d3Canvas(128, (x, S, r) => {
+    x.fillStyle = '#1f6a52'; x.fillRect(0, 0, S, S);
+    for(let k = 0; k < 40; k++){ x.fillStyle = `rgba(${60 + r() * 60 | 0},${170 + r() * 60 | 0},${120 + r() * 50 | 0},.5)`; x.beginPath(); x.ellipse(r() * S, r() * S, 4 + r() * 14, 2 + r() * 6, r() * 3, 0, TAU); x.fill(); }
+    for(let k = 0; k < 30; k++){ x.fillStyle = 'rgba(230,255,240,.35)'; x.fillRect(r() * S, r() * S, 3, 1.4); }
+  }));
+  X.aqWall = d3Tex(d3Canvas(128, (x, S, r) => {
+    x.fillStyle = '#2a3238'; x.fillRect(0, 0, S, S);
+    for(let row = 0; row < 4; row++){
+      const off = row % 2 ? 32 : 0;
+      for(let col = -1; col < 3; col++){
+        const bx = col * 64 + off, by = row * 32, v = 92 + (r() * 26 - 13) | 0;
+        x.fillStyle = `rgb(${v - 8},${v + 2},${v + 10})`; x.fillRect(bx + 2, by + 2, 60, 28);
+        x.fillStyle = 'rgba(255,255,255,.08)'; x.fillRect(bx + 2, by + 2, 60, 3);
+        x.fillStyle = 'rgba(0,0,0,.25)'; x.fillRect(bx + 2, by + 26, 60, 4);
+      }
+    }
+    for(let k = 0; k < 9; k++){ const px = r() * S; const g = x.createLinearGradient(0, 0, 0, S); g.addColorStop(0, 'rgba(10,30,40,0)'); g.addColorStop(1, 'rgba(10,30,40,.45)'); x.fillStyle = g; x.fillRect(px, r() * S * .5, 3 + r() * 5, S); }
+    for(let k = 0; k < 600; k++){ x.fillStyle = r() < .5 ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.05)'; x.fillRect(r() * S, r() * S, 1.5, 1.5); }
+    for(let k = 0; k < 6; k++){ x.fillStyle = `rgba(${40 + r() * 30 | 0},${140 + r() * 50 | 0},${120 + r() * 40 | 0},.5)`; x.beginPath(); x.arc(r() * S, S * (.7 + r() * .3), 4 + r() * 10, 0, TAU); x.fill(); }
+  }));
+  X.water = d3Tex(d3Canvas(128, (x, S, r) => paintWater(x, S, r, '#0f4a5a', '170,240,255')));
+  X.flood = d3Tex(d3Canvas(128, (x, S, r) => paintWater(x, S, r, '#14505e', '190,245,255')));
+  X.flow = d3Tex(d3Canvas(128, (x, S, r) => {
+    paintWater(x, S, r, '#11566a', '170,240,255');
+    x.strokeStyle = 'rgba(220,250,255,.55)'; x.lineWidth = 2; x.lineCap = 'round';
+    for(let k = 0; k < 14; k++){ const px = r() * S, py = r() * S, l = 14 + r() * 26; for(const oy of [-S, 0, S]){ x.beginPath(); x.moveTo(px, py + oy); x.lineTo(px + (r() - .5) * 4, py + l + oy); x.stroke(); } }
+  }));
+  const T = D3.T, lam = o => new T.MeshLambertMaterial(o);
+  D3.MA = {
+    floor: lam({map:X.aqFloor, vertexColors:true}), moss: lam({map:X.aqAlgae, vertexColors:true}), slick: lam({map:X.aqSlick, vertexColors:true}),
+    stair: D3.M.stair, crumble: D3.M.crumble, wall: lam({map:X.aqWall, vertexColors:true}),
+    water: new T.MeshBasicMaterial({map:X.water, color:'#9fdcf0', transparent:true, opacity:.8, depthWrite:false}),
+    flow: new T.MeshBasicMaterial({map:X.flow, color:'#a8e8f8', transparent:true, opacity:.85, depthWrite:false}),
+    flood: new T.MeshBasicMaterial({map:X.flood, color:'#9fdcf0', transparent:true, opacity:.78, depthWrite:false}),
+  };
+  D3.MA.slickTile = D3.MA.slick;
+  // the rising water of floor 10 uses its own material so its texture can scroll separately
+  D3.MA.rise = new T.MeshBasicMaterial({map:X.flood, color:'#7fd0e8', transparent:true, opacity:.82, depthWrite:false});
+  D3.M.slick = D3.MA.slick;
+}
+function d3GeometriesAQ(){
+  const T = D3.T, G3 = D3.geo;
+  const stone = (g, hex, algaeBelow) => { const c = new T.Color(hex), m = new T.Color('#3f9a84'); return gColor(g, (x, y) => { const k = .75 + .25 * Math.min(1, y / 60); return y < (algaeBelow || 0) ? [m.r, m.g, m.b] : [c.r * k, c.g * k, c.b * k]; }); };
+  const A = G3.aq = {};
+  A.p = gMerge([stone(gBox(54, 14, 54, 0, 7, 0), '#8a98a2', 12), stone(gCyl(20, 22, 152, 10, 0, 90, 0), '#97a6b0', 34), stone(gBox(52, 12, 52, 0, 172, 0), '#8a98a2'),
+    gTint(gBox(42, 4, 42.5, 0, 40, 0), '#3f9a84')]);
+  A.pb = gMerge([stone(gBox(54, 14, 54, 0, 7, 0), '#8a98a2', 12), stone(gCyl(20, 22, 64, 10, 0, 46, 0), '#97a6b0', 34), stone(gBox(26, 14, 22, 30, 7, 18), '#7c8a94')]);
+  const rub = seed => { const r = mulberry(seed), list = []; for(let k = 0; k < 6; k++){ const s = 12 + r() * 20; list.push(stone(gBox(s * (1 + r() * .6), s * .7, s, (r() - .5) * 36, s * .35, (r() - .5) * 36), k % 3 ? '#7c8a94' : '#6c7a84', k ? 0 : 6)); } return gMerge(list); };
+  A.r = [rub(13), rub(17), rub(19)];
+  // crates and barrels
+  A.k = gMerge([gTint(gBox(30, 30, 30, -12, 15, -8), '#6a4a2a'), gTint(gBox(31, 4, 31, -12, 26, -8), '#3a2a1a'), gTint(gBox(31, 4, 31, -12, 4, -8), '#3a2a1a'),
+    gTint(gCyl(11, 11, 34, 10, 16, 17, 10), '#7a5532'), gTint(gCyl(11.5, 11.5, 3, 10, 16, 8, 10), '#4a4a50'), gTint(gCyl(11.5, 11.5, 3, 10, 16, 27, 10), '#4a4a50')]);
+  // a valve wheel on a pump pedestal
+  A.o = gMerge([stone(gBox(40, 26, 40, 0, 13, 0), '#7c8a94', 10), gTint(gCyl(9, 9, 40, 10, 0, 46, 0), '#4a5058'), gTint(gBox(36, 4, 4, 0, 66, 0), '#a85a32'),
+    gTint(gBox(4, 4, 36, 0, 66, 0), '#a85a32'), gTint(gCyl(18, 18, 4, 16, 0, 66, 0), '#8a4a2a'), gTint(gCyl(14, 14, 5, 16, 0, 66, 0), '#2a3238')]);
+  // a lantern on an iron post
+  A.L = gMerge([gTint(gBox(10, 6, 10, 0, 3, 0), '#3a3f48'), gTint(gBox(4, 70, 4, 0, 38, 0), '#3a3f48'), gTint(gBox(16, 4, 16, 0, 74, 0), '#3a3f48'),
+    gTint(gBox(14, 16, 14, 0, 84, 0), '#5a6068'), gTint(gBox(16, 3, 16, 0, 93, 0), '#3a3f48')]);
+  G3.lanternRuins = A.L;
+  for(const k in A){ const v = A[k]; for(const g of Array.isArray(v) ? v : [v]) g.userData.keep = true; }
+}
+// floor tiles that sit under water are lowered; the water itself is a layer of planes
+function d3BuildWater(){
+  const D = G.dg, L = D.L, W = L.W, G3 = D3.geo, MA = D3.MA;
+  const waters = [], flows = [], lows = [];
+  for(let y = 0; y < L.H; y++) for(let x = 0; x < W; x++){
+    const i = y * W + x, t = L.t[i];
+    if(t === TT.DEEP) waters.push({x, y});
+    else if(t === TT.CURRENT) flows.push({x, y, i, dir:L.cur[i]});
+    else if(L.low[i] && t !== TT.WALL) lows.push({x, y});
+  }
+  const rot = [Math.PI / 2, -Math.PI / 2, 0, Math.PI];
+  const wm = d3Instanced(G3.ground, MA.water, waters, (m, i, o) => d3Inst(m, i, o.x * DT + 32, -7, o.y * DT + 32, 0, 1, 1, 1), {recv:false});
+  if(wm) wm.renderOrder = 1;
+  D3.flowList = flows; D3.flowRot = rot; D3.flipState = false;
+  D3.flowMesh = d3Instanced(G3.ground, MA.flow, flows, (m, i, o) => d3Inst(m, i, o.x * DT + 32, -4, o.y * DT + 32, rot[o.dir], 1, 1, 1), {recv:false});
+  if(D3.flowMesh) D3.flowMesh.renderOrder = 1;
+  D3.floodMesh = d3Instanced(G3.ground, MA.flood, lows, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 0, o.y * DT + 32, 0, 1, 1, 1), {recv:false});
+  if(D3.floodMesh){ D3.floodMesh.renderOrder = 1; D3.floodMesh.position.y = -40; }
+  D3.riseMeshes = [];
+  if(D.def.rising) for(const k in D.zones){
+    if(!D.zones[k].waves) continue;
+    const mesh = new D3.T.Mesh(new D3.T.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), MA.rise);
+    mesh.renderOrder = 1; mesh.visible = false; D3.level.add(mesh);
+    D3.riseMeshes.push({mesh, Z:D.zones[k], box:L.zoneBox[k]});
+  }
+}
+// floors under water sit lower so the water reads as deep
+function d3TileDepth(L, i){
+  const t = L.t[i];
+  if(t === TT.DEEP) return -26;
+  if(t === TT.CURRENT) return -14;
+  if(L.low[i]) return -18;
+  return 0;
+}
+function d3FlipCurrents(){}
+function d3UpdateWater(dt, ts){
+  const D = G.dg, X = D3.tex;
+  if(!X.water) return;
+  X.water.offset.set(ts * .03, ts * .018);
+  X.flood.offset.set(-ts * .02, ts * .025);
+  X.flow.offset.set(0, ts * 1.9);
+  if(D3.floodMesh){ const lv = D.flood ? D.flood.level : 0; D3.floodMesh.position.y = -40 + lv * 36; D3.floodMesh.visible = lv > .02; }
+  for(const R of D3.riseMeshes || []){
+    const Zw = R.Z.water;
+    if(!Zw){ R.mesh.visible = false; continue; }
+    const top = Zw.y, bot = (R.box.y1 + 1) * DT, x0 = R.box.x0 * DT, x1 = (R.box.x1 + 1) * DT;
+    if(bot - top < 2){ R.mesh.visible = false; continue; }
+    R.mesh.visible = true;
+    R.mesh.scale.set(x1 - x0, 1, bot - top); R.mesh.position.set((x0 + x1) / 2, 7, (top + bot) / 2);
+    if(Math.random() < .3) gp(x0 + Math.random() * (x1 - x0), 9, top + rand(-4, 4), '#d8f8ff', 22, .5, .3);
+  }
+  // Floodgates reverse the currents in the boss chamber
+  const flipped = D.curFlip > 0;
+  if(D3.flowMesh && flipped !== D3.flipState){
+    D3.flipState = flipped;
+    D3.flowList.forEach((o, i) => { const z = D.L.z[o.i] === 10; d3Inst(D3.flowMesh, i, o.x * DT + 32, -4, o.y * DT + 32, D3.flowRot[o.dir] + (flipped && z ? Math.PI : 0), 1, 1, 1); });
+    D3.flowMesh.instanceMatrix.needsUpdate = true;
+  }
+}
+// how far a character sinks where it stands
+function d3Wade(x, y){
+  if(!G.dg) return 0;
+  const w = dgWaterAt(x, y);
+  return w === 2 ? -15 : w === 1 ? -8 : 0;
+}
 /* ---------- dungeon: base menu ---------- */
 const BLANK_IMG = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 function dgFloorUnlocked(n){ return n >= 1 && n <= save.dg.reached; }
@@ -6914,7 +8504,7 @@ function dgPortraitSrc(skin){
 }
 function dgFloorCard(f){
   const un = dgFloorUnlocked(f.n), on = B.floor === f.n, cleared = save.dg.cleared[f.n];
-  return `<button class="dgf ${on ? 'on' : ''}" style="--sc:${DG_THEMES[0].accent}" ${un ? `data-act="floor" data-id="${f.n}"` : 'disabled'}>
+  return `<button class="dgf ${on ? 'on' : ''}" style="--sc:${dgThemeOf(f.n).accent}" ${un ? `data-act="floor" data-id="${f.n}"` : 'disabled'}>
     ${cleared ? '<span class="sclr">CLEARED</span>' : ''}
     <span class="dn">B${f.n}</span>
     <span class="dname">${un ? esc(f.name) : ico('lock') + ' Locked'}</span>
@@ -6927,28 +8517,33 @@ function dgBriefHtml(f){
   const rw = [];
   if(save.dg.cleared[f.n]) rw.push(`<span class="rchip done">${ico('check')} First-clear reward claimed</span>`);
   else { for(const i of f.reward.items) rw.push(`<span class="rchip rew">${ico(i)} ${ITEMS[i].name}</span>`); rw.push(`<span class="rchip rew">${ico('coin')} ${f.reward.coins}</span>`); }
-  return `<div class="brief dgbrief" style="--sc:${DG_THEMES[0].accent}">
-    <div><div class="lbl" style="margin:0">Floor ${f.n} · ${DG_THEMES[0].name}</div><h2>${esc(f.name)}</h2><p>${esc(f.desc)}</p></div>
+  const th = dgThemeOf(f.n);
+  return `<div class="brief dgbrief" style="--sc:${th.accent}">
+    <div><div class="lbl" style="margin:0">Floor ${f.n} · ${th.name}</div><h2>${esc(f.name)}</h2><p>${esc(f.desc)}</p></div>
     <div class="chips">${f.tags.map(t => `<span class="rchip">${ico('warn')} ${esc(t)}</span>`).join('')}</div>
     <div><div class="lbl">Enemies</div><div class="foes">${f.foes.map(foe).join('')}${boss(f.boss, f.boss2 ? 'Floor boss' : 'Boss')}${f.boss2 ? boss(f.boss2, 'Theme boss') : ''}</div>
       <div class="note" style="margin-top:6px">${SKINS[f.boss].about}${f.boss2 ? ' Then: ' + SKINS[f.boss2].about : ''}</div></div>
     <div><div class="lbl">Dungeon rules</div><ul class="dgrules">
       <li>${ico('reroll')}<span>Your level <b>resets to 1 on every floor</b>, and each level needs 1.1× the XP of the one before (1.08× in the stages). XP gems stay where enemies fall, so go and collect them.</span></li>
+      <li>${ico('warn')}<span>Enemies get <b>tougher and a little bigger the farther they are from the start</b> (up to ×1.35 HP and damage at the far end; ×0.8 near the start).</span></li>
       <li>${ico('coin')}<span>Coins and relics you pick up are <b>not safe yet</b>. Step into the exit portal after the boss to keep them.</span></li>
       <li>${ico('skull')}<span>If you die, you go back to base and lose only what you had not secured.</span></li>
       <li>${ico('portal')}<span>Every portal you reach lets you start from the next floor later.</span></li>
-      <li>${ico('gem')}<span>Elites and bosses drop <b>relics</b>: items that match their enemy type (melee, poison or ranged).</span></li>
+      <li>${ico('gem')}<span>Elites and bosses drop <b>relics</b>: items that match their enemy type.</span></li>
       <li>${ico('roll')}<span><b>Dodge roll</b> with <kbd>Space</kbd> or the roll button. Nothing can hit you mid-roll.</span></li></ul></div>
     <div><div class="lbl">First clear reward</div><div class="chips">${rw.join('')}</div></div></div>`;
 }
 function renderDungeon(){
   if(!dgFloorUnlocked(B.floor)) B.floor = Math.min(save.dg.reached, DG_FLOORS.length);
-  const f = DG_FLOORS[B.floor - 1], th = DG_THEMES[0];
-  let h = `<div class="pagehead"><div><h2>Dungeon</h2><p>${DG_FLOORS_TOTAL} floors underground, in 3D. Your loadout works here too, with one budget for the whole theme.</p></div></div>`;
-  h += `<div class="dgtheme" style="--sc:${th.accent}"><span class="tn">Theme 1 of ${DG_THEMES_TOTAL}</span><b>${th.name}</b><span>Floors ${th.first}–${th.last} · Budget ${DG_STAGE.budget} pts · ${th.desc}</span></div>`;
-  h += `<div class="dgfloors">${DG_FLOORS.map(dgFloorCard).join('')}
-    <div class="dgf more"><span class="dn">B${DG_FLOORS.length + 1}–${DG_FLOORS_TOTAL}</span><span class="dname">${DG_THEMES_TOTAL - 1} more themes</span><span class="dmeta">Not built yet</span></div></div>`;
-  h += `<div class="play split">${dgBriefHtml(f)}${previewHtml(DG_STAGE)}</div>`;
+  const f = DG_FLOORS[B.floor - 1];
+  let h = `<div class="pagehead"><div><h2>Dungeon</h2><p>${DG_FLOORS_TOTAL} floors underground, in 3D. Your loadout works here too, with one budget for each theme.</p></div></div>`;
+  DG_THEMES.forEach((th, ti) => {
+    const st = DG_STAGES.find(s => s.theme === th.id), floors = DG_FLOORS.filter(x => x.n >= th.first && x.n <= th.last);
+    h += `<div class="dgtheme" style="--sc:${th.accent}"><span class="tn">Theme ${ti + 1} of ${DG_THEMES_TOTAL}</span><b>${th.name}</b><span>Floors ${th.first}–${th.last} · Budget ${st.budget} pts · ${th.desc}</span></div>`;
+    h += `<div class="dgfloors">${floors.map(dgFloorCard).join('')}${ti === DG_THEMES.length - 1
+      ? `<div class="dgf more"><span class="dn">B${DG_FLOORS.length + 1}–${DG_FLOORS_TOTAL}</span><span class="dname">${DG_THEMES_TOTAL - DG_THEMES.length} more themes</span><span class="dmeta">Not built yet</span></div>` : ''}</div>`;
+  });
+  h += `<div class="play split">${dgBriefHtml(f)}${previewHtml(dgStageOf(B.floor))}</div>`;
   return h;
 }
 function dgStartFromHub(){
