@@ -940,6 +940,7 @@ function hash3(x, y, s){
 }
 function mulberry(a){ return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let TDEMO_RUN = false;   // true while the title's dungeon floor runs: no sound, banners, saves or level-up screens
 
 /* =====================================================================
    SAVE DATA
@@ -2158,6 +2159,7 @@ const SFX = {
   epic:    {gap:.3, play(){ arp([1046, 1318, 1568, 2093], .07, {type:'triangle', vol:.08, len:.3, at:.55}); }},
 };
 function sfx(name, p){
+  if(TDEMO_RUN) return;
   const a = AUDIO.ctx;
   if(!a || a.state !== 'running' || save.vol.mute || save.vol.sfx <= 0 || save.vol.master <= 0) return;
   const d = SFX[name]; if(!d) return;
@@ -2490,6 +2492,7 @@ function musicStep(C, step, t, sp){
 
 const MUSIC = {name:null, intensity:0, song:null, step:0, next:0, ducked:false, fresh:false};
 function setMusic(name, intensity){
+  if(TDEMO_RUN) return;   // the floor playing behind the title keeps the title song
   intensity = intensity || 0;
   if(name && intensity >= 2 && SONGS[name] && SONGS[name].boss) name = SONGS[name].boss;
   if(name && !SONGS[name]) name = 'ruins';
@@ -2918,7 +2921,7 @@ modal.addEventListener('click', e => {
 });
 
 /* =====================================================================
-   TITLE SCREEN — menu over a self-playing demo
+   TITLE SCREEN — menu over a self-playing demo (a live dungeon floor once 3D has loaded, see tdemoFrame)
    ===================================================================== */
 function renderTitle(){
   const cleared = DG_FLOORS.filter(f => save.dg.cleared[f.n]).length;
@@ -2936,11 +2939,12 @@ function renderTitle(){
       <button class="tl-btn" data-go="guide">${ico('guide')} How to play</button>
       <button class="tl-btn" data-go="settings">${ico('gear')} Settings</button>
     </nav>
+    <div class="tl-now"><small>NOW SHOWING</small><b id="tlStage" style="color:${TDEMO.floor ? dgThemeOf(TDEMO.floor).accent : ''}">${TDEMO.floor ? `B${TDEMO.floor} · ${DG_FLOORS[TDEMO.floor - 1].name}` : ''}</b></div>
     <div class="tl-stats"><span>${ico('stairs')} Floors cleared <b>${cleared} / ${DG_FLOORS.length}</b></span><span>${ico('gem')} Items <b>${owned} / ${Object.keys(ITEMS).length}</b></span>
       <span>${ico('spark')} Combos <b>${save.combos.length} / ${COMBOS.length}</b></span><span>${ico('coin', 'gold')} <b>${save.coins}</b></span></div>`;
 }
 function showTitle(){ hub.hidden = true; modal.hidden = true; titleEl.hidden = false; renderTitle(); setMusic('title'); }
-function goHub(t){ tab = t; titleEl.hidden = true; hub.hidden = false; hub.scrollTop = 0; renderHub(); setMusic('hub'); }
+function goHub(t){ tdemoStop(); tab = t; titleEl.hidden = true; hub.hidden = false; hub.scrollTop = 0; renderHub(); setMusic('hub'); }
 titleEl.addEventListener('click', e => {
   const b = e.target.closest('[data-go]'); if(!b) return;
   audioInit(); sfx('click');
@@ -4657,6 +4661,7 @@ function optCard(o, i){
     ${o.max ? pipsHtml(o.from, o.max) : ''}<div class="clines">${lines}</div></button>`;
 }
 function openLevelUp(){
+  if(TDEMO_RUN){ G.pendingLevels = G.pendingTreasure = 0; return; }
   G.state = 'levelup';
   joy.active = false; joy.dx = joy.dy = 0;
   const treasure = G.pendingTreasure > 0;
@@ -4717,7 +4722,7 @@ function srcLabel(k){
   return ITEMS[k] ? ico(k) + ' ' + ITEMS[k].name : k;
 }
 function endRun(win){
-  if(G.state === 'over') return;
+  if(TDEMO_RUN || G.state === 'over') return;
   G.state = 'over';
   dgEndRun(win);
 }
@@ -4736,6 +4741,7 @@ function backToHub(){
    ===================================================================== */
 let bannerT = 0;
 function showBanner(title, cls, sub){
+  if(TDEMO_RUN) return;
   const b = $('#banner');
   b.className = cls || '';
   b.innerHTML = `<div class="bt">${esc(title)}</div>${sub ? `<div class="bs">${esc(sub)}</div>` : ''}`;
@@ -4801,7 +4807,7 @@ function drawParts(list){
 function render(now){
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   if(!G){
-    if(!titleEl.hidden) renderDemo(); else renderBackdrop(now);
+    if(!titleEl.hidden){ if(!tdemoFrame(now)) renderDemo(); } else renderBackdrop(now);
     return;
   }
   if(G.dg){ dgRender(now); return; }
@@ -6858,6 +6864,7 @@ function dgObjective(){
   D.objective = s;
 }
 function dgFloorClear(){
+  if(TDEMO_RUN){ TDEMO.next = true; return; }   // the title demo moves on to another floor instead
   const D = G.dg, def = D.def, n = D.floor;
   G.state = 'portal';
   joy.active = false; joy.dx = joy.dy = 0;
@@ -8728,10 +8735,12 @@ function d3Characters(dt){
 function d3Camera(dt){
   const cam = D3.cam, p = G.p, asp = W / Math.max(1, H), tanH = Math.tan(cam.fov * Math.PI / 360);
   const dist = Math.max(880, 270 / (tanH * asp));
-  if(Math.abs(p.x - D3.cx) + Math.abs(p.y - D3.cy) > 700) D3.snap = true;
-  if(D3.snap){ D3.cx = p.x; D3.cy = p.y; D3.snap = false; }
+  // behind the title menu the hero sits right of the menu (or above it on narrow screens)
+  const tx = p.x - (TDEMO_RUN && asp > 1.2 ? .32 * tanH * dist * asp : 0), ty = p.y + (TDEMO_RUN && asp <= 1.2 ? 1.05 * tanH * dist : 0);
+  if(Math.abs(tx - D3.cx) + Math.abs(ty - D3.cy) > 700) D3.snap = true;
+  if(D3.snap){ D3.cx = tx; D3.cy = ty; D3.snap = false; }
   const k = 1 - Math.exp(-dt * 7);
-  D3.cx += (p.x - D3.cx) * k; D3.cy += (p.y - D3.cy) * k;
+  D3.cx += (tx - D3.cx) * k; D3.cy += (ty - D3.cy) * k;
   const sh = REDUCED ? 0 : Math.min(18, G.shake * 40), sx = rand(-sh, sh), sy = rand(-sh, sh);
   cam.position.set(D3.cx + sx, dist * .8, D3.cy + dist * .6 + sy);
   cam.lookAt(D3.cx + sx, 0, D3.cy - 30 + sy);
@@ -9047,7 +9056,7 @@ function dgRender(now){
   }
   if(p.poisonT > 0){ ctx.fillStyle = `rgba(90,255,60,${Math.min(.12, p.poisonT * .05)})`; ctx.fillRect(0, 0, W, H); }
   if(g.flash > 0){ ctx.fillStyle = `rgba(255,255,255,${Math.min(.5, g.flash * 1.6)})`; ctx.fillRect(0, 0, W, H); }
-  dgMinimap(ts);
+  if(!TDEMO_RUN) dgMinimap(ts);
   if(joy.active){
     ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(joy.ox, joy.oy, 50, 0, TAU); ctx.stroke();
@@ -9450,7 +9459,7 @@ function dgOverlayAQ(visR){
     for(const e of g.enemies) if(!e.dead && e.type === 'angler' && e.lurk) glow(e.x, e.y, 46, 90, 'rgba(255,200,110,A)', .7 + .25 * Math.sin(g.t * 5 + e.seed));
     ctx.globalCompositeOperation = 'source-over';
   }
-  if(!O || O.complete) return;
+  if(!O || O.complete || TDEMO_RUN) return;
   // rings that fill up as a valve turns or a pump runs
   if(O.kind === 'valves' || O.kind === 'pumps') for(const st of O.sites){
     if(st.state === 'done') continue;
@@ -9765,6 +9774,119 @@ function dgSkillHud(){
 }
 $('#flaskBtn').innerHTML = ico('flask') + '<small>FLASK</small>';
 $('#flaskBtn').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); dgFlask(); });
+/* ---------- title screen: a live dungeon floor plays behind the menu ----------
+   A hero walks a real floor on its own: it picks a far-off spot, follows a path there and fights
+   whatever comes. It cannot die, nothing is saved and it makes no sound. Every 40 s it fades to
+   another floor. Until the 3D engine has loaded (or without WebGL) the old 2D demo shows instead. */
+const TDEMO = {g:null, failed:false, loading:false, last:0, t:0, fade:1, floor:0, path:[], pi:0, stuckT:0, sx:0, sy:0, rollT:3, idx:-1};
+const TDEMO_FLOORS = [1, 6, 4, 9, 2, 7, 5, 10, 3];   // floor 8 is left out: it is dark until its lanterns are lit
+const TDEMO_LOADOUTS = [['mage', ['orbit', 'fireball', 'frost', 'tough']], ['knight', ['orbit', 'lightning', 'drone', 'swift']]];
+
+function tdemoStart(){
+  if(TDEMO.failed || TDEMO.loading) return;
+  TDEMO.loading = true;
+  d3Load().then(() => {
+    TDEMO.loading = false;
+    if(G || titleEl.hidden) return;
+    try{ d3Init(); tdemoFloor(); }catch(e){ TDEMO.failed = true; TDEMO.g = null; G = null; TDEMO_RUN = false; d3Show(false); $('#hud').hidden = true; }
+  }).catch(() => { TDEMO.loading = false; TDEMO.failed = true; });
+}
+function tdemoStop(){ TDEMO.g = null; if(!G) d3Show(false); }
+// starts the next floor through the normal dungeon entry, then puts the menus back the way they were
+function tdemoFloor(){
+  TDEMO.idx = (TDEMO.idx < 0 ? Math.floor(Math.random() * TDEMO_FLOORS.length) : TDEMO.idx + 1) % TDEMO_FLOORS.length;
+  const n = TDEMO_FLOORS[TDEMO.idx], [ch, items] = TDEMO_LOADOUTS[TDEMO.idx % 2];
+  const keep = {char:B.char, items:B.items, modal:modal.hidden, hub:hub.hidden};
+  TDEMO_RUN = true;
+  try{
+    B.char = ch; B.items = items.slice();
+    dgEnter(n);
+    G.dg.sk = {}; dgSkillsFloor();
+    G.weaponLvl = 5; for(const id in G.ab) G.ab[id] = 5; for(const id in G.pos) G.pos[id] = 3;
+    recalcStats(); G.p.hp = G.p.maxHp; G.xpNeed = 1e12;
+    TDEMO.g = G;
+  } finally {
+    G = null; TDEMO_RUN = false;
+    B.char = keep.char; B.items = keep.items;
+    titleEl.hidden = false; hub.hidden = keep.hub; modal.hidden = keep.modal; $('#hud').hidden = true;
+  }
+  Object.assign(TDEMO, {t:0, fade:1, floor:n, path:[], pi:0, stuckT:0, rollT:3});
+  const el = $('#tlStage');
+  if(el){ el.textContent = `B${n} · ${DG_FLOORS[n - 1].name}`; el.style.color = dgThemeOf(n).accent; }
+}
+// a path over open tiles to a random spot 20-70 tiles away
+function tdemoPath(){
+  const L = G.dg.L, W = L.W, N = W * L.H, p = G.p;
+  const s = Math.floor(p.y / DT) * W + Math.floor(p.x / DT);
+  const prev = new Int32Array(N).fill(-1), dist = new Int16Array(N).fill(-1), q = [s];
+  dist[s] = 0;
+  const far = [];
+  for(let h = 0; h < q.length; h++){
+    const i = q[h], x = i % W, y = (i - x) / W;
+    if(dist[i] >= 20 && dist[i] <= 70) far.push(i);
+    for(const [dx, dy] of N4){
+      const nx = x + dx, ny = y + dy, j = ny * W + nx;
+      if(dgWalkBlocked(L, nx, ny) || dist[j] >= 0 || L.t[j] === TT.CRUMBLE) continue;
+      dist[j] = dist[i] + 1; prev[j] = i; q.push(j);
+    }
+  }
+  const pool = far.length ? far : q.slice(Math.floor(q.length / 2));
+  let i = pool[Math.floor(Math.random() * pool.length)];
+  const path = [];
+  while(i >= 0 && i !== s){ path.push(i); i = prev[i]; }
+  TDEMO.path = path.reverse(); TDEMO.pi = 0;
+}
+function tdemoDrive(dt){
+  const L = G.dg.L, p = G.p, T = TDEMO;
+  if(T.pi >= T.path.length) tdemoPath();
+  // skip ahead to the farthest waypoint within a few tiles that is in plain sight
+  while(T.pi + 1 < T.path.length){
+    const j = T.path[T.pi + 1], x = (j % L.W + .5) * DT, y = (Math.floor(j / L.W) + .5) * DT;
+    if(Math.hypot(x - p.x, y - p.y) < DT * 3 && dgLos(p.x, p.y, x, y)) T.pi++; else break;
+  }
+  const i = T.path[T.pi];
+  if(i === undefined){ joy.active = false; return; }
+  const tx = (i % L.W + .5) * DT, ty = (Math.floor(i / L.W) + .5) * DT, d = Math.hypot(tx - p.x, ty - p.y);
+  if(d < 18) T.pi++;
+  joy.active = true; joy.dx = d > 1 ? (tx - p.x) / d : 0; joy.dy = d > 1 ? (ty - p.y) / d : 0;
+  // repath when stuck behind something
+  T.stuckT += dt;
+  if(T.stuckT > 1.2){ if(Math.hypot(p.x - T.sx, p.y - T.sy) < 30) tdemoPath(); T.stuckT = 0; T.sx = p.x; T.sy = p.y; }
+  // roll now and then when something gets close
+  T.rollT -= dt;
+  if(T.rollT <= 0){ T.rollT = 2.5 + Math.random() * 3; if(G.enemies.some(e => !e.dead && Math.hypot(e.x - p.x, e.y - p.y) < 140)) dgRoll(); }
+}
+// called from render() while the title is up; returns false when the 2D demo should draw instead
+function tdemoFrame(now){
+  if(!TDEMO.g){ tdemoStart(); return false; }
+  const dt = Math.min(.05, Math.max(0, (now - (TDEMO.last || now)) / 1000)), T = TDEMO;
+  T.last = now;
+  const keepJoy = {a:joy.active, dx:joy.dx, dy:joy.dy}, keepKeys = Object.assign({}, keys);
+  for(const k in keys) keys[k] = false;
+  G = T.g; TDEMO_RUN = true;
+  let next = false;
+  try{
+    const g = G, p = g.p;
+    if(g.state !== 'play') g.state = 'play';
+    tdemoDrive(dt);
+    update(REDUCED ? dt * .4 : dt);
+    p.hp = p.maxHp; g.pendingLevels = g.pendingTreasure = 0; g.xpNeed = 1e12;
+    joy.active = false;   // the demo's steering is not a finger on the screen: no joystick ring
+    dgRender(now);
+    T.t += dt;
+    next = T.t > 40 || T.next;
+  }catch(e){ T.failed = true; T.g = null; }
+  finally {
+    G = null; TDEMO_RUN = false;
+    joy.active = keepJoy.a; joy.dx = keepJoy.dx; joy.dy = keepJoy.dy; Object.assign(keys, keepKeys);
+  }
+  if(!T.g){ d3Show(false); return false; }
+  // fade in at the start of a floor, out before the next one
+  T.fade = next ? Math.min(1, T.fade + dt * 1.5) : Math.max(0, T.fade - dt * .8);
+  if(T.fade > 0){ ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.fillStyle = `rgba(9,11,24,${T.fade})`; ctx.fillRect(0, 0, W, H); }
+  if(next && T.fade >= 1){ T.next = false; tdemoFloor(); }
+  return true;
+}
 
 // ---------- main loop ----------
 let last = performance.now();
@@ -9772,7 +9894,7 @@ function frame(now){
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   if(G && G.state === 'play') update(dt);
-  else if(!G && !titleEl.hidden) demoUpdate(REDUCED ? dt * .4 : dt);
+  else if(!G && !titleEl.hidden && !TDEMO.g) demoUpdate(REDUCED ? dt * .4 : dt);
   if(G){ G.hudT -= dt; if(G.hudT <= 0){ G.hudT = 0.08; updateHud(); } }
   render(now);
   requestAnimationFrame(frame);

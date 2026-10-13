@@ -1,6 +1,6 @@
 # Loadout Survivors
 
-A browser survivor-like dungeon crawler with a deckbuilding twist. Open `index.html` in any browser. No build step; the 3D view loads [Three.js](https://threejs.org) from a CDN the first time you enter the dungeon.
+A browser survivor-like dungeon crawler with a deckbuilding twist. Open `index.html` in any browser. No build step; the 3D view loads [Three.js](https://threejs.org) from a CDN when the page opens.
 
 ## Core idea
 
@@ -12,6 +12,7 @@ A browser survivor-like dungeon crawler with a deckbuilding twist. Open `index.h
 - Runs have elites, treasure chests, drops (heal, magnet, bomb) and a kill chain that boosts XP.
 - New items come from first clears, relic drops and the **gacha**. The first clear of floor 1 also unlocks the Knight.
 - Loadouts can be saved to 6 slots.
+- Behind the title menu a real dungeon floor plays itself: a hero walks the map, fights whatever comes and moves on to another floor every 40 seconds (`tdemoFrame`). It cannot die, saves nothing and makes no sound. Without WebGL the old 2D demo shows instead.
 
 The game used to have a second, 2D mode of ten timed survival stages. It was removed so everything happens in the dungeon; its last version is kept for reference in `reference/stages-2d.html` (it still plays on its own). The stages' first-clear items moved to the dungeon floors with the same number, and the 2D engine underneath (movement, weapons, enemies, level-ups) is what the dungeon runs on.
 
@@ -53,7 +54,7 @@ All content lives in the data tables at the top of the script in `index.html`:
 - `CHARACTERS`, `WEAPONS`
 - `ICONS`: line icons as SVG paths, used in the menus and on the canvas
 - `SONGS` (the music), `SFX` (sound effects)
-- `STAGES`, `TILES`, `PROPS` and `DRAW` are left from the 2D mode; they now only draw the animated 2D backgrounds behind the title and base menus
+- `STAGES`, `TILES`, `PROPS` and `DRAW` are left from the 2D mode; they now only draw the base menu's background and the title's fallback when 3D is not available
 - Dungeon: `DG_FLOORS` (each floor's ASCII map, boss, enemy packs, objective and first-clear rewards: coins, items and characters; the map legend is in the comment at the top of the dungeon code), `DG_THEMES`, `DG_STAGES` (one loadout budget per theme), `DG_PACKS`, `DG_RELICS`, `DG_AI` (the aqueduct enemies' attacks), `DG_SKILLS` (the skill tree), `D3FLOOR` (per-floor looks), and `RIGS` (the blocky 3D models, one list of boxes per enemy or hero)
 
 A new item's numbers go in `ITEMS`: `lv(L)` returns its stats at level L, and `show` lists which stats the level-up cards display. Its behavior goes in `recalcStats()` (passive traits) or `useAbility()` (active abilities).
