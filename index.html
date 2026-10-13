@@ -4624,13 +4624,13 @@ const DG_FLOORS = [
 ##......,.....######......r.....r....r......r................r...........r...######,.....,.....##
 ##..r......r..######...p.....p..,..p.....p.....p.....p.....p.....p.....p.....######.,.,.,...,,.##
 ##............######.................................................,.......######...,,,,.,.,,##
-##.......,.....................,.....,....,...,......,..................,................,.,.,.##
+##.......,.....................,.....,....,...,......,........z.........,................,.,.,.##
 ##..r....,.r..........................,.,..........................................,.o..,,.....##
-##.....,z.,.,........,......,.....................................z................,..,.z.,...,##
+##.....,z.,.,........,......,.......z.............................z................,..,.z.,...,##
 ##............................z.....................................................,,..,......##
-##..r......r....................,,.....,........z............,.,.....,..............o,r,.,,,..,##
+##..r......r....................,,.....,.....................,.,.....,..............o,r,.,,,..,##
 ##............######....................,.....,..........,...................######..,...,,,,..##
-##............######.......................,,...........z....................######....r,.,.,,.##
+##............######.......................,,................................######....r,.,.,,.##
 ##..r......r..######...p.....p.....p.....p.....p.....p,....p.....p.....p,....######.,..,....r..##
 ##......,.....######.............,,..,.....................,..........,......######,.......,...##
 ##............#######.......................................................#######......,.....##
@@ -4836,8 +4836,8 @@ const DG_FLOORS = [
 ###...............##########.kkk....~~~~~~~~~~~~~ccc~~~~~~~~~~~~~....kkk.##########..cccccccccc..###
 ###...............##########...,....~~~~~~~~~~~~~ccc~~~~~~~~~~~~~........##########..cccccccccc..###
 ###..kkkkk.kkkkk..##########.........kk.....,..kk....kk........kk........##########..............###
-###...............##########..........................,.,.,.,............##########..............###
-###...............##########..z....,....s...................a............##########..........s...###
+###...............##########..........................,...,.,............##########..............###
+###...............##########..z...s,....,.........................a......##########..........s...###
 ###...............###########...........................................###########..............###
 ###.............$.#############################.......#############################..............###
 ####.............##############################.......##############################............####
@@ -5081,7 +5081,7 @@ const DG_FLOORS = [
 ##################.................#################
 #########...................................########
 ########..........................,......,...#######
-########.....................................#######
+########........................a............#######
 ########.................,x..................#######
 ##..........p,......p...,.......p....,..p..........#
 ##.............r..,..,.....,..........,............#
@@ -5089,17 +5089,27 @@ const DG_FLOORS = [
 ##..........,.....,............,...................#
 ##.$......,.....z................r..s............$.#
 ##.......,,........................................#
-##..............r.........a....,...................#
+##..............r..............,...................#
 ##.................................................#
 ##.........,..............................,........#
-########..,..................................#######
+########..,.s...........................z....#######
 ########....p.......p.r......,..p.......p....#######
 ########..............................r......#######
-########....s.............P........,....z....#######
+########...........................,.........#######
 ########.............,..,....,...............#######
 #########...................................########
-####################################################
-####################################################
+########################.....#######################
+########################.....#######################
+########################.....#######################
+########################.....#######################
+########################.....#######################
+###################...............##################
+##################...,.r...........#################
+##################..o.........,.o..#################
+##################...,......,......#################
+##################....,...Pr.......#################
+##################..,..,,..........#################
+###################...............##################
 ####################################################
 `},
 ];
@@ -5281,7 +5291,7 @@ function dgEnter(n){
 function dgLoadFloor(n){
   const def = DG_FLOORS[n - 1], D = G.dg, L = dgParse(def), N = L.W * L.H;
   Object.assign(D, {floor:n, def, L, flow:new Int16Array(N), flowKey:-1, flowDirty:true, q:new Int32Array(N), seen:new Uint8Array(N), seenT:0,
-    mapDirty:true, crumble:new Map(), trickT:5, zones:{}, portal:null, bossQ:null, objective:'', safe:null, chainBoss:false});
+    mapDirty:true, crumble:new Map(), trickT:25, zones:{}, portal:null, bossQ:null, objective:'', safe:null, chainBoss:false});
   for(const k of L.zoneIds) D.zones[k] = {id:k, state:'idle', boss:k === 10, waves:k === 10 ? null : def.zones[k].waves, wi:0, wait:0, alive:0};
   for(const k of ['enemies','projs','ebullets','gems','pickups','puddles','fx','parts','texts','hazards']) G[k] = [];
   G.boss = null; $('#bossbar').hidden = true;
@@ -5321,6 +5331,27 @@ function dgSpot(cx, cy, rad){
   }
   return [cx, cy];
 }
+// n spots around (cx, cy) on open floor in sight of the centre (so they stay in the same room),
+// at least `gap` apart and, when possible, not right next to you
+function dgSpread(cx, cy, n, gap){
+  const L = G.dg.L, p = G.p, out = [], rad = Math.max(150, Math.sqrt(n) * 78);
+  let g = gap;
+  for(let i = 0; i < n; i++){
+    let spot = null;
+    for(let k = 0; k < 40 && !spot; k++){
+      if(k && k % 12 === 0) g *= .8;
+      const a = Math.random() * TAU, r = Math.sqrt(Math.random()) * rad, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+      const tx = Math.floor(x / DT), ty = Math.floor(y / DT);
+      if(dgWalkBlocked(L, tx, ty) || L.t[ty * L.W + tx] === TT.POOL || L.z[ty * L.W + tx]) continue;
+      if(!dgLos(cx, cy, x, y)) continue;
+      if(k < 30 && Math.hypot(x - p.x, y - p.y) < 230) continue;
+      if(out.some(o => Math.hypot(o[0] - x, o[1] - y) < g)) continue;
+      spot = [x, y];
+    }
+    out.push(spot || dgSpot(cx, cy, 60));
+  }
+  return out;
+}
 function dgSpawn(type, x, y, elite, zone){
   if(G.enemies.length >= MAX_ENEMIES) return null;
   spawnEnemy(type, x, y, elite);
@@ -5331,12 +5362,13 @@ function dgSpawn(type, x, y, elite, zone){
   if(G.parts.length < 600) burst(e.x, e.y, '#9a8a6a', 5, 110);
   return e;
 }
-function dgSpawnGroup(comp, cx, cy, rad, zone){
-  for(const type in comp){
-    if(type === 'elite') continue;
-    for(let i = 0; i < comp[type]; i++){ const [x, y] = dgSpot(cx, cy, rad); dgSpawn(type, x, y, false, zone); }
-  }
-  if(comp.elite){ const [x, y] = dgSpot(cx, cy, rad * .5); dgSpawn(comp.elite, x, y, true, zone); showBanner('ELITE', 'elite', 'It carries a relic. Defeat it'); sfx('elite'); }
+function dgSpawnGroup(comp, cx, cy, zone){
+  const list = [];
+  if(comp.elite) list.push([comp.elite, true]);
+  for(const type in comp){ if(type !== 'elite') for(let i = 0; i < comp[type]; i++) list.push([type, false]); }
+  const spots = dgSpread(cx, cy, list.length, 62);
+  list.forEach(([type, elite], i) => dgSpawn(type, spots[i][0], spots[i][1], elite, zone));
+  if(comp.elite){ showBanner('ELITE', 'elite', 'It carries a relic. Defeat it'); sfx('elite'); }
 }
 function dgPickMix(mix){
   let tot = 0; for(const k in mix) tot += mix[k];
@@ -5368,7 +5400,7 @@ function dgTick(dt){
   for(const pk of L.packs){
     if(pk.done) continue;
     const fd = D.flow[pk.y * L.W + pk.x], dd = Math.hypot((pk.x + .5) * DT - p.x, (pk.y + .5) * DT - p.y);
-    if((fd >= 0 && fd <= 9) || dd < 5 * DT){ pk.done = true; const comp = DG_PACKS[pk.kind].make(D.floor); if(pk.elite) comp.elite = DG_PACKS[pk.kind].elite; dgSpawnGroup(comp, (pk.x + .5) * DT, (pk.y + .5) * DT, 110, 0); }
+    if((fd >= 0 && fd <= 9) || dd < 5 * DT){ pk.done = true; const comp = DG_PACKS[pk.kind].make(D.floor); if(pk.elite) comp.elite = DG_PACKS[pk.kind].elite; dgSpawnGroup(comp, (pk.x + .5) * DT, (pk.y + .5) * DT, 0); }
   }
   for(const c of L.chests) if(!c.open && Math.hypot((c.x + .5) * DT - p.x, (c.y + .5) * DT - p.y) < 42){ dgOpenChest(c); if(G.state !== 'play') return; }
   dgZones(dt, pi);
@@ -5430,9 +5462,20 @@ function dgSpawnWave(Z){
   Z.wi++;
   const far = tiles.filter(i => Math.hypot((i % L.W + .5) * DT - p.x, (Math.floor(i / L.W) + .5) * DT - p.y) > 4 * DT);
   const pool = far.length ? far : tiles;
-  const one = type => { const i = pool[Math.floor(Math.random() * pool.length)]; dgSpawn(type, (i % L.W + .5) * DT + rand(-16, 16), (Math.floor(i / L.W) + .5) * DT + rand(-16, 16), false, Z.id); };
-  for(const type in w){ if(type === 'elite') continue; for(let i = 0; i < w[type]; i++) one(type); }
-  if(w.elite){ const i = pool[Math.floor(Math.random() * pool.length)]; dgSpawn(w.elite, (i % L.W + .5) * DT, (Math.floor(i / L.W) + .5) * DT, true, Z.id); sfx('elite'); }
+  // spread the wave over the whole section, a little apart from each other
+  const used = [];
+  const spot = () => {
+    let best = null;
+    for(let k = 0; k < 16; k++){
+      const i = pool[Math.floor(Math.random() * pool.length)], x = (i % L.W + .5) * DT + rand(-14, 14), y = (Math.floor(i / L.W) + .5) * DT + rand(-14, 14);
+      const gap = used.reduce((m, o) => Math.min(m, Math.hypot(o[0] - x, o[1] - y)), 1e9);
+      if(!best || gap > best[2]) best = [x, y, gap];
+      if(gap >= 58) break;
+    }
+    used.push(best); return best;
+  };
+  for(const type in w){ if(type === 'elite') continue; for(let i = 0; i < w[type]; i++){ const s = spot(); dgSpawn(type, s[0], s[1], false, Z.id); } }
+  if(w.elite){ const s = spot(); dgSpawn(w.elite, s[0], s[1], true, Z.id); sfx('elite'); }
   addText(p.x, p.y - 40, `WAVE ${Z.wi} / ${Z.waves.length}`, 2);
   dgObjective();
 }
@@ -5453,7 +5496,7 @@ function dgTrickle(){
     const i = L.open[Math.floor(Math.random() * L.open.length)], f = D.flow[i];
     if(f < 9 || f > 16) continue;
     const x = (i % L.W + .5) * DT, y = (Math.floor(i / L.W) + .5) * DT;
-    for(let n = 0; n < tr.n; n++){ const [sx, sy] = dgSpot(x, y, 60); dgSpawn(dgPickMix(tr.mix), sx, sy, false, 0); }
+    for(const [sx, sy] of dgSpread(x, y, tr.n, 60)) dgSpawn(dgPickMix(tr.mix), sx, sy, false, 0);
     return;
   }
 }
