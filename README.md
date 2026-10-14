@@ -6,9 +6,16 @@ A browser survivor-like dungeon crawler with a deckbuilding twist. Open `index.h
 
 - Before each dive, build a **loadout** of abilities and traits.
 - Abilities and positive traits **cost** points, shown as +n. Negative traits **give points back**, shown as −n.
-- There are 15 abilities, 34 positive traits and 24 negative traits. The rarest positive traits are big and expensive (Overdrive, Titan, Phoenix, Avatar, Midas Touch and Time Warp cost 4–7 points), and the harshest negative traits give the most back (Doomed −6, Grounded −5).
+- There are 15 abilities, 45 positive traits and 27 negative traits. The newer traits change how you play instead of adding to a stat, and several are modelled on the set effects of the L2 Artifacts Minecraft mod. For example:
+  - **Sword of Damocles** (+3): damage +100% at full HP, but you die if your HP drops below 40%.
+  - **Perfectionist** (+3): at full HP you build barriers that each block a whole hit.
+  - **Cold Blood** (+5): no single hit can take more than 12% of your max HP, but every kill costs you a little HP.
+  - **Ancient Scroll** (+4): keep moving for Wind (speed), stand still for Mountain (damage taken −50%).
+  - Also Loaded Dice, Frostbite, Spore Burst, Gilded, Lone Marksman, Saint's Vow, Powder Keg, Riposte (perfect dodges) and Glutton.
+  - The big, expensive ones: Overdrive (+6, every 18 s all cooldowns run 2.5× faster for 6 s), Titan (+6, barge through enemies), Phoenix (+5), Echo (+7, abilities fire twice), Midas Touch (+4, kills turn to gold) and Bullet Time (+6, rolls slow time).
+  - Negative traits work the same way. Doomed (−6) sends an unkillable Death after you 75 s into each floor. Others are Lingering Wounds (hits shrink your max HP), Volatile Foes (enemies burst on death), Restless Dead (kills rise again) and Withered (healing −70%).
 - The total must fit the **budget** of the theme you are diving into.
-- Some pairs form **combos** that change costs or effects.
+- Some pairs form **combos** (set bonuses) that change costs or effects, for example Perfect Edge (Damocles + Perfectionist), Bullet Dance (Bullet Time + Riposte) and Cheat Death (Phoenix + Doomed).
 - In a run, each level-up is a small upgrade: weapon and abilities go to Lv 10, positive traits to Lv 8, and a negative trait can be **overcome** in 10 steps. Cards show the exact before → after numbers.
 - Runs have elites, treasure chests, drops (heal, magnet, bomb) and a kill chain that boosts XP.
 - New items come from first clears, relic drops and the **gacha**. The first clear of floor 1 also unlocks the Knight.
@@ -73,4 +80,4 @@ All content lives in the data tables at the top of the script in `index.html`:
 - `STAGES`, `TILES`, `PROPS` and `DRAW` are left from the 2D mode; they now only draw the base menu's background and the title's fallback when 3D is not available
 - Dungeon: `DG_FLOORS` (each floor's ASCII map, boss, enemy packs, objective and first-clear rewards: coins, items and characters; the map legend is in the comment at the top of the dungeon code), `DG_THEMES`, `DG_STAGES` (one loadout budget per theme), `DG_PACKS`, `DG_RELICS`, `DG_AI` (the aqueduct enemies' attacks), `DG_SKILLS` (the skill tree), `D3FLOOR` (per-floor looks), and `RIGS` (the blocky 3D models, one list of boxes per enemy or hero)
 
-A new item's numbers go in `ITEMS`: `lv(L)` returns its stats at level L, and `show` lists which stats the level-up cards display. Its behavior goes in `recalcStats()` (passive traits) or `useAbility()` (active abilities).
+A new item's numbers go in `ITEMS`: `lv(L)` returns its stats at level L, and `show` lists which stats the level-up cards display. Its behavior goes in `recalcStats()` (stat traits), `useAbility()` (active abilities), or the trait hooks at the end of the items section (`traitsTick` runs every frame; `hitEnemy`, `killEnemy`, `hurtPlayer` and `dgRoll` are wrapped there).

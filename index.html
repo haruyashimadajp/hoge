@@ -3181,20 +3181,20 @@ function startRun(stage, charId, items){
 function recalcStats(){
   const p = G.p, ch = CHARACTERS[G.char], s = G.s;
   const oldMax = p.maxHp;
-  p.maxHp = Math.max(10, Math.round(ch.hp * (1 + posV('tough') - 0.5 * negF('fragile') + skV('vit') + posV('titan') + posV('avatar') - 0.5 * negF('doomed'))));
+  p.maxHp = Math.max(10, Math.round(ch.hp * (1 + posV('tough') - 0.5 * negF('fragile') + skV('vit'))));
   if(oldMax) p.hp = Math.min(p.maxHp, p.hp + Math.max(0, p.maxHp - oldMax));
-  p.speed = ch.speed * (1 + posV('swift') - 0.25 * negF('sluggish') + skV('fleet') + posV('avatar'));
-  s.dmgMul = 1 + posV('power') + skV('sharp') + posV('overdrive') + posV('avatar');
-  s.cdMul = (1 - posV('haste')) * (1 + 0.25 * negF('slowhands')) * (1 - skV('quick')) * (G.pos.overdrive ? .75 : 1);
-  s.pickup = 70 * (1 + posV('magnet') + skV('magnet') + posV('avatar')) * (1 - 0.5 * negF('clumsy'));
+  p.speed = ch.speed * (1 + posV('swift') - 0.25 * negF('sluggish') + skV('fleet'));
+  s.dmgMul = 1 + posV('power') + skV('sharp');
+  s.cdMul = (1 - posV('haste')) * (1 + 0.25 * negF('slowhands')) * (1 - skV('quick'));
+  s.pickup = 70 * (1 + posV('magnet') + skV('magnet')) * (1 - 0.5 * negF('clumsy'));
   s.crit = (0.05 + posV('lucky') + skV('keen')) * (1 - negF('unlucky'));
   s.critMul = G.pos.precision ? ITEMS.precision.lv(G.pos.precision).v / 100 : 2;
   s.dropMul = 1 - 0.5 * negF('unlucky');
-  s.area = 1 + posV('giant') + posV('avatar');
+  s.area = 1 + posV('giant');
   s.regen = G.pos.regen ? ITEMS.regen.lv(G.pos.regen).v : 0;
   s.xpMul = 1 + posV('scholar') - 0.3 * negF('dull') + skV('study');
-  s.armor = ch.armor + (G.combos.has('fortress') ? 2 : 0) + (G.pos.plating ? ITEMS.plating.lv(G.pos.plating).v : 0) + skV('skin') + (G.pos.titan ? 3 : 0);
-  s.dmgTaken = (1 + 0.3 * negF('brittle') + 0.6 * negF('glassbones') + 0.3 * negF('doomed')) * (1 - posV('bulwark'));
+  s.armor = ch.armor + (G.combos.has('fortress') ? 2 : 0) + (G.pos.plating ? ITEMS.plating.lv(G.pos.plating).v : 0) + skV('skin') + (G.pos.gilded ? 2 : 0);
+  s.dmgTaken = (1 + 0.3 * negF('brittle')) * (1 - posV('bulwark'));
   s.enemyHp = 1 + 0.25 * negF('cursed');
   s.vision = visionFor(negF('nearsighted'));
   s.weaponMul = 1 - 0.4 * negF('feeble');
@@ -3212,10 +3212,9 @@ function recalcStats(){
   s.frenzyMax = G.pos.frenzy ? ITEMS.frenzy.lv(G.pos.frenzy).v * (G.combos.has('feeding') ? 2 : 1) : 0;
   s.revive = G.pos.phoenix ? 1 : G.pos.secondwind ? (G.combos.has('lastbreath') ? 1 : posV('secondwind')) : 0;
   s.bleed = negF('bleeding');
-  s.enemySpeed = (1 + 0.15 * negF('hunted')) * (1 - posV('timewarp'));
-  s.shotMul = (1 + 0.25 * negF('marked')) * (1 - posV('timewarp'));
-  s.farshot = posV('farshot'); s.hunter = posV('hunter'); s.dim = 0.35 * negF('dim'); s.vampire = posV('vampire');
-  s.bloodlust = G.pos.bloodlust ? ITEMS.bloodlust.lv(G.pos.bloodlust).v : 0;
+  s.enemySpeed = 1 + 0.15 * negF('hunted');
+  s.shotMul = 1 + 0.25 * negF('marked');
+  s.hunter = posV('hunter'); s.dim = 0.35 * negF('dim'); s.vampire = posV('vampire');
   s.spawnMul = 1 + 0.25 * negF('swarmed');
   s.invT = 0.45 * (1 - 0.5 * negF('frail'));
   s.choices = 3 + (G.combos.has('bloomer') ? 1 : 0) - (negF('rigid') > .5 ? 1 : 0);
@@ -4630,7 +4629,7 @@ function update(dt){
     if(e.flash > 0) e.flash -= dt;
     if(e.rise > 0){ e.rise -= dt; continue; }     // dungeon enemies climb out of the floor first
     const dx = p.x - e.x, dy = p.y - e.y, d = Math.hypot(dx, dy) || 1;
-    const sp = e.speed * (e.slow > 0 ? 0.5 : 1) * s.enemySpeed;
+    const sp = e.speed * (e.slow > 0 ? 0.5 : 1) * s.enemySpeed * (g.bt || 1);
     let held = false;
     if(e.boss) held = bossStep(e, dt, d);
     else if(e.elite && g.dg && dgEliteTick(e, dt, d, dx, dy)) held = true;
@@ -4661,14 +4660,15 @@ function update(dt){
   query(p.x, p.y, 80, tmpA);
   for(const e of tmpA) if(!(e.rise > 0) && !e.noTouch && Math.hypot(e.x - p.x, e.y - p.y) < e.r + p.r){
     const hp0 = p.hp;
-    hurtPlayer(e.dmg);
+    hurtPlayer(e.dmg * (g.pos.titan ? .4 : 1));
+    if(g.pos.titan) itmTrample(e);
     if(g.dg && p.hp < hp0) dgContact(e);
     if(s.thorns && g.t - (e.thT || -9) > .5){ e.thT = g.t; hitEnemy(e, s.thorns, 'thorns'); }
   }
   if(g.state !== 'play') return;
 
   for(const b of g.ebullets){
-    b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
+    const bdt = dt * (g.bt || 1); b.x += b.vx * bdt; b.y += b.vy * bdt; b.life -= bdt;
     if(g.dg && dgBullet(b, dt)) continue;           // walls, bounces, homing; rolling makes shots pass through you
     if(Math.hypot(b.x - p.x, b.y - p.y) < b.r + p.r){ b.life = 0; if(b.slow) p.slowT = Math.max(p.slowT, b.slow); if(b.root) p.rootT = Math.max(p.rootT || 0, b.root); if(g.dg) dgBulletHit(b); hurtPlayer(b.dmg); }
   }
@@ -7063,7 +7063,7 @@ function dgMovePlayer(dt){
     const t = L.t[tileAt(L, p.x, p.y)];
     if(p.webT > 0) p.webT -= dt;
     const m = t === TT.WEB || p.webT > 0 ? .55 : t === TT.POOL ? .7 : 1;
-    const tw = p.tailT > 0 ? 1 + skV('tailwind') : 1;
+    const tw = (p.tailT > 0 ? 1 + skV('tailwind') : 1) * (p.spdMul || 1);   // p.spdMul: trait speed boosts (part17)
     const cm = D.carry ? .85 : 1;   // carrying dynamite slows you down
     p.vx *= m * tw * cm; p.vy *= m * tw * cm;
     dgWaterMove(dt);
@@ -7118,7 +7118,7 @@ function dgFloorClear(){
   G.state = 'portal';
   joy.active = false; joy.dx = joy.dy = 0;
   sfx('portal');
-  const poorF = negF('poor'), fort = skV('fortune'), coins = Math.round(D.carried.coins * (1 - .5 * poorF) * (1 + fort) * (1 + posV('treasure') + posV('midas')));
+  const poorF = negF('poor'), fort = skV('fortune'), coins = Math.round(D.carried.coins * (1 - .5 * poorF) * (1 + fort) * (1 + posV('treasure')));
   const lines = [[`Coins you carried${poorF > 0 ? ' (Poor)' : ''}${fort ? ` (Treasure Hunter +${skPct(fort)})` : ''}`, coins]], unlocked = [];
   const skp = save.dg.cleared[n] ? 0 : skFloorPts(n), newChars = [];
   for(const id of D.carried.items) if(!isUnlocked(id)){ save.unlocked.push(id); unlocked.push(id); }
@@ -9018,6 +9018,10 @@ function d3Characters(dt){
     d3Entity(sk.rig, e.skin, e.x, e.y, e._fa, scale, {ph:e._ph, mv:e._mv, t:g.t, seed:e.seed || 0, pose:e._pose, cast:0, swing:0},
       e.flash > 0 ? (e.boss ? .35 : .75) : 0, e.elite ? RT.gold : null, yOff, 0);
   }
+  // the Doomed trait's reaper: not an enemy, so it is drawn on its own
+  const RP = g.reaper;
+  if(RP && !(RP.away > 0)) d3Entity('wraith', 'reaper', RP.x, RP.y, RP.fa || 0, 2.2 * VIS, {ph:g.t * 2, mv:.6, t:g.t, seed:1, pose:0, cast:0, swing:0},
+    0, null, 14 + Math.sin(g.t * 1.6) * 5, 0);
   for(const id in D3.rigs){
     const R2 = D3.rigs[id];
     for(const m of R2.meshes){ m.count = R2.n; m.instanceMatrix.needsUpdate = true; if(m.instanceColor) m.instanceColor.needsUpdate = true; }
@@ -11922,10 +11926,10 @@ function eliteSpOfSkin(s){
   return null;
 }
 /* ---------- more abilities and traits ----------
-   Seven abilities, thirteen positive traits (six of them big and expensive, rarity 3) and seven negative traits.
-   The stat ones are folded into recalcStats (see apply_dgonly.py); the rest hook in here: useAbility for the new
-   abilities, hitEnemy for damage bonuses and life steal, hurtPlayer for Phoenix, ebullet for shot speed, and
-   itemsTick (run after every update) for the gravity wells. */
+   Seven abilities, and traits that each change how you play rather than adding to a stat (several are modelled
+   on the set effects of the L2 Artifacts Minecraft mod: Damocles, Perfection, the Executor's Cold Blood, the
+   Gambler, the Ancient Scroll's stances, Frozen, Fungus, Gilded, Long Shooter, Saint, Pirate, Dead Cells, Gluttony).
+   Hooks: useAbility, hitEnemy, killEnemy, hurtPlayer, dgRoll, recalcStats, cdm, ebullet and update (traitsTick). */
 Object.assign(ITEMS, {
   chain:     {type:'ability',name:'Chain Lightning',cost:3,rarity:2,desc:'A bolt that jumps from enemy to enemy.',
     lv:L => ({jumps:3 + Math.floor((L - 1) / 2), dmg:16 * (1 + 0.15 * (L - 1)), cd:2.2 * (1 - 0.04 * (L - 1))}),
@@ -11949,28 +11953,64 @@ Object.assign(ITEMS, {
     lv:L => ({heal:6 + 0.8 * (L - 1), dmg:12 * (1 + 0.15 * (L - 1)), cd:9 * (1 - 0.04 * (L - 1))}),
     show:[['heal','Heal (% max HP)','1'],['dmg','Wave damage','1'],['cd','Cooldown','s']]},
 
+
+  // ---- positive traits. Each one changes how you play, not just a number ----
   vampire:   {type:'pos',name:'Vampiric',cost:3,rarity:2,desc:'Heal 2% of the damage you deal (up to 6 HP a second).', lv:L => ({v:2 + 0.5 * (L - 1)}), show:[['v','Life steal','pct']]},
   bulwark:   {type:'pos',name:'Bulwark',cost:2,rarity:1,desc:'Damage taken −15%.',                 lv:L => ({v:Math.min(40, 15 + 3 * (L - 1))}), show:[['v','Damage taken','mpct']]},
   nimble:    {type:'pos',name:'Nimble',cost:1,rarity:1,desc:'Dodge roll recharges 25% faster.',    lv:L => ({v:Math.min(50, 25 + 4 * (L - 1))}), show:[['v','Roll cooldown','mpct']]},
   treasure:  {type:'pos',name:'Treasure Hunter',cost:1,rarity:1,desc:'Coins secured +40%.',        lv:L => ({v:40 + 10 * (L - 1)}), show:[['v','Coins','pct']]},
-  farshot:   {type:'pos',name:'Far Shot',cost:2,rarity:2,desc:'Damage +35% to enemies more than 250 away.', lv:L => ({v:35 + 8 * (L - 1)}), show:[['v','Far damage','pct']]},
-  bloodlust: {type:'pos',name:'Bloodlust',cost:2,rarity:2,desc:'Every kill heals 1 HP.',           lv:L => ({v:1 + 0.25 * (L - 1)}), show:[['v','HP per kill','1']]},
   hunter:    {type:'pos',name:'Big Game Hunter',cost:2,rarity:2,desc:'Damage +40% to elites and bosses.', lv:L => ({v:40 + 10 * (L - 1)}), show:[['v','Elite / boss damage','pct']]},
+  farshot:   {type:'pos',name:'Lone Marksman',cost:2,rarity:2,desc:'While no enemy is within 220, damage +50%. When one gets close, the bonus lasts 2 more seconds and you get a burst of speed.',
+    lv:L => ({v:50 + 10 * (L - 1)}), show:[['v','Alone damage','pct']]},
+  damocles:  {type:'pos',name:'Sword of Damocles',cost:3,rarity:3,desc:'At full HP, damage +100%. But if your HP ever drops below 40%, the sword falls and you die.',
+    lv:L => ({v:100 + 15 * (L - 1)}), show:[['v','Full-HP damage','pct']]},
+  perfection:{type:'pos',name:'Perfectionist',cost:3,rarity:2,desc:'While at full HP, you build a barrier every 3 s (up to 2). Each barrier blocks one hit completely.',
+    lv:L => ({n:2 + Math.floor((L - 1) / 3), t:Math.max(1.5, 3 - 0.15 * (L - 1))}), show:[['n','Barriers','int'],['t','Build time','s']]},
+  coldblood: {type:'pos',name:'Cold Blood',cost:5,rarity:3,desc:'No single hit can take more than 12% of your max HP. But every kill costs you a little HP (never below 25%).',
+    lv:L => ({v:Math.max(6, 12 - 0.75 * (L - 1))}), show:[['v','Biggest hit (% max HP)','1']]},
+  dice:      {type:'pos',name:'Loaded Dice',cost:3,rarity:2,desc:'Every hit rolls the dice: 10% fizzle (×0.25), 10% JACKPOT (×4), otherwise ×1.1.',
+    lv:L => ({v:400 + 40 * (L - 1)}), show:[['v','Jackpot','x']]},
+  scroll:    {type:'pos',name:'Ancient Scroll',cost:4,rarity:3,desc:'Two stances. Wind: after 2 s of moving, move speed +25%. Mountain: after 1 s standing still, damage taken −50%.',
+    lv:L => ({v:25 + 4 * (L - 1), m:Math.min(70, 50 + 3 * (L - 1))}), show:[['v','Wind speed','pct'],['m','Mountain guard','mpct']]},
+  frostbite: {type:'pos',name:'Frostbite',cost:4,rarity:2,desc:'Weapon hits have a 30% chance to chill (slow) enemies. Slowed enemies take +30% damage from everything.',
+    lv:L => ({c:30 + 4 * (L - 1), v:30 + 6 * (L - 1)}), show:[['c','Chill chance (%)','int'],['v','Damage to slowed','pct']]},
+  spores:    {type:'pos',name:'Spore Burst',cost:3,rarity:2,desc:'Your hits release spores: 25% of the damage splashes onto up to 3 enemies nearby.',
+    lv:L => ({v:25 + 5 * (L - 1)}), show:[['v','Splash','pct']]},
+  gilded:    {type:'pos',name:'Gilded',cost:3,rarity:2,desc:'+2 armor, and damage +7% for every point of armor you have.',
+    lv:L => ({v:7 + (L - 1)}), show:[['v','Damage per armor','pct']]},
+  saint:     {type:'pos',name:'Saint\'s Vow',cost:4,rarity:3,desc:'Your damage −35%. Damage you take −50%. Every 5 s, heal 5% of your max HP.',
+    lv:L => ({v:5 + 0.5 * (L - 1)}), show:[['v','Heal (% max HP)','1']]},
+  powderkeg: {type:'pos',name:'Powder Keg',cost:3,rarity:2,desc:'Every dodge roll leaves a powder keg behind. It blows up a moment later for 70 damage.',
+    lv:L => ({v:70 + 15 * (L - 1)}), show:[['v','Keg damage','int']]},
+  riposte:   {type:'pos',name:'Riposte',cost:2,rarity:2,desc:'Dodge an attack in the middle of a roll (a perfect dodge) and you deal +80% damage for 2 s.',
+    lv:L => ({v:80 + 12 * (L - 1)}), show:[['v','Riposte damage','pct']]},
+  glutton:   {type:'pos',name:'Glutton',cost:4,rarity:3,desc:'Every 10 kills on a floor: max HP +2 (up to +60 per floor).',
+    lv:L => ({v:60 + 10 * (L - 1)}), show:[['v','Max HP cap','int']]},
   // big and expensive
-  overdrive: {type:'pos',name:'Overdrive',cost:6,rarity:3,desc:'Damage +40% and all cooldowns −25%.', lv:L => ({v:40 + 8 * (L - 1)}), show:[['v','Damage','pct']]},
-  titan:     {type:'pos',name:'Titan',cost:6,rarity:3,desc:'Max HP +100% and +3 armor.',          lv:L => ({v:100 + 15 * (L - 1)}), show:[['v','Max HP','pct']]},
+  overdrive: {type:'pos',name:'Overdrive',cost:6,rarity:3,desc:'Every 18 s, go into Overdrive for 6 s: all cooldowns, your weapon included, run 2.5× faster.',
+    lv:L => ({d:6 + 0.5 * (L - 1)}), show:[['d','Overdrive time','s']]},
+  titan:     {type:'pos',name:'Titan',cost:6,rarity:3,desc:'You barge through enemies: walking into one knocks it away for 25 damage + 10% of your max HP. Enemies that touch you deal 60% less.',
+    lv:L => ({v:25 + 6 * (L - 1)}), show:[['v','Trample damage','int']]},
   phoenix:   {type:'pos',name:'Phoenix',cost:5,rarity:3,desc:'Once per floor, rise from death at full HP and burn everything near you for 300.', lv:L => ({v:300 + 60 * (L - 1)}), show:[['v','Rebirth blast','int']]},
-  avatar:    {type:'pos',name:'Avatar',cost:7,rarity:3,desc:'+30% damage, move speed, max HP, area and pickup range.', lv:L => ({v:30 + 5 * (L - 1)}), show:[['v','Everything','pct']]},
-  midas:     {type:'pos',name:'Midas Touch',cost:4,rarity:3,desc:'Coins secured ×2.5.',             lv:L => ({v:150 + 25 * (L - 1)}), show:[['v','Coins','pct']]},
-  timewarp:  {type:'pos',name:'Time Warp',cost:6,rarity:3,desc:'Enemies and their shots move 25% slower.', lv:L => ({v:Math.min(45, 25 + 3 * (L - 1))}), show:[['v','Enemy slow','pct']]},
+  echo:      {type:'pos',name:'Echo',cost:7,rarity:3,desc:'Each time an ability fires, 30% chance it fires again for free.',
+    lv:L => ({v:30 + 4 * (L - 1)}), show:[['v','Echo chance','pct']]},
+  midas:     {type:'pos',name:'Midas Touch',cost:4,rarity:3,desc:'Kills have a 4% chance to turn the enemy to gold. It shatters for 80 damage around it and gives 3 coins.',
+    lv:L => ({c:4 + 0.6 * (L - 1), v:80 + 15 * (L - 1)}), show:[['c','Gold chance (%)','1'],['v','Gold blast','int']]},
+  timewarp:  {type:'pos',name:'Bullet Time',cost:6,rarity:3,desc:'Every dodge roll slows time: for 1.5 s, enemies and their shots move at a third of their speed.',
+    lv:L => ({v:1.5 + 0.15 * (L - 1)}), show:[['v','Slow time','s']]},
 
-  glassbones:{type:'neg',name:'Glass Bones',cost:4,rarity:1,desc:'Damage taken +60%.',              pen:f => `Damage taken +${r0(60 * f)}%`},
+  // ---- negative traits ----
   dim:       {type:'neg',name:'Dim Magic',cost:3,rarity:1,desc:'Ability damage −35%.',             pen:f => `Ability damage −${r0(35 * f)}%`},
   heavy:     {type:'neg',name:'Heavy Feet',cost:2,rarity:1,desc:'Dodge roll recharges 60% slower.', pen:f => `Roll cooldown +${r0(60 * f)}%`},
   badomen:   {type:'neg',name:'Bad Omen',cost:2,rarity:2,desc:'Elites have +50% HP and use their special attack more often.', pen:f => `Elite HP +${r0(50 * f)}%`},
   marked:    {type:'neg',name:'Marked',cost:2,rarity:2,desc:'Enemy shots fly 25% faster.',          pen:f => `Enemy shot speed +${r0(25 * f)}%`},
   grounded:  {type:'neg',name:'Grounded',cost:5,rarity:2,desc:'You cannot dodge roll (until you overcome it).', pen:f => f > .5 ? 'No dodge roll' : 'Dodge roll back'},
-  doomed:    {type:'neg',name:'Doomed',cost:6,rarity:2,desc:'Max HP −50% and damage taken +30%.', pen:f => `Max HP −${r0(50 * f)}%, damage taken +${r0(30 * f)}%`},
+  doomed:    {type:'neg',name:'Doomed',cost:6,rarity:3,desc:'75 s into every floor, Death comes for you. It cannot be killed, flies through walls and keeps speeding up. Its touch takes 25% of your max HP.',
+    pen:f => f > 0 ? `Death arrives after ${r0(75 + 150 * (1 - f))} s` : 'Death leaves you alone'},
+  wounds:    {type:'neg',name:'Lingering Wounds',cost:4,rarity:2,desc:'A third of every hit you take also comes off your max HP until the floor ends.', pen:f => `Max HP lost per hit: ${r0(35 * f)}%`},
+  volatile:  {type:'neg',name:'Volatile Foes',cost:3,rarity:2,desc:'Enemies burst when they die. Step out of the red circle.', pen:f => `Death burst damage ${r0(110 * f)}%`},
+  undying:   {type:'neg',name:'Restless Dead',cost:3,rarity:2,desc:'1 in 5 enemies you kill rises again with half its HP.', pen:f => `${r0(20 * f)}% rise again`},
+  withered:  {type:'neg',name:'Withered',cost:3,rarity:2,desc:'All healing −70%.', pen:f => `Healing −${r0(70 * f)}%`},
 });
 Object.assign(ICONS, {
   chain: 'M4 4l5 4-3 3 6 3-3 3 7 4M9 8l4-1M12 14l4-1',
@@ -11985,21 +12025,35 @@ Object.assign(ICONS, {
   nimble: 'M4 18c4 0 5-4 7-8s4-6 9-6M14 20c2-1 4-3 5-6M4 12l3-3',
   treasure: 'M3 10h18v10H3zM3 10l3-5h12l3 5M12 10v10M9 14h6',
   farshot: C(12, 12, 8) + C(12, 12, 4) + C(12, 12, 1) + 'M12 2v3M12 19v3M2 12h3M19 12h3',
-  bloodlust: 'M12 3c3.2 4.2 6 7.3 6 11a6 6 0 0 1-12 0c0-3.7 2.8-6.8 6-11zM9 14h6M12 11v6',
   hunter: 'M4 20L20 4M14 4h6v6M6 12l6 6M4 14l6 6',
+  damocles: 'M12 2v13M9 15h6M10 15l2 4 2-4M4 22h16M7 22v-2M17 22v-2M12 2l-1.5 2h3z',
+  perfection: C(12, 12, 9) + 'M12 5l2 4.5 4.8.4-3.7 3.1 1.2 4.7L12 15.2 7.7 17.7l1.2-4.7-3.7-3.1 4.8-.4z',
+  coldblood: 'M12 3c3.2 4.2 6 7.3 6 11a6 6 0 0 1-12 0c0-3.7 2.8-6.8 6-11zM9 13l6 4M15 13l-6 4M12 11v8',
+  dice: 'M4 4h16v16H4z' + C(8, 8, 1) + C(16, 16, 1) + C(12, 12, 1) + C(16, 8, 1) + C(8, 16, 1),
+  scroll: 'M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5M6 3a2 2 0 0 0-2 2v2h2M9 8h7M9 12h7M9 16h4',
+  frostbite: 'M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7M9 3.5l3 2.5 3-2.5M9 20.5l3-2.5 3 2.5',
+  spores: C(12, 9, 6) + 'M12 15v6M9 21h6' + C(4, 17, 1.4) + C(20, 17, 1.4) + C(5, 4, 1),
+  gilded: 'M4 4h16v7c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10zM12 7v9M9 10l3-3 3 3',
+  saint: C(12, 4, 2) + 'M12 7v14M8 11h8M6 3a8 2 0 0 0 12 0',
+  powderkeg: 'M7 6h10l1 6-1 6H7l-1-6zM6 12h12M9 6V4h6v2M15 4l3-2M18 2l1 2',
+  riposte: 'M4 20L16 8M16 8l2-4 2 2-4 2M7 13l4 4M20 20L8 8M8 8L6 4 4 6l4 2',
+  glutton: 'M5 11h14a7 7 0 0 1-14 0zM8 8c0-2 1-3 2-3M12 8c0-2 1-3 2-3M16 8c0-2 1-3 2-3M9 21h6',
   overdrive: 'M3 16a9 9 0 0 1 18 0M12 16l5-6M6 16h1M17 16h1M12 8v1',
   titan: 'M8 3h8l2 5-6 3-6-3zM6 8l-2 9h16l-2-9M9 17v4M15 17v4',
   phoenix: 'M12 21c-4-2-6-5-6-9 2 1 3 2 3.5 4C9 11 10 7 12 3c2 4 3 8 2.5 13 .5-2 1.5-3 3.5-4 0 4-2 7-6 9z',
-  avatar: C(12, 6, 3) + 'M5 21c0-5 3-8 7-8s7 3 7 8M2 9l3 1M22 9l-3 1M12 0v1',
+  echo: C(12, 12, 3) + 'M7 7a7 7 0 0 0 0 10M17 7a7 7 0 0 1 0 10M4 4a11 11 0 0 0 0 16M20 4a11 11 0 0 1 0 16',
   midas: C(12, 12, 8) + 'M12 7v10M9.5 9.5c0-1 1-1.8 2.5-1.8s2.5.8 2.5 1.8-1 1.5-2.5 1.8-2.5.8-2.5 1.9 1 1.8 2.5 1.8 2.5-.8 2.5-1.8',
   timewarp: 'M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9',
-  glassbones: 'M7 4a2 2 0 1 0-2 3l4 4-1 6 4-3 3 6 2-5M14 13l3-3',
   dim: 'M12 3v2M5 6l1.5 1.5M19 6l-1.5 1.5M8 14a4 4 0 1 1 8 0c0 2-1.5 3-1.5 5h-5c0-2-1.5-3-1.5-5zM4 20L20 4',
   heavy: 'M7 21h10l-2-9H9zM9 12V8a3 3 0 0 1 6 0v4M3 21h18',
   badomen: C(12, 12, 9) + C(12, 12, 3) + 'M12 3v6M12 15v6',
   marked: C(12, 12, 8) + 'M12 2v6M12 16v6M2 12h6M16 12h6',
   grounded: 'M4 20h16M7 20V10l5-6 5 6v10M9 14h6M4 4l16 16',
-  doomed: 'M6 10a6 6 0 0 1 12 0v4l-2 2v4H8v-4l-2-2zM9.5 11h1M13.5 11h1M10 17v2M14 17v2',
+  doomed: 'M5 21V11a7 7 0 0 1 14 0v10l-2.5-2-2.5 2-2-2-2 2-2.5-2zM9.5 11h1M13.5 11h1M20 3l-6 6M20 3v4M20 3h-4',
+  wounds: 'M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10zM13 6l-2 5 3 2-2 5',
+  volatile: C(12, 14, 7) + 'M12 7V4M12 4l2-2M9 12l6 4M15 12l-6 4',
+  undying: 'M7 21V9a5 5 0 0 1 10 0v12M4 21h16M10 12h4M12 10v6',
+  withered: 'M12 21V11M12 11c-3 0-6-2-6-6 3 0 6 2 6 6zM12 15c2 0 5-1 5-5-2.5 0-5 1.5-5 5zM4 21h16M15 4l1 2M18 3l-1 3',
 });
 
 // ---- the new abilities ----
@@ -12084,50 +12138,222 @@ useAbility = function(id){
   return _useAbility0(id);
 };
 
-// ---- damage bonuses, life steal and kill heals ----
+// ---- trait state. Everything here is per floor: dgResetBuild starts it over ----
+const itmFresh = () => ({floorT:0, kills:0, glut:0, wound:0, bar:0, barT:0, movT:0, stillT:0, wind:false, mtn:false, lone:false, loneT:0, burstT:0,
+  ripT:0, ripRoll:false, btT:0, odC:0, odOn:0, saintT:0, kegs:[], sporeN:0, jackT:0, hpPrev:undefined, maxPrev:0, reaperGone:false});
+const itm = () => G.itm || (G.itm = itmFresh());
+const QS = [], QK = [], QM = [];   // query buffers of our own: these hooks run inside loops that are already walking tmpA / tmpB
+const _dgResetBuild0 = dgResetBuild;
+dgResetBuild = function(){ G.itm = itmFresh(); G.reaper = null; G.odOn = false; G.bt = 1; G.p.spdMul = 1; _dgResetBuild0(); };
+
+// Glutton adds max HP and Lingering Wounds takes it away; both on top of the normal stats
+const _recalcStats0 = recalcStats;
+recalcStats = function(){
+  const p = G.p, hp0 = p.hp, m0 = p.maxHp;
+  _recalcStats0();
+  const I = G.itm;
+  if(!I) return;
+  const extra = I.glut - I.wound;
+  if(extra) p.maxHp = Math.max(10, Math.round(p.maxHp + extra));
+  if(m0) p.hp = Math.min(p.maxHp, hp0 + Math.max(0, p.maxHp - m0));
+};
+
+// Overdrive: every cooldown (the weapon's too) goes through cdm()
+const _cdm0 = cdm;
+cdm = function(){ return _cdm0() * (G.odOn ? .4 : 1); };
+
+// ---- damage you deal ----
 const ABIL_SRC = new Set(['orbit','fireball','frost','drone','lightning','poison','boomerang','chain','meteor','lance','bladestorm','smite','gravity','pulse']);
 const _hitEnemy0 = hitEnemy;
 hitEnemy = function(e, base, src){
   if(e.dead) return;
-  const s = G.s, p = G.p;
+  const s = G.s, p = G.p, I = itm(), P = G.pos;
   let m = 1;
-  if(s.farshot && Math.hypot(e.x - p.x, e.y - p.y) > 250) m *= 1 + s.farshot;
   if(s.hunter && (e.elite || e.boss)) m *= 1 + s.hunter;
   if(s.dim && ABIL_SRC.has(src)) m *= 1 - s.dim;
+  if(P.farshot && I.loneT > 0) m *= 1 + posV('farshot');
+  if(P.damocles && p.hp >= p.maxHp - .5) m *= 1 + posV('damocles');
+  if(P.gilded) m *= 1 + posV('gilded') * s.armor * (G.combos.has('goldplate') ? 2 : 1);
+  if(P.saint) m *= .65;
+  if(I.ripT > 0) m *= 1 + posV('riposte');
+  if(P.frostbite && e.slow > 0) m *= 1 + ITEMS.frostbite.lv(P.frostbite).v / 100;
+  if(P.dice && src !== 'spore'){
+    const r = Math.random();
+    if(r < .1) m *= .25;
+    else if(r < .2){ m *= posV('dice'); if(G.t > I.jackT){ I.jackT = G.t + .6; addText(e.x, e.y - e.r - 18, 'JACKPOT', 1); } }
+    else m *= 1.1;
+  }
   const hp0 = e.hp;
   _hitEnemy0(e, base * m, src);
+  const dealt = Math.max(0, hp0 - Math.max(0, e.hp));
+  if(P.frostbite && src === 'weapon' && !e.dead && !e.boss && Math.random() * 100 < ITEMS.frostbite.lv(P.frostbite).c) e.slow = Math.max(e.slow, 1.2);
   if(s.vampire && p.hp < p.maxHp && p.hp > 0){
     const now = G.t, V = G.vamp || (G.vamp = {t:now, n:0});
     if(now - V.t > 1){ V.t = now; V.n = 0; }
-    const h = Math.min(6 - V.n, Math.max(0, hp0 - Math.max(0, e.hp)) * s.vampire);
+    const h = Math.min(6 - V.n, dealt * s.vampire);
     if(h > 0){ V.n += h; p.hp = Math.min(p.maxHp, p.hp + h); }
   }
-  if(s.bloodlust && e.dead && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + s.bloodlust);
+  if(P.spores && src !== 'spore' && dealt >= 2 && I.sporeN < 24) itmSpores(e, dealt);
 };
+// Spore Burst: part of the damage splashes onto the nearest few enemies around the one you hit
+function itmSpores(e, dealt){
+  const I = itm(), myc = G.combos.has('mycelium'), R = myc ? 135 : 90, maxN = myc ? 6 : 3, dmg = dealt * posV('spores') / G.s.dmgMul;
+  I.sporeN++;
+  query(e.x, e.y, R + 30, QS);
+  const list = QS.filter(o => o !== e && !o.dead && Math.hypot(o.x - e.x, o.y - e.y) < R + o.r).slice(0, maxN);
+  for(const o of list){
+    hitEnemy(o, dmg, 'spore');
+    if(G.parts.length < 520) G.parts.push({x:e.x, y:e.y, vx:(o.x - e.x) * 3, vy:(o.y - e.y) * 3, life:.3, max:.3, c:'#b6ff6a', s:2.6});
+  }
+}
 
-// ---- Phoenix: the rebirth burns everything close by ----
-const _hurtPlayer0 = hurtPlayer;
-hurtPlayer = function(dmg){
-  const was = G.revived;
-  _hurtPlayer0(dmg);
-  if(!was && G.revived && G.pos.phoenix && G.state === 'play'){
-    const p = G.p, R = 260, D = ITEMS.phoenix.lv(G.pos.phoenix).v;
-    query(p.x, p.y, R + 45, tmpB);
-    for(const e of tmpB.slice()) if(Math.hypot(e.x - p.x, e.y - p.y) < R + e.r) hitEnemy(e, D, 'phoenix');
-    G.fx.push({type:'ring', x:p.x, y:p.y, r:10, maxR:R, life:.6, max:.6, color:'#ff8a3d', fill:true});
-    burst(p.x, p.y, '#ffb04a', 50, 380, 1.6); showBanner('PHOENIX', 'elite', 'Reborn in fire'); G.shake = .4;
+// ---- kills ----
+const _killEnemy0 = killEnemy;
+killEnemy = function(e){
+  _killEnemy0(e);
+  if(!G.dg || e.boss) return;
+  const I = itm(), p = G.p, P = G.pos;
+  // Glutton: the floor feeds you
+  if(P.glutton){
+    I.kills++;
+    const cap = ITEMS.glutton.lv(P.glutton).v * (G.combos.has('feast') ? 2 : 1);
+    if(I.kills % 10 === 0 && I.glut < cap){ I.glut = Math.min(cap, I.glut + 2); recalcStats(); p.hp = Math.min(p.maxHp, p.hp + 2); addText(p.x, p.y - 30, '+2 MAX HP', 2); }
+  }
+  // Cold Blood: every life you take costs a little of yours
+  if(P.coldblood){ const floor = p.maxHp * .25; if(p.hp > floor) p.hp = Math.max(floor, p.hp - (e.elite ? 6 : .6)); }
+  // Midas Touch
+  if(P.midas && Math.random() * 100 < ITEMS.midas.lv(P.midas).c){ const x = e.x, y = e.y; dgLater(.05, () => itmGold(x, y)); }
+  // Volatile Foes: a short-fused burst where it died
+  const fv = negF('volatile');
+  if(fv > 0 && !SKINS[e.skin].deathShock && G.hazards.length < 90 && Math.hypot(e.x - p.x, e.y - p.y) < 520) addCircle(e.x, e.y, 62 + e.r, .7, e.dmg * 1.1 * fv, '#ff5a3d');
+  // Restless Dead: it gets back up, once
+  const fu = negF('undying');
+  if(fu > 0 && !e.elite && !e.risen && !e.child && e.type !== 'egg' && Math.random() < .2 * fu){
+    const x = e.x, y = e.y, type = e.type, skin = e.skin;
+    dgLater(.9, () => {
+      if(!G || G.state !== 'play') return;
+      const c = dgSpawn(type, x, y, false, 0);
+      if(c){ c.risen = true; c.skin = skin; c.color = SKINS[skin].body; c.hp *= .5; c.maxHp = c.hp; c.xp *= .3; burst(x, y, '#8a7aa8', 10, 140); }
+    });
   }
 };
+function itmGold(x, y){
+  if(!G || G.state !== 'play') return;
+  const st = ITEMS.midas.lv(G.pos.midas), R = 110 * G.s.area;
+  query(x, y, R + 45, QM);
+  const list = QM.filter(o => Math.hypot(o.x - x, o.y - y) < R + o.r);
+  HITFROM = {x, y}; for(const o of list) hitEnemy(o, st.v, 'midas'); HITFROM = null;
+  G.dg.carried.coins += 3;
+  G.fx.push({type:'ring', x, y, r:8, maxR:R, life:.4, max:.4, color:'#ffd84a', fill:true});
+  burst(x, y, '#ffd84a', 22, 260, 1.3); addText(x, y - 20, '+3 GOLD', 2); sfx('treasure');
+}
 
-// ---- enemy shot speed: Marked makes them faster, Time Warp slower ----
+// Titan: walking into an enemy knocks it away (called from the contact check)
+function itmTrample(e){
+  if(G.t - (e.trT || -9) < .5) return;
+  e.trT = G.t;
+  const p = G.p, dx = e.x - p.x, dy = e.y - p.y, d = Math.hypot(dx, dy) || 1;
+  hitEnemy(e, posV('titan') * 100 + p.maxHp * .1, 'titan');
+  if(!e.boss && !e.dead && !ENEMIES[e.type].fixed){ e.x += dx / d * 46; e.y += dy / d * 46; dgCollide(e, e.r); }
+  if(G.parts.length < 520) burst(e.x, e.y, '#ffe0a0', 5, 160);
+}
+
+// ---- damage you take ----
+const _hurtPlayer0 = hurtPlayer;
+hurtPlayer = function(dmg){
+  const p = G.p, I = itm(), P = G.pos;
+  if(G.won || dmg <= 0) return _hurtPlayer0(dmg);
+  if(p.inv > 0){
+    // Riposte: something hit you in the middle of a roll
+    if(P.riposte && G.dg && G.dg.roll.t > 0) itmRiposte();
+    return;
+  }
+  // Perfectionist: a barrier eats the whole hit
+  if(P.perfection && I.bar > 0){
+    I.bar--; p.inv = .5; sfx('block');
+    G.fx.push({type:'ring', x:p.x, y:p.y, r:10, maxR:70, life:.3, max:.3, color:'#eaf6ff', fill:true});
+    return;
+  }
+  if(P.scroll && I.stillT >= 1) dmg *= 1 - ITEMS.scroll.lv(P.scroll).m / 100;
+  if(P.saint) dmg *= .5;
+  if(P.coldblood){
+    const cap = p.maxHp * ITEMS.coldblood.lv(P.coldblood).v / 100, s = G.s;
+    if(dmg * s.dmgTaken - s.armor > cap) dmg = (cap + s.armor) / s.dmgTaken;
+  }
+  const hp0 = p.hp, was = G.revived;
+  _hurtPlayer0(dmg);
+  const lost = hp0 - p.hp, fw = negF('wounds');
+  if(lost > 0 && p.hp > 0 && fw > 0){ I.wound = Math.min(I.wound + lost * .35 * fw, p.maxHp * .6); recalcStats(); }
+  // Sword of Damocles
+  if(P.damocles && p.hp > 0 && G.state === 'play' && p.hp < p.maxHp * (G.combos.has('edge') ? .2 : .4)){
+    showBanner('THE SWORD FALLS', 'warn', 'Sword of Damocles'); G.flash = .4;
+    p.shield = false; p.inv = 0; _hurtPlayer0(1e9);
+  }
+  // Phoenix: the rebirth burns everything close by
+  if(!was && G.revived && P.phoenix && G.state === 'play'){
+    const R = 260, D = ITEMS.phoenix.lv(P.phoenix).v;
+    query(p.x, p.y, R + 45, QK);
+    const list = QK.filter(e => Math.hypot(e.x - p.x, e.y - p.y) < R + e.r);
+    for(const e of list) hitEnemy(e, D, 'phoenix');
+    G.fx.push({type:'ring', x:p.x, y:p.y, r:10, maxR:R, life:.6, max:.6, color:'#ff8a3d', fill:true});
+    burst(p.x, p.y, '#ffb04a', 50, 380, 1.6); showBanner('PHOENIX', 'elite', 'Reborn in fire'); G.shake = .4;
+    if(G.reaper && G.combos.has('cheatdeath')){ G.reaper = null; I.reaperGone = true; addText(p.x, p.y - 50, 'DEATH IS CHEATED', 2); }
+  }
+};
+function itmRiposte(){
+  const I = itm(), p = G.p;
+  I.ripT = 2;
+  if(I.ripRoll) return;
+  I.ripRoll = true;
+  addText(p.x, p.y - 34, 'PERFECT DODGE', 1); sfx('crit');
+  G.fx.push({type:'ring', x:p.x, y:p.y, r:8, maxR:60, life:.3, max:.3, color:'#ffe89a'});
+  // Bullet Dance: a perfect dodge gives the roll back
+  if(G.combos.has('dance')){ const R = G.dg.roll; if(R.n < R.max){ R.n++; R.cd = R.n < R.max ? G.dg.rollCd : 0; } }
+}
+
+// ---- dodge roll: Powder Keg and Bullet Time ----
+const _dgRoll0 = dgRoll;
+dgRoll = function(){
+  const R = G && G.dg && G.dg.roll, t0 = R ? R.t : 1;
+  _dgRoll0();
+  if(!R || t0 > 0 || !(R.t > 0)) return;
+  const I = itm(), p = G.p;
+  I.ripRoll = false;
+  if(G.pos.powderkeg){
+    I.kegs.push({x:p.x, y:p.y, t:.7, fx:0});
+    if(G.combos.has('powder')) I.kegs.push({x:p.x + R.dx * 70, y:p.y + R.dy * 70, t:.95, fx:0});
+  }
+  if(G.pos.timewarp){ I.btT = ITEMS.timewarp.lv(G.pos.timewarp).v; G.fx.push({type:'ring', x:p.x, y:p.y, r:20, maxR:420, life:.5, max:.5, color:'#9ad8ff'}); sfx('charge'); }
+};
+
+// ---- abilities: Echo fires them again ----
+let ECHOING = false;
+const _useAbility1 = useAbility;
+useAbility = function(id){
+  const r = _useAbility1(id);
+  if(G.pos.echo && !ECHOING && r >= .5 && G.dg && Math.random() < posV('echo')){
+    dgLater(.22, () => {
+      if(!G || G.state !== 'play' || !G.ab[id]) return;
+      ECHOING = true;
+      try{ useAbility(id); } finally { ECHOING = false; }
+      G.fx.push({type:'ring', x:G.p.x, y:G.p.y, r:10, maxR:46, life:.25, max:.25, color:'#d8a8ff'});
+    });
+  }
+  return r;
+};
+
+// ---- enemy shot speed: Marked makes them faster ----
 const _ebullet0 = ebullet;
 ebullet = function(x, y, a, sp, dmg, color, o){ _ebullet0(x, y, a, sp * (G && G.s.shotMul || 1), dmg, color, o); };
 
-// ---- per frame: gravity wells ----
+// ---- per frame ----
 const _update0 = update;
 update = function(dt){
   _update0(dt);
-  if(G && G.state === 'play' && G.wells && G.wells.length) itemsTick(dt);
+  if(G && G.state === 'play'){
+    if(G.wells && G.wells.length) itemsTick(dt);
+    if(G.dg) traitsTick(dt);
+  }
 };
 function itemsTick(dt){
   for(const w of G.wells){
@@ -12145,17 +12371,142 @@ function itemsTick(dt){
   }
   G.wells = G.wells.filter(w => w.life > 0);
 }
+function traitsTick(dt){
+  const I = itm(), p = G.p, P = G.pos;
+  I.sporeN = 0; I.floorT += dt;
+  let spd = 1;
+
+  // Saint's Vow: a steady trickle of healing
+  if(P.saint){
+    I.saintT += dt;
+    if(I.saintT >= 5){ I.saintT = 0; if(p.hp < p.maxHp){ const h = p.maxHp * ITEMS.saint.lv(P.saint).v / 100 * (G.combos.has('pilgrim') ? 2 : 1); p.hp = Math.min(p.maxHp, p.hp + h); addText(p.x, p.y - 30, `+${Math.round(h)} HP`, 2); } }
+  }
+  // Withered: any HP gained since last frame shrinks (max HP growth doesn't count)
+  const fw = negF('withered');
+  if(fw > 0 && I.hpPrev !== undefined && p.maxHp === I.maxPrev && p.hp > I.hpPrev) p.hp = I.hpPrev + (p.hp - I.hpPrev) * (1 - .7 * fw);
+
+  // Ancient Scroll: Wind when you keep moving, Mountain when you stand your ground
+  const moving = Math.hypot(p.vx, p.vy) > 20;
+  if(moving){ I.movT += dt; I.stillT = 0; } else { I.stillT += dt; I.movT = 0; }
+  if(P.scroll){
+    const st = ITEMS.scroll.lv(P.scroll);
+    if(I.movT >= 2){ spd *= 1 + st.v / 100; if(!I.wind){ I.wind = true; addText(p.x, p.y - 34, 'WIND', 2); } if(Math.random() < .3) G.parts.push({x:p.x + rand(-8, 8), y:p.y + rand(-8, 8), vx:-p.vx * .4, vy:-p.vy * .4, life:.35, max:.35, c:'#bfffe8', s:2}); }
+    else I.wind = false;
+    if(I.stillT >= 1){ if(!I.mtn){ I.mtn = true; addText(p.x, p.y - 34, 'MOUNTAIN', 2); G.fx.push({type:'ring', x:p.x, y:p.y, r:40, maxR:18, life:.3, max:.3, color:'#c8a878'}); } }
+    else I.mtn = false;
+  }
+  // Lone Marksman
+  if(P.farshot){
+    if(!nearestEnemy(p.x, p.y, 220)){ I.loneT = 2; I.lone = true; }
+    else { if(I.lone){ I.lone = false; I.burstT = 2; } I.loneT -= dt; }
+    if(I.burstT > 0){ I.burstT -= dt; spd *= 1.3; }
+  }
+  // Riposte timer, and shots you slip through mid-roll count as a perfect dodge
+  if(I.ripT > 0) I.ripT -= dt;
+  if(P.riposte && G.dg.roll.t > 0 && !I.ripRoll) for(const b of G.ebullets) if(Math.hypot(b.x - p.x, b.y - p.y) < b.r + p.r + 12){ itmRiposte(); break; }
+  // Bullet Time
+  G.bt = 1;
+  if(I.btT > 0){ I.btT -= dt; G.bt = .33; }
+  // Overdrive
+  if(P.overdrive){
+    if(I.odOn > 0){ I.odOn -= dt; if(I.odOn <= 0) G.odOn = false; if(Math.random() < .5) G.parts.push({x:p.x + rand(-12, 12), y:p.y + rand(-12, 12), vx:rand(-30, 30), vy:rand(-90, -40), life:.4, max:.4, c:'#ff6ad8', s:2.4}); }
+    else {
+      I.odC += dt;
+      if(I.odC >= 18){
+        I.odC = 0; I.odOn = ITEMS.overdrive.lv(P.overdrive).d; G.odOn = true;
+        for(const k in G.cd) if(G.cd[k] > 0) G.cd[k] *= .4;
+        addText(p.x, p.y - 40, 'OVERDRIVE', 1); sfx('levelup');
+        G.fx.push({type:'ring', x:p.x, y:p.y, r:10, maxR:120, life:.4, max:.4, color:'#ff6ad8', fill:true});
+      }
+    }
+  }
+  // Perfectionist: barriers build while you are untouched
+  if(P.perfection){
+    const st = ITEMS.perfection.lv(P.perfection);
+    if(p.hp >= p.maxHp - .5){ if(I.bar < st.n){ I.barT += dt; if(I.barT >= st.t){ I.barT = 0; I.bar++; sfx('tick'); } } }
+    else I.barT = 0;
+    for(let k = 0; k < I.bar; k++) if(Math.random() < .5){ const a = G.t * 3 + k * TAU / I.bar; G.parts.push({x:p.x + Math.cos(a) * 24, y:p.y + Math.sin(a) * 24, vx:0, vy:-10, life:.18, max:.18, c:'#eaf6ff', s:2.4}); }
+  }
+  // Powder kegs
+  if(I.kegs.length){
+    const R = 110 * G.s.area * (G.combos.has('powder') ? 1.25 : 1);
+    for(const k of I.kegs){
+      k.t -= dt; k.fx -= dt;
+      if(k.fx <= 0){ k.fx = .18; G.fx.push({type:'ring', x:k.x, y:k.y, r:R * .5, maxR:R * .2, life:.18, max:.18, color:'#ff8a3d'}); G.parts.push({x:k.x, y:k.y - 6, vx:rand(-20, 20), vy:-60, life:.3, max:.3, c:'#ffd84a', s:2.4}); }
+      if(k.t <= 0){
+        query(k.x, k.y, R + 45, QK);
+        const list = QK.filter(e => Math.hypot(e.x - k.x, e.y - k.y) < R + e.r);
+        HITFROM = k; for(const e of list) hitEnemy(e, posV('powderkeg') * 100, 'keg'); HITFROM = null;
+        G.fx.push({type:'ring', x:k.x, y:k.y, r:10, maxR:R, life:.35, max:.35, color:'#ff8a3d', fill:true});
+        burst(k.x, k.y, '#ffb04a', 18, 260, 1.2); G.shake = Math.max(G.shake, .12); sfx('boom');
+      }
+    }
+    I.kegs = I.kegs.filter(k => k.t > 0);
+  }
+  // Doomed: Death comes for you
+  const fd = negF('doomed');
+  if(fd > 0 && !I.reaperGone){
+    if(!G.reaper && I.floorT >= 75 + 150 * (1 - fd)){
+      const a = Math.random() * TAU;
+      G.reaper = {x:p.x + Math.cos(a) * 560, y:p.y + Math.sin(a) * 560, age:0, away:0, fa:0};
+      showBanner('DEATH COMES', 'warn', 'It cannot be killed · finish the floor'); sfx('warning'); G.shake = .3;
+    }
+    const RP = G.reaper;
+    if(RP && RP.away > 0){
+      // faded out after a touch: it comes back from far off a few seconds later
+      RP.away -= dt;
+      if(RP.away <= 0){ const a = Math.random() * TAU; RP.x = p.x + Math.cos(a) * 600; RP.y = p.y + Math.sin(a) * 600; burst(RP.x, RP.y, '#9a5aff', 20, 200, 1.3); }
+    } else if(RP){
+      RP.age += dt;
+      const dx = p.x - RP.x, dy = p.y - RP.y, d = Math.hypot(dx, dy) || 1, sp = p.speed * Math.min(1.05, .5 + RP.age * .011) * (.6 + .4 * fd) * G.bt;
+      RP.fa = Math.atan2(dy, dx);
+      RP.x += dx / d * sp * dt; RP.y += dy / d * sp * dt;
+      if(d < 30 + p.r && p.inv <= 0){
+        hurtPlayer(p.maxHp * .25 * (.5 + .5 * fd));
+        G.fx.push({type:'ring', x:p.x, y:p.y, r:10, maxR:90, life:.35, max:.35, color:'#c06bff', fill:true});
+        burst(RP.x, RP.y, '#9a5aff', 24, 220, 1.4); RP.away = 6;
+      }
+      if(G.parts.length < 560 && Math.random() < .7) G.parts.push({x:RP.x + rand(-14, 14), y:RP.y + rand(-14, 14), vx:rand(-15, 15), vy:rand(-40, -10), life:.6, max:.6, c:'#9a5aff', s:3});
+    }
+  }
+
+  p.spdMul = spd;
+  I.hpPrev = p.hp; I.maxPrev = p.maxHp;
+}
+SKINS.reaper = {name:'Death', rig:'wraith', body:'#241c2e', dark:'#0b0710', glow:'#d07bff', alt:'#4a3c5c'};
+
+// set bonuses: two items that work together (shown in the combo book like the rest)
+COMBOS.push(
+  {id:'edge',      name:'Perfect Edge',    req:['damocles','perfection'],              desc:'The Sword of Damocles only falls below 20% HP.'},
+  {id:'dance',     name:'Bullet Dance',    req:['timewarp','riposte'],                 desc:'A perfect dodge gives your dodge roll back.'},
+  {id:'mycelium',  name:'Mycelium',        req:['spores','poison'],                    desc:'Spores reach 50% farther and hit up to 6 enemies.'},
+  {id:'goldplate', name:'Gold Plating',    req:['gilded','plating'],  cost:{gilded:-1}, desc:'Gilded costs 1 less and each armor point gives twice the damage.'},
+  {id:'cheatdeath',name:'Cheat Death',     req:['phoenix','doomed'],                   desc:'When Phoenix brings you back, Death leaves the floor.'},
+  {id:'pilgrim',   name:'Pilgrim',         req:['saint','pulse'],                      desc:'Saint\'s Vow heals twice as much.'},
+  {id:'feast',     name:'Feast',           req:['glutton','swarmed'], cost:{glutton:-1}, desc:'Glutton costs 1 less and its max HP cap is doubled.'},
+  {id:'powder',    name:'Powder Monkey',   req:['powderkeg','nimble'],                 desc:'Each roll drops a second keg ahead of you, and the blasts are 25% bigger.'},
+);
+
+// saves from before the rework: items that were replaced become their successors
+(function(){
+  const MAP = {glassbones:'wounds', avatar:'echo', bloodlust:'glutton'};
+  let changed = false;
+  const fix = arr => { const out = []; for(const id of arr){ const n = MAP[id] || id; if(ITEMS[n] && !out.includes(n)) out.push(n); if(n !== id || !ITEMS[n]) changed = true; } return out; };
+  save.unlocked = fix(save.unlocked);
+  for(const d of save.decks) if(d && d.items) d.items = fix(d.items);
+  if(changed) persist();
+})();
 
 // where the new items drop in the dungeon (besides the gacha)
-DG_RELICS.melee.items.push('bloodlust', 'bulwark', 'glassbones');
-DG_RELICS.venom.items.push('nimble', 'vampire', 'heavy');
-DG_RELICS.ranged.items.push('lance', 'farshot', 'marked');
-DG_RELICS.tide.items.push('pulse', 'treasure', 'doomed');
-DG_RELICS.shell.items.push('bladestorm', 'hunter', 'grounded');
-DG_RELICS.deep.items.push('chain', 'gravity', 'dim');
-DG_RELICS.forge.items.push('meteor', 'overdrive', 'badomen');
-DG_RELICS.stone.items.push('titan', 'smite');
-DG_RELICS.crystal.items.push('timewarp', 'avatar', 'midas', 'phoenix');
+DG_RELICS.melee.items.push('bulwark', 'titan', 'riposte', 'wounds');
+DG_RELICS.venom.items.push('nimble', 'vampire', 'spores', 'heavy', 'withered');
+DG_RELICS.ranged.items.push('lance', 'farshot', 'dice', 'marked');
+DG_RELICS.tide.items.push('pulse', 'treasure', 'saint', 'perfection', 'undying');
+DG_RELICS.shell.items.push('bladestorm', 'hunter', 'gilded', 'grounded');
+DG_RELICS.deep.items.push('chain', 'gravity', 'frostbite', 'echo', 'dim', 'doomed');
+DG_RELICS.forge.items.push('meteor', 'overdrive', 'powderkeg', 'scroll', 'badomen', 'volatile');
+DG_RELICS.stone.items.push('smite', 'glutton', 'coldblood', 'damocles');
+DG_RELICS.crystal.items.push('timewarp', 'midas', 'phoenix');
 /* ---------- title screen: a live dungeon floor plays behind the menu ----------
    A hero walks a real floor on its own: it picks a far-off spot, follows a path there and fights
    whatever comes. It cannot die, nothing is saved and it makes no sound. Every 40 s it fades to
