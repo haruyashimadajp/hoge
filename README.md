@@ -20,7 +20,7 @@ The game used to have a second, 2D mode of ten timed survival stages. It was rem
 
 Seen from behind and above, in the style of Minecraft Dungeons. It follows the dungeon design notes on floor structure, the death penalty, the first theme and enemy families:
 
-- 100 floors in 20 themes of 5 floors are planned. Two themes are built: **Mossy Ruins** (floors 1–5) and **Flooded Aqueducts** (floors 6–10).
+- 100 floors in 20 themes of 5 floors are planned. Three themes are built: **Mossy Ruins** (floors 1–5), **Flooded Aqueducts** (floors 6–10) and **Ember Mines** (floors 11–15).
 - Every floor is a large hand-made map (about 7–10 minutes for a full clear) with its own floor boss. The last floor of a theme ends with the floor boss and then the theme boss, back to back.
 - Each floor starts you back at level 1 with your bare loadout, and each level needs 1.1× the XP of the one before (`DG_XP_GROWTH`). XP gems stay where enemies fall.
 - Every boss has several attacks of its own (for example the Broodmother's web shots, egg sacs, web field, pounce, venom spray and spiderlings); the attack list is `patterns` in its `SKINS` entry, and the attacks live in `bossStep()`. Bosses never throw just one thing: boulders, anchors, pearls, coral javelins and wreckage come in volleys, often bursting into shards where they land, and each thrown object has its own 3D model.
@@ -33,11 +33,17 @@ Seen from behind and above, in the style of Minecraft Dungeons. It follows the d
   - Floor 8, Lightless Channels: a dark labyrinth. Light all six lanterns. **Lurking Anglers** wait at dead ends with lures that glow like lanterns, then lunge. Bubble Sirens, Electric Eels and Glow Jellyfish fill the channels.
   - Floor 9, Flood Halls: three great halls flood and drain on a cycle. Restart three pumps by staying next to each until it runs while eels and **Tide Wraiths** come out of the water; a running pump drains its hall for good.
   - Floor 10, Bottom of the Great Reservoir: a black lake of walkways and islands, and something enormous swims after anyone in the water (stay on the walkways). Board the Drowned Admiral's wreck and beat him on its deck; the reservoir then drains, the lair gates open, and the Leviathan waits in its pool. **Leviathan Spawn** leap out of the lake at you.
+- The Ember Mines are an old dwarven mine over a sea of magma, and the hardest theme so far: tougher enemies (Kobold Miners in swarms, Kobold Sappers with dynamite, Magma Slimes that leave burning ground and split, Ember Bats that swoop, armored Rock Golems with shockwaves, Crystal Golems that burst into shards, blinking Forge Imps), higher floor multipliers and a 2-point loadout budget. Lava (`%`) blocks walking but not shots. Every floor has its own job (`objective`):
+  - Floor 11, The Cart Line: escort the ore cart up a long rail line. It only rolls while you stay next to it and no enemy blocks it, and at three stations the kobolds attack it. Runaway carts race down the side tracks (`runaway` in the floor's entry) and hit anything in their way, kobolds included. Boss: Gearjaw on his drill cart.
+  - Floor 12, Blasting Galleries: take dynamite from a crate, carry it (slower, and a hit knocks it out of your hands) to one of four rubble seams, and get clear before it blows. Boss: Blastback, the demolition golem.
+  - Floor 13, Furnace Halls: a heat meter fills near furnaces and on hot grates; past 100 you burn until you cool off in a trough. Vent three furnaces by staying in their rings while the heat climbs. Boss: the Furnace Heart, which never moves and sweeps the room with turning flame jets.
+  - Floor 14, Crystal Refinery: three emitters fire beams along the tile grid, and the beams burn anything crossing them. Walk up to a mirror to flip it between / and \, and bend each beam into its receiver (the puzzles are checked by a solver in the map script). Boss: the Prism Matriarch.
+  - Floor 15, Heart of the Forge: the Forge King's two arms are separate enemies, and while either stands he takes 15% damage. Break them and the magma ring in his hall floods. When he falls the forge collapses: the magma follows you up the escape tunnel to the portal.
 - Elites and bosses drop **relics**, locked items that match their family.
 - Coins and relics you pick up are only kept when you step into the exit portal after the boss. If you die you go back to base and lose only what you had not secured.
 - Each portal you reach lets you start from the next floor later (fast travel).
 - The dodge roll (Space or the roll button) makes you untouchable for a moment and breaks webs.
-- Each theme has one point budget for the loadout: 5 points for Mossy Ruins, 3 for Flooded Aqueducts.
+- Each theme has one point budget for the loadout: 5 points for Mossy Ruins, 3 for Flooded Aqueducts, 2 for the Ember Mines.
 - **Skill tree** (the Skills tab): the first clear of a floor gives 1 skill point, and every fifth floor gives 2. Each rank of a skill costs one point more than the rank before it (1, then 2, then 3 …); the three capstones cost a flat 3. Three branches: Agility (roll cooldown, roll distance, move speed, longer i-frames, Tailwind, Water Strider, and Double Roll at the end), Might (damage, cooldowns, crits, Giant Slayer, Head Start, XP, and Overkill) and Survival (max HP, armor, pickup range, a Healing Flask, coins, Lantern Bearer, and Last Stand). A branch's middle row opens after 4 points in its first row, its last row after 10. You can take points back out at any time. Skills only work in the dungeon; the data is `DG_SKILLS`.
 
 ## Performance
@@ -49,7 +55,7 @@ Seen from behind and above, in the style of Minecraft Dungeons. It follows the d
 
 ## Sound
 
-All sound effects and music are synthesized in the browser with the Web Audio API (no audio files). The music is hand-written: each song in `SONGS` lists its chords bar by bar, its melodies as note:length pairs and its drum grooves, and plays an intro and then a form like A A+ B B+ A~ A+ (`+` adds an arpeggio, a harmony line and busier drums, `~` is a breather). Everything runs through a small mixer with reverb and a tempo-synced echo. There are songs for the title, the base, each theme, the floor bosses of each theme, and a finale for the theme bosses on floors 5 and 10. Pausing or a level-up muffles the music. Volumes for master, music and sound effects are in Settings (title screen, the gear button, or the pause menu) and are saved in the browser.
+All sound effects and music are synthesized in the browser with the Web Audio API (no audio files). The music is hand-written: each song in `SONGS` lists its chords bar by bar, its melodies as note:length pairs and its drum grooves, and plays an intro and then a form like A A+ B B+ A~ A+ (`+` adds an arpeggio, a harmony line and busier drums, `~` is a breather). Everything runs through a small mixer with reverb and a tempo-synced echo. There are songs for the title, the base, each theme, the floor bosses of each theme, and a finale for the theme bosses on floors 5, 10 and 15. Pausing or a level-up muffles the music. Volumes for master, music and sound effects are in Settings (title screen, the gear button, or the pause menu) and are saved in the browser.
 
 ## Adding content
 

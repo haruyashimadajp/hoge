@@ -2210,6 +2210,10 @@ const GROOVES = {
   tribalF: {k:'X..X..X.X..X..X.', s:'....X.......X..g', t:'..x..x..x.x..x..', h:'xgxgxgxgxgxgxgxg'},
   blast:   {k:'X.x.X.x.X.x.X.x.', s:'....X.......X...', h:'x.x.x.x.x.x.x.x.', o:'..x...x...x...x.'},
   blastF:  {k:'XxX.XxX.XxX.XxXx', s:'....X.......X.xx', h:'xxxxxxxxxxxxxxxx'},
+  mine:    {k:'X.....x.X.......', s:'....X.......X...', r:'..x.....x.x...x.', h:'x.x.x.x.x.x.x.x.'},
+  mineFull:{k:'X..x..x.X..x..x.', s:'....X.......X...', r:'x.x...x.x.x...x.', h:'xgxgxgxgxgxgxgxg', o:'..............x.'},
+  forge:   {k:'X.x.X..xX.x.X..x', s:'....X.......X...', r:'..x...x...x...x.', h:'x.x.x.x.x.x.x.x.'},
+  forgeF:  {k:'X.x.X..xX.x.X..x', s:'....X.......X.gg', r:'..x...x...x...x.', h:'xxxxxxxxxxxxxxxx', o:'..x.......x.....'},
 };
 // the second half of a section's last bar
 const FILLS = {
@@ -2284,6 +2288,21 @@ const SONGS = {
        mel:'E5:2 F5:2 E5:2 B4:6 G4:2 B4:2 | C5:4 A4:4 F5:6 E5:2 | E5:2 G5:2 B5:4 A5:2 G5:2 F#5:4 | A5:6 F#5:2 D5:8 | E5:4 G5:4 C6:6 B5:2 | B5:4 F#5:4 D#5:8 | E5:4 F#5:2 G5:2 B5:4 G5:4 | A5:4 F#5:4 D#5:4 B4:4'},
     B:{ch:'Am | B | C | B | Am | F | B | B7',
        mel:'A4:4 C5:4 E5:8 | D#5:4 F#5:4 B5:8 | G5:4 C6:6 B5:2 G5:4 | F#5:12 -:4 | E5:2 F5:2 E5:2 C5:2 A4:8 | F5:2 G5:2 F5:2 C5:2 A4:8 | B4:4 D#5:4 F#5:4 A5:4 | B5:8 -:8'}},
+  // the Ember Mines: an iron rhythm of anvils, and a driving boss track
+  mines:{bpm:104, gain:1.25, intro:4, form:['A', 'A+', 'B', 'B+', 'A~', 'A+'], groove:'mine', grooveFull:'mineFull', fill:'roll', lp:9000,
+    inst:{lead:'square', harm:'pluck', pad:'strings', arp:'pluck', bass:'pbass'}, arp:'broken', arpRate:1, arpLo:62,
+    bass:'R-.R-.R-R-.R-.5-',
+    A:{ch:'Dm | Eb | Dm | C | Bb | C | Dm | A7',
+       mel:'D5:4 F5:2 E5:2 D5:4 A4:4 | Eb5:6 D5:2 Bb4:8 | F5:4 A5:4 G5:2 F5:2 E5:4 | E5:8 G5:4 C5:4 | D5:4 F5:4 Bb5:6 A5:2 | G5:4 E5:4 C5:4 E5:4 | F5:6 E5:2 D5:4 F5:4 | E5:8 C#5:4 A4:4'},
+    B:{ch:'Gm | Eb | Bb | F | Gm | Eb | A | A7',
+       mel:'G5:6 Bb5:2 A5:4 G5:4 | G5:8 Eb5:4 Bb4:4 | F5:6 D5:2 Bb4:4 D5:4 | C5:8 A4:4 F4:4 | D5:4 G5:4 Bb5:6 A5:2 | G5:4 Bb5:4 G5:4 Eb5:4 | E5:6 C#5:2 E5:4 A5:4 | G5:4 E5:4 C#5:4 A4:4'}},
+  bossMines:{bpm:144, gain:.9, intro:1, introGroove:'build', form:['A', 'A+', 'B+', 'A+'], groove:'forge', grooveFull:'forgeF', fill:'toms',
+    inst:{lead:'saw', harm:'square', pad:'choir', arp:'pluck', bass:'dbass'}, arp:'up', arpRate:1, arpLo:59,
+    bass:'R-R-R-R-R-R-R-O-', bassBrk:'R-R-R-R-R-R-R-R-',
+    A:{ch:'Em | F | Em | F | C | D | Em | B7',
+       mel:'E5:2 E5:2 G5:2 B5:4 A5:2 G5:2 F#5:2 | A5:4 F5:4 C5:8 | B4:2 E5:2 G5:2 B5:6 G5:4 | C6:4 A5:4 F5:4 E5:4 | E5:4 G5:4 C6:6 B5:2 | A5:4 F#5:4 D5:8 | G5:4 F#5:2 E5:2 B4:8 | D#5:4 F#5:4 A5:4 B5:4'},
+    B:{ch:'Am | Em | F | B7 | Am | C | B | B7',
+       mel:'A5:6 G5:2 E5:4 C5:4 | B4:4 E5:4 G5:8 | A5:4 C6:4 A5:4 F5:4 | F#5:8 D#5:4 B4:4 | C5:4 E5:4 A5:6 B5:2 | C6:6 B5:2 G5:4 E5:4 | D#5:4 F#5:4 B5:8 | A5:4 F#5:4 D#5:4 B4:4'}},
   // the theme bosses (floors 5 and 10). Its B section quotes the title theme
   finale:{bpm:150, gain:.8, intro:1, introGroove:'build', form:['A', 'A+', 'B+', 'A+'], groove:'blast', grooveFull:'blastF', fill:'toms', leadOct:-12,
     inst:{lead:'saw', harm:'square', pad:'choir', arp:'pluck', bass:'dbass'}, arp:'up', arpRate:1, arpLo:69, harmOct:12,
@@ -3261,6 +3280,7 @@ function hitEnemy(e, base, src){
   if(s.still && Math.hypot(p.vx, p.vy) < 10) m *= 1 + s.still;
   if(G.dg && SKINS[e.skin].shell) m *= dgShell(e);
   if(G.dg && (e.boss || e.elite)) m *= 1 + skV('slayer');
+  if(e.guardMul) m *= e.guardMul;
   let crit = false;
   if(Math.random() < s.crit){ m *= s.critMul; crit = true; }
   const d = Math.max(1, base * m - e.armor);
@@ -3554,7 +3574,7 @@ function bossPatterns(b, sk){
   if(!sk.phases) return sk.patterns;
   const r = b.hp / b.maxHp;
   let idx = 0;
-  sk.phases.forEach((ph, i) => { if(r <= ph.at) idx = i; });
+  sk.phases.forEach((ph, i) => { if(r <= ph.at && (!ph.when || ph.when(b))) idx = i; });
   if(b.phase === undefined) b.phase = idx;
   if(idx > b.phase){
     b.phase = idx; b.act = null; b.atkT = 1.2;
@@ -4092,6 +4112,198 @@ function bossStep(b, dt){
       if(!A.k){ A.k = 1; addBeam({x:b.x, y:b.y, a:aim, rot:0, track:.8, len:900, w:40, warn:1, active:2.6, dmg:dmg * .5, color:'#7df9ff', owner:b, slow:.6}); }
       if(A.t > 3.8) done = true;
       break;
+    // ---- Gearjaw, Kobold Foreman ----
+    case 'drillrush': {
+      // two rushes in a row; sparks fly where each one stops
+      hold = true;
+      const tele = () => { A.a = aim; A.pt = A.t; A.crash = 0; G.hazards.push({kind:'tele', x:b.x, y:b.y, a:aim, len:760, w:b.r * 1.6, warn:.7, max:.7}); sfx('charge'); };
+      if(!A.k){ A.k = 1; A.n = 1; tele(); }
+      const pt = A.t - A.pt;
+      if(A.k === 1 && pt >= .7){ A.k = 2; A.pt = A.t; sfx('dash'); }
+      else if(A.k === 2){
+        bossRush(b, A, dt, 860);
+        if(A.crash || pt > .95){ A.k = 3; A.pt = A.t; ring(b, 10, 220, dmg * .35, '#ffd27a'); sfx('shock'); }
+      }
+      else if(A.k === 3 && pt >= .4){ if(A.n < 2){ A.n++; A.k = 1; tele(); } else { A.k = 4; A.pt = A.t; } }
+      else if(A.k === 4 && pt >= .5) done = true;
+      break;
+    }
+    case 'dynamite':
+      // a bundle of five sticks around you; each one bursts into shrapnel
+      for(let i = 0; i < 5; i++){
+        const a = Math.random() * TAU, r = i ? rand(90, 230) : 0, tx = p.x + p.vx * .5 + Math.cos(a) * r, ty = p.y + p.vy * .5 + Math.sin(a) * r, w = 1.05 + i * .15;
+        dgLob(b.x, b.y, tx, ty, w, 80, dmg * .9, '#ff6a2a', 'dynamite', () => { dgShards(tx, ty, 5, 210, dmg * .3, '#ffd27a', 'pebble'); sfx('boom'); });
+      }
+      sfx('sizzle'); done = true; break;
+    case 'foreman':
+      if(G.dg){ for(let i = 0; i < 5; i++){ const a = i / 5 * TAU + Math.random(), x = b.x + Math.cos(a) * 120, y = b.y + Math.sin(a) * 120; dgSpawn(i < 4 ? 'kobold' : 'sapper', x, y, false, 0); } }
+      G.fx.push({type:'ring', x:b.x, y:b.y, r:10, maxR:190, life:.4, max:.4, color:sk.glow, fill:true}); sfx('elite');
+      done = true; break;
+    case 'runaway': {
+      // three carts across the shaft, one of them on your row
+      const bx = G.dg.L.zoneBox[10];
+      if(bx){
+        const x0 = (bx.x0 + .5) * DT, x1 = (bx.x1 + .5) * DT, rows = [p.y + p.vy * .4];
+        for(let k = 0; k < 2; k++) rows.push(rand((bx.y0 + 1.5) * DT, (bx.y1 - .5) * DT));
+        rows.forEach((y, k) => dgRunaway(x0, y, x1, y, 1.2 + k * .35));
+      }
+      done = true; break;
+    }
+    case 'sparkspin':
+      hold = true;
+      if(!A.k){ A.k = 1; G.hazards.push({kind:'aura', owner:b, r:b.r + 95, life:3, max:3, wind:.6, dmg:dmg * .7, tick:.6, color:sk.glow}); sfx('charge'); }
+      if(A.t > .6 && A.t < 3){
+        const dx = p.x - b.x, dy = p.y - b.y, d = Math.hypot(dx, dy) || 1, sp = b.speed * 1.45;
+        b.x += dx / d * sp * dt; b.y += dy / d * sp * dt;
+        if(Math.random() < .5) ebullet(b.x, b.y, Math.random() * TAU, 200, dmg * .25, '#ffd27a', {r:6});
+      }
+      if(A.t > 3.2) done = true;
+      break;
+    // ---- Blastback, Demolition Golem ----
+    case 'barrels':
+      // four burning barrels; each leaves fire where it lands
+      for(let i = 0; i < 4; i++){
+        const a = Math.random() * TAU, r = i ? rand(100, 240) : 0, tx = p.x + p.vx * .5 + Math.cos(a) * r, ty = p.y + p.vy * .5 + Math.sin(a) * r, w = 1.1 + i * .2;
+        addCircle(tx, ty, 92, w, dmg * 1.05, '#ff6a2a', {life:4.5, dps:9});
+        G.fx.push({type:'lob', x0:b.x, y0:b.y, x:tx, y:ty, life:w, max:w, color:'#ff6a2a', model:'barrel', spin:rand(5, 9)});
+      }
+      sfx('lob'); done = true; break;
+    case 'chainblast': {
+      // a line of explosions marches from him toward you, then a second one fans out
+      const ax = Math.cos(aim), ay = Math.sin(aim);
+      for(let i = 0; i < 9; i++) addCircle(b.x + ax * (110 + i * 88), b.y + ay * (110 + i * 88), 66, .55 + i * .13, dmg * .9, '#ff6a2a');
+      for(const s of [-.42, .42]){ const cx = Math.cos(aim + s), cy = Math.sin(aim + s); for(let i = 0; i < 7; i++) addCircle(b.x + cx * (150 + i * 95), b.y + cy * (150 + i * 95), 58, 1.1 + i * .13, dmg * .8, '#ff8a3d'); }
+      G.shake = .2; sfx('charge'); done = true; break;
+    }
+    case 'plant': {
+      // a ring of charges around you with a single gap
+      const gap = Math.floor(Math.random() * 10);
+      for(let i = 0; i < 10; i++){ if(i === gap) continue; const a = i / 10 * TAU; addCircle(p.x + Math.cos(a) * 165, p.y + Math.sin(a) * 165, 74, 1.6, dmg, '#ff6a2a'); }
+      addCircle(p.x, p.y, 70, 1.6, dmg, '#ff6a2a');
+      addText(p.x, p.y - 50, 'FIND THE GAP', 2); sfx('sizzle'); done = true; break;
+    }
+    case 'cavein': {
+      const ax = Math.cos(aim), ay = Math.sin(aim), nx = -ay, ny = ax;
+      for(let i = 0; i < 8; i++){
+        const gap = Math.floor(rand(-3, 3)), cx = b.x + ax * (110 + i * 100), cy = b.y + ay * (110 + i * 100);
+        for(let j = -6; j <= 6; j++) if(j !== gap && j !== gap + 1) addCircle(cx + nx * j * 92, cy + ny * j * 92, 52, .8 + i * .22, dmg * .9, '#c8a08a');
+      }
+      G.shake = .3; sfx('crumble'); done = true; break;
+    }
+    // ---- The Furnace Heart ----
+    case 'jets': case 'jets2': case 'jets3': {
+      hold = true;
+      if(!A.k){
+        A.k = 1;
+        const n = A.name === 'jets' ? 3 : A.name === 'jets2' ? 4 : 5, rot = (A.name === 'jets3' ? .7 : .55) * (Math.random() < .5 ? 1 : -1);
+        for(let i = 0; i < n; i++) addBeam({x:b.x, y:b.y, a:aim + .5 + i / n * TAU, rot, len:1000, w:42, warn:.9, active:A.name === 'jets' ? 3.4 : 4, dmg:dmg * .5, color:'#ff7a1a', owner:b});
+      }
+      if(A.t > (A.name === 'jets' ? 4.4 : 5)) done = true;
+      break;
+    }
+    case 'firespiral':
+      hold = true;
+      while(A.k < 22 && A.t >= A.k * .09){ for(let j = 0; j < 3; j++) ebullet(b.x, b.y, A.k * .32 + j / 3 * TAU, 230, dmg * .35, '#ff9a3d', {r:9}); A.k++; }
+      if(A.t > 2.3) done = true;
+      break;
+    case 'heatwave':
+      // a slow wave of heat: roll through it, or it burns and cooks you
+      hold = true;
+      if(!A.k){ A.k = 1; G.fx.push({type:'ring', x:b.x, y:b.y, r:b.r, maxR:b.r + 120, life:.7, max:.7, color:'#ffd27a'}); sfx('charge'); }
+      if(A.t >= .7 && A.k === 1){ A.k = 2; G.hazards.push({kind:'wave', x:b.x, y:b.y, r:b.r * .6, maxR:900, speed:250, w:44, dmg:dmg * .6, color:'#ff9a3d', hit:false, heat:45}); sfx('thud'); }
+      if(A.t > 1.2) done = true;
+      break;
+    case 'magmacall':
+      if(G.dg) for(let i = 0; i < 3; i++){ const a = i / 3 * TAU + Math.random(), x = b.x + Math.cos(a) * 170, y = b.y + Math.sin(a) * 170; dgSpawn(i < 2 ? 'magma' : 'forgeimp', x, y, false, 0); }
+      G.fx.push({type:'ring', x:b.x, y:b.y, r:10, maxR:240, life:.4, max:.4, color:sk.glow, fill:true}); sfx('elite');
+      done = true; break;
+    case 'molten':
+      for(let i = 0; i < 9; i++){ const a = Math.random() * TAU, r = i ? rand(70, 280) : 0; addCircle(p.x + Math.cos(a) * r, p.y + Math.sin(a) * r, 62, 1 + i * .09, dmg * .7, '#ff7a1a', {life:5, dps:8}); }
+      sfx('lob'); done = true; break;
+    // ---- Prism Matriarch ----
+    case 'prismfan':
+      hold = true;
+      if(!A.k){ A.k = 1; const s = Math.random() < .5 ? 1 : -1; for(let i = -2; i <= 2; i++) addBeam({x:b.x, y:b.y, a:aim + i * .32 - s * .3, rot:s * .4, len:1100, w:28, warn:.8, active:1.5, dmg:dmg * .55, color:'#e8d8ff', owner:b, once:true}); }
+      if(A.t > 2.5) done = true;
+      break;
+    case 'shardrain':
+      for(let i = 0; i < 6; i++){
+        const a = Math.random() * TAU, r = i ? rand(90, 260) : 0, tx = p.x + p.vx * .5 + Math.cos(a) * r, ty = p.y + p.vy * .5 + Math.sin(a) * r, w = 1 + i * .12;
+        dgLob(b.x, b.y, tx, ty, w, 60, dmg * .75, '#d8b8ff', 'crystal', () => dgShards(tx, ty, 6, 210, dmg * .3, '#e8d8ff', 'crystal'));
+      }
+      sfx('lob'); done = true; break;
+    case 'ricochet':
+      for(let i = 0; i < 5; i++) ebullet(b.x, b.y, aim + (i - 2) * .4, 250, dmg * .45, '#e8d8ff', {bounce:4, life:7, r:11, model:'crystal'});
+      sfx('crit'); done = true; break;
+    case 'pillars':
+      if(G.dg){
+        const L = G.dg.L, tiles = L.zoneTiles[10];
+        let n = 0; for(const e of G.enemies) if(!e.dead && e.type === 'prismpillar') n++;
+        for(let k = 0; k < 30 && n < 4; k++){
+          const t = tiles[Math.floor(Math.random() * tiles.length)], x = (t % L.W + .5) * DT, y = (Math.floor(t / L.W) + .5) * DT;
+          if(dgBlockedAt(x, y) || Math.hypot(x - p.x, y - p.y) < 250) continue;
+          const e = dgSpawn('prismpillar', x, y, false, 0);
+          if(e){ e.hp = e.maxHp = 340 * G.s.enemyHp; e.rise = e.riseMax = .5; e.aT = 1.2 + n * .4; e.xp = 0; n++; if(n % 2 === 0) break; }
+        }
+      }
+      sfx('blink'); done = true; break;
+    case 'lancet': {
+      // three lances of light in a row: the line follows you, then locks just before each one fires
+      hold = true;
+      const T0 = .8 + (A.k - 1) * .45;
+      if(!A.k){ A.k = 1; A.h = {kind:'tele', x:b.x, y:b.y, a:aim, len:1200, w:26, warn:.8, max:.8}; G.hazards.push(A.h); sfx('charge'); }
+      else if(A.k <= 3){
+        if(A.t < T0 - .25){ A.h.x = b.x; A.h.y = b.y; A.h.a = aim; }
+        if(A.t >= T0){
+          addBeam({x:b.x, y:b.y, a:A.h.a, rot:0, len:1200, w:26, warn:0, active:.22, dmg:dmg * .9, color:'#ffffff', once:true}); A.k++;
+          if(A.k <= 3){ A.h = {kind:'tele', x:b.x, y:b.y, a:aim, len:1200, w:26, warn:.45, max:.45}; G.hazards.push(A.h); }
+        }
+      }
+      if(A.t > 2.2) done = true;
+      break;
+    }
+    // ---- The Forge King ----
+    case 'anvils':
+      for(let i = 0; i < 3; i++){
+        const side = i === 1 ? -1 : 1, tx = p.x + p.vx * .5 + (i ? side * rand(130, 190) : 0), ty = p.y + p.vy * .5 + (i ? rand(-90, 90) : 0), w = 1.05 + i * .22;
+        dgLob(b.x, b.y, tx, ty, w, 92, dmg * 1.1, '#c8a08a', 'anvil', () => { dgShards(tx, ty, 7, 220, dmg * .35, '#ffb04a', 'pebble'); G.shake = Math.max(G.shake, .25); });
+      }
+      sfx('lob'); done = true; break;
+    case 'magmawave':
+      hold = true;
+      while(A.k < 3 && A.t >= .5 + A.k * .7){ addWave(b, 700, 280, '#ff7a1a', dmg * .6); sfx('thud'); A.k++; }
+      if(A.t > 2.2) done = true;
+      break;
+    case 'forgecall':
+      if(G.dg){ const c = [['rockgolem', 1], ['kobold', 3], ['forgeimp', 1]]; let k = 0; for(const [t, n] of c) for(let i = 0; i < n; i++, k++){ const a = k / 5 * TAU + Math.random() * .5, x = b.x + Math.cos(a) * 200, y = b.y + Math.sin(a) * 200; dgSpawn(t, x, y, false, 0); } }
+      G.fx.push({type:'ring', x:b.x, y:b.y, r:10, maxR:260, life:.4, max:.4, color:sk.glow, fill:true}); sfx('elite');
+      done = true; break;
+    case 'meteor':
+      for(let i = 0; i < 11; i++){
+        const a = Math.random() * TAU, r = i ? rand(60, 320) : 0, tx = p.x + Math.cos(a) * r, ty = p.y + Math.sin(a) * r, w = 1.05 + i * .1;
+        addCircle(tx, ty, 70, w, dmg * .8, '#ff7a1a', {life:4, dps:9});
+        G.fx.push({type:'lob', x0:tx - 260, y0:ty - 420, x:tx, y:ty, life:w, max:w, color:'#ff9a3d', model:'meteor', spin:rand(4, 8)});
+      }
+      G.shake = .2; sfx('lob'); done = true; break;
+    case 'eruption':
+      if(G.dg){
+        const L = G.dg.L, tiles = L.zoneTiles[10];
+        for(let i = 0; i < 7; i++){
+          const t = i < 2 ? -1 : tiles[Math.floor(Math.random() * tiles.length)];
+          const x = t < 0 ? p.x + rand(-60, 60) : (t % L.W + .5) * DT, y = t < 0 ? p.y + rand(-60, 60) : (Math.floor(t / L.W) + .5) * DT, w = 1.2 + i * .12;
+          addCircle(x, y, 84, w, dmg, '#ff5a1a', {life:5, dps:10});
+          dgLater(w, () => dgShards(x, y, 6, 200, dmg * .3, '#ffb04a', 'pebble'));
+        }
+      }
+      G.shake = .35; sfx('crumble'); done = true; break;
+    case 'flamering': {
+      // three rings of fire spreading out from him, each with a gap
+      for(let k = 0; k < 3; k++){
+        const R = 170 + k * 140, n = 10 + k * 5, gap = Math.floor(Math.random() * n);
+        for(let i = 0; i < n; i++){ if(i === gap || i === (gap + 1) % n) continue; const a = i / n * TAU; addCircle(b.x + Math.cos(a) * R, b.y + Math.sin(a) * R, 58, .9 + k * .45, dmg * .8, '#ff7a1a', {life:2.5, dps:8}); }
+      }
+      sfx('charge'); done = true; break;
+    }
     default: done = true;
   }
   if(done){ b.act = null; b.atkT = sk.phases ? (b.phase >= 2 ? .7 : 1.1) : 1.4; }
@@ -4103,7 +4315,10 @@ function addWave(b, maxR, speed, color, dmg){ G.hazards.push({kind:'wave', x:b.x
 const HZX = {
   wave(hz, dt){
     const p = G.p; hz.r += hz.speed * dt;
-    if(!hz.hit && Math.abs(Math.hypot(p.x - hz.x, p.y - hz.y) - hz.r) < hz.w / 2 + p.r){ hz.hit = true; hurtPlayer(hz.dmg); }
+    if(!hz.hit && Math.abs(Math.hypot(p.x - hz.x, p.y - hz.y) - hz.r) < hz.w / 2 + p.r){
+      hz.hit = true; const h0 = p.hp; hurtPlayer(hz.dmg);
+      if(hz.heat && G.dg && G.dg.heat !== null && p.hp < h0){ G.dg.heat = Math.min(130, G.dg.heat + hz.heat); addText(p.x, p.y - 44, 'SCORCHED', 2); }   // the Furnace Heart's heat wave
+    }
     if(hz.r > hz.maxR) hz.done = true;
   },
   web(hz, dt){
@@ -4723,6 +4938,8 @@ function srcLabel(k){
   if(k === 'bomb') return ico('bomb') + ' Bomb';
   if(typeof DG_SKILLS !== 'undefined' && DG_SKILLS[k]) return ico(DG_SKILLS[k].icon) + ' ' + DG_SKILLS[k].name;
   if(k === 'shield') return ico('shield') + ' Aegis shockwave';
+  if(k === 'cart') return ico('stairs') + ' Runaway carts';
+  if(k === 'beam') return ico('lightning') + ' Light beams';
   return ITEMS[k] ? ico(k) + ' ' + ITEMS[k].name : k;
 }
 function endRun(win){
@@ -5010,8 +5227,8 @@ function render(now){
    DUNGEON MODE — a 3D dungeon crawl seen from behind and above (like
    Minecraft Dungeons). It runs on the same characters, loadouts, weapons
    and level-ups as the stages. 100 floors in 20 themes are planned;
-   themes 1 (Mossy Ruins, floors 1–5) and 2 (Flooded Aqueducts, 6–10)
-   are built. Every floor is a hand-made ASCII map:
+   themes 1 (Mossy Ruins, floors 1–5), 2 (Flooded Aqueducts, 6–10) and
+   3 (Ember Mines, 11–15) are built. Every floor is a hand-made ASCII map:
      #  wall            .  floor          ,  mossy floor     u  stairs
      ~  pit             c  crumbling floor (falls after you step on it)
      m  moss pool (poisons and slows you)  w  spider web (slows you)
@@ -5025,6 +5242,9 @@ function render(now){
      g  slick algae (you slide)  l  low floor that floods   L  lantern
      V  valve (objective)  Q  pump (objective)  N  brood clutch (objective)
      h  ship deck (part of the boss zone)  M  mast  9  a second boss zone (the Leviathan's lair)
+   Ember Mines also use:
+     %  lava (blocks walking, not shots)   +  rail   :  side track (runaway carts)   C K  the ore cart's start and end
+     D  dynamite crates   R  rubble seam (blocks until blasted)   H  hot grate   U  furnace   G O W  light emitter, mirror, receiver
    Pack letters mean whatever the floor's own `packs` table says.
    ===================================================================== */
 const THREE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.165.0/three.module.min.js';
@@ -5033,7 +5253,7 @@ const DG_FLOORS_TOTAL = 100, DG_THEMES_TOTAL = 20;
 const DG_ROLL = {time:.3, cd:1.1, speed:2.7};   // dodge roll: duration, cooldown, speed multiplier
 const DG_MOB = {hp:1.3, dmg:1.2};               // regular dungeon enemies are tougher and hit harder than their base stats
 const DG_XP_GROWTH = 1.1;                       // in the dungeon each level needs ×1.1 the XP of the one before (stages: ×1.08), and your level resets on every floor
-const TT = {WALL:0, FLOOR:1, PIT:2, POOL:3, CRUMBLE:4, WEB:5, GATE:6, PROP:7, STAIR:8, DEEP:9, CURRENT:10, SLICK:11};
+const TT = {WALL:0, FLOOR:1, PIT:2, POOL:3, CRUMBLE:4, WEB:5, GATE:6, PROP:7, STAIR:8, DEEP:9, CURRENT:10, SLICK:11, LAVA:12, SEAM:13};
 const CUR_DIR = [[1, 0], [-1, 0], [0, 1], [0, -1]];   // > < v ^
 const DG_DIST = {near:.8, far:3};                 // enemy strength by distance from the start: x0.8 next to it, x3 at the far end
 const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -6321,7 +6541,7 @@ function dgParse(def){
   const rows = def.map.split('\n').filter(r => r.trim().length);
   const H = rows.length, W = Math.max(...rows.map(r => r.length)), N = W * H;
   const L = {W, H, t:new Uint8Array(N), z:new Uint8Array(N), moss:new Uint8Array(N), prop:new Uint8Array(N), closed:new Uint8Array(N),
-    cur:new Uint8Array(N), low:new Uint8Array(N), deck:new Uint8Array(N), props:[], packs:[], chests:[], gates:[], lanterns:[], sites:[], zoneIds:[], zoneTiles:{}, zoneBox:{}, open:[],
+    cur:new Uint8Array(N), low:new Uint8Array(N), deck:new Uint8Array(N), rail:new Uint8Array(N), hot:new Uint8Array(N), depots:[], beamParts:[], cartStart:null, cartEnd:null, props:[], packs:[], chests:[], gates:[], lanterns:[], sites:[], zoneIds:[], zoneTiles:{}, zoneBox:{}, open:[],
     start:{x:1, y:1}, boss:null, exit:null};
   const PK = def.packs || DG_PACKS;
   for(let y = 0; y < H; y++) for(let x = 0; x < W; x++){
@@ -6352,6 +6572,17 @@ function dgParse(def){
       case 'b': z = 10; break;
       case 'B': z = 10; L.boss = {x, y}; break;
       case 'X': z = 10; L.exit = {x, y}; break;
+      // Ember Mines
+      case '%': t = TT.LAVA; break;
+      case '+': L.rail[i] = 1; break;
+      case ':': L.rail[i] = 2; break;
+      case 'C': L.rail[i] = 1; L.cartStart = {x, y}; break;
+      case 'K': L.rail[i] = 1; L.cartEnd = {x, y}; break;
+      case 'R': t = TT.SEAM; break;
+      case 'H': L.hot[i] = 1; break;
+      case 'D': t = TT.PROP; L.prop[i] = c.charCodeAt(0); L.props.push({x, y, kind:c}); L.depots.push({x, y, i}); break;   // dynamite crates
+      case 'U': t = TT.PROP; L.prop[i] = c.charCodeAt(0); L.props.push({x, y, kind:c}); L.sites.push({x, y, i}); break;    // a furnace
+      case 'G': case 'O': case 'W': t = TT.PROP; L.prop[i] = c.charCodeAt(0); L.props.push({x, y, kind:c}); L.beamParts.push({x, y, i, kind:c}); break;   // emitter, mirror, receiver
       default:
         if(c >= '1' && c <= '9') z = +c;
         else if(PK[c.toLowerCase()]) L.packs.push({x, y, kind:c.toLowerCase(), elite:c !== c.toLowerCase(), done:false});
@@ -6389,18 +6620,18 @@ function dgParse(def){
   }
   return L;
 }
-function dgWalkable(t){ return t !== TT.WALL && t !== TT.PROP && t !== TT.PIT; }
+function dgWalkable(t){ return t !== TT.WALL && t !== TT.PROP && t !== TT.PIT && t !== TT.LAVA && t !== TT.SEAM; }
 function dgWalkBlocked(L, tx, ty){
   if(tx < 0 || ty < 0 || tx >= L.W || ty >= L.H) return true;
   const i = ty * L.W + tx, t = L.t[i];
-  return t === TT.WALL || t === TT.PROP || t === TT.PIT || (t === TT.GATE && L.closed[i] === 1);
+  return t === TT.WALL || t === TT.PROP || t === TT.PIT || t === TT.LAVA || t === TT.SEAM || (t === TT.GATE && L.closed[i] === 1);
 }
 // rubble is low: shots fly over it. Pits do not stop shots either.
 function dgShotBlocked(L, x, y){
   const tx = Math.floor(x / DT), ty = Math.floor(y / DT);
   if(tx < 0 || ty < 0 || tx >= L.W || ty >= L.H) return true;
   const i = ty * L.W + tx, t = L.t[i];
-  return t === TT.WALL || (t === TT.PROP && L.prop[i] !== 114) || (t === TT.GATE && L.closed[i] === 1);
+  return t === TT.WALL || t === TT.SEAM || (t === TT.PROP && L.prop[i] !== 114) || (t === TT.GATE && L.closed[i] === 1);
 }
 const tileAt = (L, x, y) => Math.floor(y / DT) * L.W + Math.floor(x / DT);
 // push a circle out of every blocked tile it overlaps; returns true if it hit something
@@ -6625,6 +6856,7 @@ function dgTick(dt){
   dgWaterTick(dt);
   dgObjTick(dt);
   dgHunterTick(dt);
+  dgMinesTick(dt);
   const bb = G.boss;
   if(bb && bb.recoil && bb.recoil.t > 0 && !bb.noTouch){ bb.recoil.t -= dt; bb.x += bb.recoil.x * 380 * dt; bb.y += bb.recoil.y * 380 * dt; dgCollide(bb, bb.r); }
   if(D.bossQ){ D.bossQ.t -= dt; if(D.bossQ.t <= 0){ const q = D.bossQ; D.bossQ = null; dgSpawnBoss(q.skin, q.hp, q.second); } }
@@ -6734,8 +6966,9 @@ function dgSpawnBoss(skin, hp, second){
   b.home = {x, y}; b.face = Math.atan2(G.p.y - y, G.p.x - x);
   G.enemies.push(b); G.boss = b;
   $('#bossName').textContent = sk.name; $('#bossbar').hidden = false;
-  showBanner(second ? 'THEME BOSS' : 'FLOOR BOSS', 'warn', sk.name);
-  sfx('warning'); setMusic(second ? 'finale' : dgThemeOf(D.floor).boss); G.shake = .5;   // the theme's last boss gets the finale
+  const last = second || (D.def.themeEnd && !D.def.boss2);   // the theme's last boss gets the finale
+  showBanner(last ? 'THEME BOSS' : 'FLOOR BOSS', 'warn', sk.name);
+  sfx('warning'); setMusic(last ? 'finale' : dgThemeOf(D.floor).boss); G.shake = .5;
   burst(x, y, '#9a8a6a', 40, 260, 1.6);
   G.fx.push({type:'ring', x, y, r:10, maxR:220, life:.6, max:.6, color:sk.glow, fill:true});
   dgObjective();
@@ -6759,6 +6992,7 @@ function dgBossDead(b){
   sfx('clear'); setMusic(dgThemeOf(D.floor).song, 0);
   dgClearZone(D.zones[def.lairZone || 10]);
   D.portal = {x:(L.exit.x + .5) * DT, y:(L.exit.y + .5) * DT, t:0, home:!!def.themeEnd || !DG_FLOORS[D.floor]};
+  dgMinesBossDead(b);
   dgObjective();
 }
 function dgOnKill(e){
@@ -6767,8 +7001,10 @@ function dgOnKill(e){
   if(e.elite) G.pickups.push({kind:'relic', x:e.x, y:e.y + 26, t:0, family:DG_FAMILY[e.type] || 'melee'});
   dgOverkill(e);
   dgObjKill(e);
-  const ds = SKINS[e.skin].deathShock;
-  if(ds) addCircle(e.x, e.y, ds.r, ds.warn, ds.dmg * (e.pow || 1), SKINS[e.skin].glow);
+  const sk = SKINS[e.skin], ds = sk.deathShock;
+  if(ds) addCircle(e.x, e.y, ds.r, ds.warn, ds.dmg * (e.pow || 1), sk.glow);
+  if(sk.deathShards) dgShards(e.x, e.y, sk.deathShards.n, sk.deathShards.sp, sk.deathShards.dmg * (e.pow || 1), sk.glow, 'crystal');
+  if(sk.deathSplit) for(let k = 0; k < sk.deathSplit.n; k++){ const c = dgSpawn(sk.deathSplit.type, e.x + rand(-14, 14), e.y + rand(-14, 14), false, e.zone); if(c){ c.rise = c.riseMax = .2; c.xp *= .5; } }
 }
 function dgCollectRelic(pk){
   const D = G.dg, fam = DG_RELICS[pk.family] || DG_RELICS.melee;
@@ -6821,7 +7057,8 @@ function dgMovePlayer(dt){
     if(p.webT > 0) p.webT -= dt;
     const m = t === TT.WEB || p.webT > 0 ? .55 : t === TT.POOL ? .7 : 1;
     const tw = p.tailT > 0 ? 1 + skV('tailwind') : 1;
-    p.vx *= m * tw; p.vy *= m * tw;
+    const cm = D.carry ? .85 : 1;   // carrying dynamite slows you down
+    p.vx *= m * tw * cm; p.vy *= m * tw * cm;
     dgWaterMove(dt);
   }
   dgPullMove(dt);
@@ -6955,7 +7192,7 @@ function dgDistField(){
       const nx = x + dx, ny = y + dy;
       if(nx < 0 || ny < 0 || nx >= L.W || ny >= L.H) continue;
       const j = ny * L.W + nx, t = L.t[j];
-      if(f[j] >= 0 || t === TT.WALL || t === TT.PROP || t === TT.PIT) continue;
+      if(f[j] >= 0 || t === TT.WALL || t === TT.PROP || t === TT.PIT || t === TT.LAVA) continue;
       f[j] = f[i] + 1; if(f[j] > max) max = f[j]; q[tl++] = j;
     }
   }
@@ -7071,7 +7308,7 @@ function dgWaterTick(dt){
   if(def.rising) for(const gm of G.gems) if(!gm.mag && dgWaterHurts(gm.x, gm.y)) gm.mag = true;
   if(dgWaterHurts(p.x, p.y) && !(D.roll.t > 0)){
     p.drownT = (p.drownT || 0) + dt;
-    if(p.drownT > .5){ p.drownT = 0; hurtPlayer(def.rising ? def.rising.dmg : 8); }
+    if(p.drownT > .5){ p.drownT = 0; hurtPlayer(def.rising ? def.rising.dmg : def.flood && def.flood.dmg || 8); }
   }
   // lanterns: walk up to one to light it; while you stand in its light you can see far
   if(def.dark){
@@ -7239,6 +7476,7 @@ function dgObjInit(){
       if(e){ e.rise = e.riseMax = 0; st.e = e; }
     }
   }
+  dgMinesInit();
   // some groups are there from the start (anglers waiting in the dark)
   const PK = def.packs || DG_PACKS;
   for(const pk of L.packs) if(PK[pk.kind] && PK[pk.kind].early){
@@ -7249,7 +7487,8 @@ function dgObjInit(){
 }
 const dgSitePos = st => [(st.x + .5) * DT, (st.y + .5) * DT];
 function dgObjText(){
-  const O = G.dg.obj, T = O.O.text;
+  const O = G.dg.obj, T = O.O.text, mn = dgMinesObjText(O);
+  if(mn) return mn;
   const run = O.sites.find(st => st.state === 'run');
   if(run && O.kind === 'valves') return `Turning the ${run.name.toLowerCase()} · ${Math.round(run.prog * 100)}%${run.near ? '' : ' · go back to it'}`;
   if(run && O.kind === 'pumps') return `${run.name} ${Math.round(run.prog * 100)}%${run.near ? ' · hold on' : ' · stay next to it!'}`;
@@ -8155,7 +8394,7 @@ function d3Init(){
   // The count never changes while playing: a different count would make three.js recompile every material.
   D3.torchLights = Array.from({length:4}, () => { const l = new T.PointLight('#ff9a48', 0, 380, 0); scene.add(l); return l; });
   scene.add(D3.pLight = new T.PointLight('#d6eaff', 1.1, 330, 0));
-  d3Textures(); d3Materials(); d3Geometries(); d3TexturesAQ(); d3GeometriesAQ(); d3GeometriesAQ2();
+  d3Textures(); d3Materials(); d3Geometries(); d3TexturesAQ(); d3GeometriesAQ(); d3GeometriesAQ2(); d3TexturesMN(); d3GeometriesMN();
   scene.add(D3.level = new T.Group());
   scene.add(D3.dyn = new T.Group());
   d3Dynamic();
@@ -8448,20 +8687,20 @@ function d3BuildLevel(){
   }
   D3.occ.clear(); D3.cut.clear(); D3.torches = []; D3.gates = []; D3.chests = []; D3.falling = []; D3.crumbleIdx.clear();
   d3ApplyLook();
-  const AQ = D3.theme === 'aqueduct', MS = AQ ? D3.MA : M;
+  const AQ = D3.theme === 'aqueduct', MN = D3.theme === 'mines', MS = AQ ? D3.MA : MN ? D3.MM : M;
   const isWall = (x, y) => x < 0 || y < 0 || x >= W || y >= L.H || L.t[y * W + x] === TT.WALL;
   const h3 = (x, y, s) => hash3(x, y, D.floor * 31 + s);
   // things that sink away when they stand between the camera and the player; g.at(k) finds the chunk
   const occ = (i, g, k, o) => { let a = D3.occ.get(i); if(!a){ a = []; D3.occ.set(i, a); } const [mesh, idx] = g.at(k); a.push(Object.assign(o, {mesh, idx})); };
   const col = (m, i, k) => { D3.RT.col.setRGB(k, k, k * .98); m.setColorAt(i, D3.RT.col); };
   // floors
-  const fl = {floor:[], moss:[], stair:[], crumble:[], slick:[], bed:[], deck:[]}, pools = [], webs = [];
+  const fl = {floor:[], moss:[], stair:[], crumble:[], slick:[], bed:[], deck:[], hot:[], grate:[]}, pools = [], webs = [];
   for(let y = 0; y < L.H; y++) for(let x = 0; x < W; x++){
     const i = y * W + x, t = L.t[i];
-    if(t === TT.WALL || t === TT.PIT) continue;
+    if(t === TT.WALL || t === TT.PIT || t === TT.LAVA) continue;
     let near = 0; for(const [dx, dy] of N8) if(isWall(x + dx, y + dy)) near++;
     const y0 = d3TileDepth(L, i);
-    const kind = y0 ? 'bed' : L.deck[i] ? 'deck' : t === TT.SLICK ? 'slick' : t === TT.STAIR ? 'stair' : t === TT.CRUMBLE ? 'crumble' : (L.moss[i] || t === TT.POOL || (near && h3(x, y, 1) < .22)) ? 'moss' : 'floor';
+    const kind = y0 ? 'bed' : L.deck[i] ? 'deck' : L.hot[i] ? (dgGrateCold(i) ? 'grate' : 'hot') : t === TT.SLICK ? 'slick' : t === TT.STAIR ? 'stair' : t === TT.CRUMBLE ? 'crumble' : (L.moss[i] || t === TT.POOL || (near && h3(x, y, 1) < .22)) ? 'moss' : 'floor';
     fl[kind].push({x, y, i, y0, k:(.86 + h3(x, y, 2) * .16) * Math.max(.7, 1 - near * .05) * (y0 < -20 ? .55 : y0 ? .78 : 1), r:kind === 'deck' ? 1 : Math.floor(h3(x, y, 3) * 4)});
     if(t === TT.POOL) pools.push({x, y});
     if(t === TT.WEB) webs.push({x, y, r:h3(x, y, 4) * TAU});
@@ -8489,7 +8728,7 @@ function d3BuildLevel(){
     const south = y + 1 < L.H ? L.t[(y + 1) * W + x] : TT.WALL;
     if(h > .9 && south !== TT.WALL && south !== TT.PIT && south !== TT.GATE){
       if(h3(x, y, 8) < .17 && !torches.some(o => Math.abs(o.x - x) < 5 && Math.abs(o.y - y) < 4)) torches.push({x, y, i:y * W + x});
-      else if(h3(x, y, 9) < .4) vines.push({x, y, i:y * W + x, len:44 + h3(x, y, 10) * 60, off:(h3(x, y, 11) - .5) * 26, h:h * WALLH});
+      else if(!MN && h3(x, y, 9) < .4) vines.push({x, y, i:y * W + x, len:44 + h3(x, y, 10) * 60, off:(h3(x, y, 11) - .5) * 26, h:h * WALLH});
     }
   }
   const wallM = d3Instanced(G3.wall, MS.wall, walls, (m, i, o) => { d3Inst(m, i, o.x * DT + 32, 0, o.y * DT + 32, 0, 1, o.h, 1); col(m, i, o.k); }, {cast:true});
@@ -8500,7 +8739,7 @@ function d3BuildLevel(){
   const vineM = d3Instanced(G3.plane, M.vine, vines, (m, i, o) => d3Inst(m, i, o.x * DT + 32 + o.off, o.h - o.len / 2, o.y * DT + 65.5, 0, 40, o.len, 1), {recv:false});
   vines.forEach((o, i) => occ(o.i, vineM, i, {x:o.x * DT + 32 + o.off, y:o.h - o.len / 2, z:o.y * DT + 65.5, ry:0, sx:40, sy:o.len, sz:1, dep:true}));
   // props
-  const byKind = {p:[], pb:[], r0:[], r1:[], r2:[], k:[], o:[], L:[], V:[], Q:[], M:[]};
+  const byKind = {p:[], pb:[], r0:[], r1:[], r2:[], k:[], o:[], L:[], V:[], Q:[], M:[], D:[], U:[], G:[], O:[], W:[]};
   for(const pr of L.props){
     const i = pr.y * W + pr.x, o = {x:pr.x * DT + 32, z:pr.y * DT + 32, i, ry:0};
     if(pr.kind === 'p'){ (h3(pr.x, pr.y, 13) < .3 ? byKind.pb : byKind.p).push(Object.assign(o, {ry:Math.floor(h3(pr.x, pr.y, 14) * 4) * Math.PI / 2})); }
@@ -8508,7 +8747,8 @@ function d3BuildLevel(){
     else byKind[pr.kind].push(o);
   }
   const A = G3.aq;
-  const propGeo = AQ ? {p:A.p, pb:A.pb, r0:A.r[0], r1:A.r[1], r2:A.r[2], k:A.k, o:A.o, L:A.L, V:A.V, Q:A.Q, M:A.M}
+  const N3 = G3.mn;
+  const propGeo = MN ? {p:N3.p, pb:N3.pb, r0:N3.r[0], r1:N3.r[1], r2:N3.r[2], k:N3.k, o:N3.o, L:N3.L, D:N3.D, U:N3.U, G:N3.G, O:N3.O, W:N3.W} : AQ ? {p:A.p, pb:A.pb, r0:A.r[0], r1:A.r[1], r2:A.r[2], k:A.k, o:A.o, L:A.L, V:A.V, Q:A.Q, M:A.M}
     : {p:G3.pillar, pb:G3.pillarBroken, r0:G3.rubble[0], r1:G3.rubble[1], r2:G3.rubble[2], k:G3.shelf, o:G3.statue, L:G3.lanternRuins};
   for(const o of L.lanterns) D3.torches.push({x:(o.x + .5) * DT, y:86, z:(o.y + .5) * DT, i:o.i, f:h3(o.x, o.y, 17) * 10, lan:o});
   for(const k in byKind){
@@ -8516,6 +8756,7 @@ function d3BuildLevel(){
     if(m && k !== 'r0' && k !== 'r1' && k !== 'r2') byKind[k].forEach((o, i) => occ(o.i, m, i, {x:o.x, y:0, z:o.z, ry:o.ry, sx:1, sy:1, sz:1}));
   }
   d3BuildWater();
+  if(MN) d3BuildMines(); else { D3.lavaTiles = []; D3.escMesh = null; }
   // gates
   for(const g of L.gates){
     const horiz = (isWall(g.x - 1, g.y) || L.t[g.i - 1] === TT.GATE) && (isWall(g.x + 1, g.y) || L.t[g.i + 1] === TT.GATE);
@@ -8988,6 +9229,8 @@ function d3Things(dt, ts){
     if(tx >= 0 && ty >= 0 && tx < L.W && ty < L.H && L.t[ty * L.W + tx] === TT.POOL) G.parts.push({x:(tx + Math.random()) * DT, y:(ty + Math.random()) * DT, vx:0, vy:-6, life:.9, max:.9, c:'#a6ff3d', s:2.5});
   }
   d3ThingsAQ(dt, ts);
+  d3ThingsMN(dt, ts);
+  d3RigCounts();
 }
 // ground effects, drawn with the 2D code onto the floor canvas
 function d3Decal(){
@@ -9093,6 +9336,7 @@ function dgRender(now){
     ctx.fillStyle = grd; ctx.fillRect(0, 0, W, H);
   }
   dgOverlayAQ(visR);
+  dgOverlayMN();
   const hpR = p.hp / p.maxHp;
   if(hpR < .35 && g.state !== 'over'){
     const a = (.35 - hpR) / .35 * (.35 + .15 * Math.sin(now / 160));
@@ -9131,6 +9375,10 @@ function dgMinimap(ts){
       else if(t === TT.DEEP) col = '#1f5a72';
       else if(t === TT.CURRENT) col = '#2f84a4';
       else if(t === TT.SLICK) col = '#3f9a7a';
+      else if(t === TT.LAVA) col = '#c8501a';
+      else if(t === TT.SEAM) col = '#7a5a3a';
+      else if(L.rail[i]) col = L.rail[i] === 1 ? '#b09860' : '#a85a4a';
+      else if(L.hot[i]) col = dgGrateCold(i) ? '#4a4a4a' : '#a8481a';
       else if(L.low[i]) col = D.flood && D.flood.level > .5 ? '#1f5a72' : '#4f6670';
       else col = L.z[i] === 10 ? '#8a5058' : L.z[i] ? '#7a7058' : '#5f7a63';
       c.fillStyle = col; c.fillRect(x * ps, y * ps, ps, ps);
@@ -9203,6 +9451,8 @@ function d3ApplyLook(){
   D3.pLight.intensity = dark ? 2.2 : 1.1; D3.pLight.distance = dark ? 420 : 330;
   for(const l of D3.torchLights) l.color.set(lk.torch);
   d3TintAQ(lk);
+  d3TintMN(lk);
+  D3.M.rune.color.set(th === 'mines' ? '#ff8a3d' : '#7dff6a');
 }
 function paintWater(x, S, r, base, hi){
   x.fillStyle = base; x.fillRect(0, 0, S, S);
@@ -9302,7 +9552,7 @@ function d3BuildWater(){
   d3Instanced(G3.ground, MA.water, waters, (m, i, o) => d3Inst(m, i, o.x * DT + 32, -7, o.y * DT + 32, 0, 1, 1, 1), {recv:false, order:1});
   D3.flowList = flows; D3.flowRot = rot; D3.flipState = false;
   D3.flowMesh = d3Instanced(G3.ground, MA.flow, flows, (m, i, o) => d3Inst(m, i, o.x * DT + 32, -4, o.y * DT + 32, rot[o.dir], 1, 1, 1), {recv:false, order:1});
-  D3.floodMesh = d3Instanced(G3.ground, MA.flood, lows, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 0, o.y * DT + 32, 0, 1, 1, 1), {recv:false, order:1});
+  D3.floodMesh = d3Instanced(G3.ground, D3.theme === 'mines' ? D3.MM.lava : MA.flood, lows, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 0, o.y * DT + 32, 0, 1, 1, 1), {recv:false, order:1});
   if(D3.floodMesh) D3.floodMesh.position.y = -40;
   D3.riseMeshes = [];
   if(D.def.rising) for(const k in D.zones){
@@ -9517,10 +9767,10 @@ function dgOverlayAQ(visR){
   }
   // an arrow at the edge of the screen toward the nearest unfinished objective
   let tgt = null, bd = 1e9;
-  const cand = O.kind === 'lanterns' ? O.sites.filter(o => !o.lit).map(o => [(o.x + .5) * DT, (o.y + .5) * DT])
+  const cand = dgMinesTargets(O) || (O.kind === 'lanterns' ? O.sites.filter(o => !o.lit).map(o => [(o.x + .5) * DT, (o.y + .5) * DT])
     : O.kind === 'nests' ? O.sites.filter(st => st.e && !st.e.dead).map(st => [st.e.x, st.e.y])
     : O.kind === 'admiral' ? (D.L.boss ? [[(D.L.boss.x + .5) * DT, (D.L.boss.y + .5) * DT]] : [])
-    : O.sites.filter(st => st.state !== 'done').map(dgSitePos);
+    : O.sites.filter(st => st.state !== 'done').map(dgSitePos));
   for(const c of cand){ const d = Math.hypot(c[0] - p.x, c[1] - p.y); if(d < bd){ bd = d; tgt = c; } }
   if(!tgt || bd < 420) return;
   const s = d3Project(tgt[0], 20, tgt[1]), ps = d3Project(p.x, 20, p.y);
@@ -9551,6 +9801,7 @@ function dgMinimapAQ(at, ts){
     drawIcon('skull', x, y, 13, G.boss ? '#ff4f7b' : 'rgba(255,120,140,.9)', 2.2);
   }
   if(D.hunter && !D.hunter.hide){ const [x, y] = at(D.hunter.x, D.hunter.y); dot(x, y, 2.4, 'rgba(125,249,255,.55)'); }
+  dgMinimapMN(at, ts);
 }
 /* ---------- dungeon: base menu ---------- */
 const BLANK_IMG = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
@@ -9817,12 +10068,1674 @@ function dgSkillHud(){
 }
 $('#flaskBtn').innerHTML = ico('flask') + '<small>FLASK</small>';
 $('#flaskBtn').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); dgFlask(); });
+/* ---------- theme 3: the Ember Mines (floors 11–15) ----------
+   An old dwarven mine above a sea of magma. Every floor has its own job and its own trick:
+    11 The Cart Line         escort the ore cart up the rail line; runaway carts race down the side tracks
+    12 Blasting Galleries    carry dynamite from the crates to the four rubble seams and blow them open
+    13 Furnace Halls         heat builds near furnaces and on hot grates (cool off in the troughs); vent three furnaces
+    14 Crystal Refinery      turn mirrors to bend three light beams into their receivers; the beams burn everything
+    15 Heart of the Forge    the Forge King: break both arms, survive the magma, then outrun the collapse to the portal
+   Lava (%) blocks walking but not shots. Enemies here are tougher, faster and hit harder than in the Aqueducts. */
+Object.assign(ENEMIES, {
+  kobold:     {hp:22, speed:80,  dmg:8,  r:11, xp:1.6, armor:0},
+  sapper:     {hp:21, speed:78,  dmg:9,  r:11, xp:1.9, armor:0},
+  magma:      {hp:48, speed:50,  dmg:13, r:16, xp:2.4, armor:1},
+  magmite:    {hp:12, speed:98,  dmg:7,  r:9,  xp:.5,  armor:0},
+  emberbat:   {hp:15, speed:128, dmg:9,  r:10, xp:1.3, armor:0},
+  rockgolem:  {hp:120, speed:46, dmg:15, r:19, xp:4.5, armor:3},
+  crystal:    {hp:80, speed:56,  dmg:14, r:16, xp:3.5, armor:2},
+  forgeimp:   {hp:24, speed:100, dmg:9,  r:11, xp:2,   armor:0},
+  prismpillar:{hp:300, speed:0,  dmg:0,  r:18, xp:0,   armor:2, fixed:true},
+  forgearm:   {hp:100, speed:0,  dmg:0,  r:34, xp:0,   armor:3, fixed:true},
+});
+Object.assign(SKINS, {
+  kobold:     {name:'Kobold Miner',   rig:'kobold',   family:'forge',   body:'#c86a3a', dark:'#3a2418', glow:'#ffd27a', alt:'#8a8f98',
+               move:'Comes in swarms and lunges with its pickaxe', ai:{type:'kobold', range:150, wind:.45, dash:480, dur:.26, cd:3.4}},
+  sapper:     {name:'Kobold Sapper',  rig:'sapper',   family:'forge',   body:'#b8743a', dark:'#2a1a12', glow:'#ff5a2a', alt:'#d8c8a0',
+               move:'Keeps back and throws lit dynamite where you are going', ai:{type:'sapper', range:580, keep:300, cd:3.4, fuse:1.25, r:86, dmg:12}},
+  magmaslime: {name:'Magma Slime',    rig:'magma',    family:'forge',   body:'#3a2a24', dark:'#1a1210', glow:'#ff7a1a', alt:'#ffb04a',
+               move:'Leaves burning ground behind it and splits in two when it dies', ai:{type:'magma', every:.42, r:34, life:2.6, dps:10}, deathSplit:{type:'magmite', n:2}},
+  magmite:    {name:'Magmite',        rig:'magma',    family:'forge',   body:'#4a2a1a', dark:'#1a1210', glow:'#ffb04a', alt:'#ffd27a'},
+  emberbat:   {name:'Ember Bat',      rig:'emberbat', family:'forge',   body:'#5a2a2a', dark:'#1a0e0e', glow:'#ffcf6a', alt:'#ff6a2a',
+               move:'Circles you, then swoops straight through', ai:{type:'bat', orbit:220, cd:2.9, warn:.55, dash:640, dur:.42}},
+  rockgolem:  {name:'Rock Golem',     rig:'golem',    family:'stone',   body:'#6a625a', dark:'#2a2420', glow:'#ff7a1a', alt:'#8a5a3a',
+               move:'Slow and armored. Stamps out a shockwave you have to roll through', ai:{type:'golem', range:240, wind:.9, cd:5, waveR:380, waveSp:300}},
+  crystalgolem:{name:'Crystal Golem', rig:'crystalgolem', family:'crystal', body:'#7a6aa8', dark:'#2a2440', glow:'#d8b8ff', alt:'#b8f0ff',
+               move:'Fires crystal shards and bursts into a ring of them when it breaks', ai:{type:'crystal', cd:4, n:3, bs:290, dmg:7}, deathShards:{n:9, sp:230, dmg:7}},
+  forgeimp:   {name:'Forge Imp',      rig:'imp',      family:'forge',   body:'#d8482a', dark:'#3a1410', glow:'#ffe07a', alt:'#ff9a3d',
+               move:'Blinks next to you and hurls three fireballs', ai:{type:'imp', keep:240, cd:4.2, n:3, bs:260, dmg:6}},
+  prismpillar:{name:'Prism Pillar',   rig:'prismpillar', family:'crystal', body:'#b8a8ff', dark:'#3a2a6a', glow:'#e8d8ff', alt:'#c8f8ff', ai:{type:'pillar', life:13, cd:2.6}},
+  forgearmL:  {name:'Left Arm',       rig:'forgearm', family:'forge',   body:'#5a4a40', dark:'#2a1e18', glow:'#ff7a1a', alt:'#c8783a', ai:{type:'arm', side:-1}},
+  forgearmR:  {name:'Right Arm',      rig:'forgearm', family:'forge',   body:'#5a4a40', dark:'#2a1e18', glow:'#ff7a1a', alt:'#c8783a', ai:{type:'arm', side:1}},
+  // floor bosses and the theme boss
+  gearjaw:    {name:'Gearjaw, Kobold Foreman', rig:'drillcart', family:'forge', body:'#c86a3a', dark:'#3a2418', glow:'#ffb04a', alt:'#8a8f98', dmg:20, speed:94, armor:2,
+               patterns:['drillrush','dynamite','foreman','runaway','drillrush','sparkspin','dynamite','runaway'],
+               about:'Rides a drill cart. Drill rushes twice in a row, throws bundles of dynamite, sends runaway carts across his shaft and calls his crew.'},
+  blastback:  {name:'Blastback, Demolition Golem', rig:'demolisher', family:'stone', body:'#7a6a5a', dark:'#2a2018', glow:'#ff6a2a', alt:'#c8283a', dmg:24, speed:72, armor:3,
+               patterns:['barrels','chainblast','slam','plant','cavein','barrels','quake','chainblast'],
+               about:'Hurls burning barrels, sets off chain blasts that march toward you, rings you with charges (find the gap) and brings the roof down.'},
+  furnaceheart:{name:'The Furnace Heart', rig:'furnace', family:'forge', body:'#4a3a34', dark:'#1a1210', glow:'#ff7a1a', alt:'#ffd27a', dmg:22, speed:0, armor:2, anchored:true,
+               phases:[{at:1,   patterns:['jets','firespiral','heatwave','magmacall','jets','molten']},
+                       {at:.66, patterns:['jets2','firespiral','molten','heatwave','magmacall','firespiral'], msg:'The Heart burns hotter'},
+                       {at:.33, patterns:['jets3','molten','firespiral','heatwave','jets2','magmacall'], msg:'Meltdown'}],
+               about:'Never moves. Turning flame jets sweep the chamber, fire spirals out, and its heat wave cooks you unless you roll through it. Keep near the troughs.'},
+  prismmatriarch:{name:'Prism Matriarch', rig:'prism', family:'crystal', body:'#9a8ad8', dark:'#2a2048', glow:'#e8d8ff', alt:'#b8f0ff', dmg:21, speed:90, armor:2, keep:280,
+               patterns:['prismfan','shardrain','ricochet','pillars','lancet','prismfan','ricochet','shardrain'],
+               about:'Keeps her distance. Fans of light sweep the geode, crystal shards rain and shatter, bouncing orbs ricochet off the walls, and prism pillars shoot beams.'},
+  forgeking:  {name:'The Forge King', rig:'forgeking', family:'forge', body:'#5a4a40', dark:'#1e1612', glow:'#ff7a1a', alt:'#ffd27a', dmg:26, speed:0, armor:3, anchored:true,
+               phases:[{at:1,   patterns:['anvils','magmawave','forgecall','meteor','anvils']},
+                       {at:1,   when:b => b.armsGone, patterns:['meteor','magmawave','eruption','anvils','flamering','meteor'], msg:'Both arms broken · the magma rises', flood:true},
+                       {at:.35, when:b => b.armsGone, patterns:['eruption','meteor','flamering','magmawave','anvils','forgecall','meteor'], msg:'The forge roars'}],
+               about:'Its two arms guard it: while either stands it takes almost no damage, so break the arms first. Then the magma ring floods. When it falls, run.'},
+});
+Object.assign(DG_FAMILY, {kobold:'forge', sapper:'forge', magma:'forge', magmite:'forge', emberbat:'forge', forgeimp:'forge', rockgolem:'stone', crystal:'crystal'});
+Object.assign(DG_RELICS, {
+  forge:  {name:'Forge relics',   color:'#ff8a3d', items:['power','berserker','frenzy','executioner','retaliate','cursed','hunted']},
+  stone:  {name:'Stone relics',   color:'#c8b89a', items:['tough','plating','giant','rigid','thorns','sluggish','slowhands']},
+  crystal:{name:'Crystal relics', color:'#d8b8ff', items:['precision','lucky','lightning','static','boomerang','unlucky','scholar']},
+});
+DG_THEMES.push({id:'mines', name:'Ember Mines', first:11, last:15, accent:'#ff8a3d', song:'mines', boss:'bossMines',
+  desc:'An old dwarven mine over a sea of magma: rail lines, dynamite, furnaces and crystal. Everything down here hits harder.'});
+const DG_STAGE_MN = {id:'dg-mines', dungeon:true, theme:'mines', name:'Ember Mines', art:'abyss', seed:71, budget:2, dur:0, spawn:0, hpMul:1, speedMul:1,
+  bossHp:0, bossArmor:0, accent:'#ff8a3d', mote:'#ffb878', rise:0, desc:'The Ember Mines.',
+  rules:['Your level resets on every floor','Death sends you back to base','Rewards are only kept at exit portals','Enemies get tougher the farther you go'], banned:[], forced:[],
+  skins:{kobold:'kobold', sapper:'sapper', magma:'magmaslime', magmite:'magmite', emberbat:'emberbat', rockgolem:'rockgolem', crystal:'crystalgolem', forgeimp:'forgeimp',
+    prismpillar:'prismpillar', forgearm:'forgearmL', minion:'kobold'},
+  mix:[[0, {kobold:1}]], reward:{coins:0}};
+DG_STAGES.push(DG_STAGE_MN);
+
+DG_FLOORS.push(
+  {n:11, name:'The Cart Line', boss:'gearjaw', bossHp:15500, hpMul:2.05, xpMul:2, coinMul:2.6, look:'cartline',
+   objective:{kind:'cart', text:'Escort the ore cart', speed:92, near:240, block:170, stations:[.24, .52, .8], ambush:{kobold:5, sapper:2}},
+   // side tracks: [x0, y0, x1, y1, seconds between carts, first delay]; carts run from one end tile to the other
+   runaway:[[36, 80, 36, 88, 7, 2], [35, 68, 61, 68, 8, 4], [30, 58, 30, 66, 6.5, 3], [7, 42, 35, 42, 9, 5], [58, 25, 58, 40, 7.5, 3], [61, 30, 89, 30, 8.5, 2], [62, 16, 62, 24, 6, 4]],
+   packs:{z:{elite:'kobold', make:() => ({kobold:5})}, s:{elite:'sapper', make:() => ({sapper:3, kobold:3})},
+          x:{elite:'kobold', make:() => ({kobold:4, sapper:2, emberbat:2})}, t:{elite:'rockgolem', make:() => ({rockgolem:1, kobold:3})}},
+   trickle:{every:18, n:3, cap:28, mix:{kobold:3, sapper:1}}, foes:['kobold','sapper','emberbat','rockgolem'],
+   desc:'One long rail line winds up through the mine to Gearjaw\'s shaft. The ore cart only rolls while you stay next to it and no enemy blocks it, and at three stations the kobolds come for it. Runaway carts race down the side tracks and flatten anything in the way.',
+   tags:['Escort the ore cart','Runaway carts','Kobold swarms','Dynamite'], reward:{coins:230, items:['boomerang', 'unlucky']}, map:`
+####################################################################################################
+####################################################################################################
+#################################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb################################
+################################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###############################
+################################bb%%%bbbbbbbbbbbbbbbbbbbbbbbbbbb%%%bb###############################
+################################bb%%%bbbbbbbbbbbbbBbbbbbbbbbbbbb%%%bb###############################
+#######....................#####bb%%%bbbbbbbbbbbbbbbbbbbbbbbbbbb%%%bb###############################
+######......................####bb%%%bbbbbbbbbbbbbbbbbbbbbbbbbbb%%%bb###############################
+######..$....k....t.........####bb%%%bbbbbbbbbbbbbbbbbbbbbbbbbbb%%%bb###############################
+######............k.........####bb%%%bbbbbbbbbbbbbbbbbbbbbbbbbbb%%%bb###############################
+######....z.................####bb%%%bbbbbbbbbbbbbXbbbbbbbbbbbbb%%%bb###############################
+######......................####bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###############################
+######..%%%%%...............#####bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb################################
+######..%%%%%..........k....##################=========#############################################
+######..%%%%%...............#############...................########################################
+######..%%%%%...............############.....................#######################################
+######..%%%%%...............############..........K..........#######################################
+######.............k..k.....############....p.....+.....p.....:...............######################
+######..................S...############..........+.........s.:...............######################
+######......................############..........+...........:...............######################
+######...............k......############..........+++++++++++++++++++++++++...######################
+######.............k........############....p...........p.....:...........+...######################
+#######....................#############....x...........x.....:...........+...######################
+##################.....#################......................:...........+...######################
+##################.....##################...................###########...+...######################
+##################.....################################################...+...######################
+#########.........................####....................:####...........+....,..,.....############
+########...........................###...........k........:###..,.........+.z............###########
+########...........................###..$.s...........x...:###....x.......+.....,........###########
+########...........................###....................:###............+..............###########
+########....p.s..........r....p....###...............k....:###::::::::::::+::::::::::::::#........##
+########.r.........................###....................:###............+.,...,,.......#........##
+########...........................###########.....###########..,.........+.........S...,#........##
+########....................x.............................:......,.......,+..............#........##
+########.....................r..........z.................:.......p.......+.........p....#........##
+########...r..............................................:...............+.......................##
+########..............+++++++++++++++++++++++++++++++++++++++++++++++++++++...................Z...##
+########..............+...................................:.........,.............................##
+########....p.........+.......p...........................:.......p.............,...p....#........##
+########..............+...................................:.........,...........t........#........##
+########..............+............###########################.............,.............#.....$..##
+########..............+............###########################..%%%%%%%%%%%%%%%%%%%%%%%.,#........##
+########::::::::::::::+::::::::::::###########################..%%%%%%%%%%%%%%%%%%%%%%%..#........##
+########..............+............###########################..%%%%%%%%%%%%%%%%%%%%%%%..###########
+########........t.....+............###########################..%%%%%%%.......,.%%%%%%%..###########
+########..............+............###########################,.%%%%%%%.........%%%%%%%..###########
+#########.............+...........#############################..............,......,...############
+###################...+...##########################################################################
+###################...+...##########################################################################
+###################...+...##########################################################################
+#####..........####.z.+...##########################################################################
+####............###...+...##########################################################################
+####..$.........###...+...###########.......................###.......................##############
+####............###...+...##########..........,..............#.........................#############
+####............###...+...##########..,,......,........,%....#.........................#############
+####....z.k.....###...+...##########....p.............%%%%%..#.........................#############
+####............###...+...##########.....,...........%%%%%%%.#........z..r.............#############
+####...k........###...+...##########....x.............%%%%%..#..............%..........#############
+####............###...+...##########...,................%....#............%%%%%........#############
+####............###...+.......:..............,...............#...........%%%%%%%.......#############
+####..................+.......:.............,...,......,................%%%%%%%%%......#############
+####..................+...s...:.......,..................................%%%%%%%.......#############
+####..................+++++++++++++++++++++++++++......................r..%%%%%........#############
+####............###...........:......,...,..,...+..,........................%..........#############
+####.......k....###...........:.........p.......+....,..p....#.........................#############
+####............###...........:...............,.+............#...r.....................#############
+####......S.....####################.....,...,..+....,.......#..................S......#############
+####..........k.####################....%.......+...,........#...........r.............#############
+####............####################::%%%%%:::::+::::::::::::#.........................#############
+####............####################.%%%%%%%....+.......,....#.........................#############
+#####..........#####################..%%%%%.....+.........,,.#......t..................#############
+####################################....%.......+.,...,......#......r..r...............#############
+#####################################......,,...+,..........###.......................##############
+#############################################...+...################################################
+#############################################...+...################################################
+#############################################...+...################################################
+#####.....................###################...+...#####.......................####################
+####.......................##################...+...####.........................###################
+####.............,,........##################...+...####..........k..............###################
+####.............,.........##################...+...####.......k.................###################
+####.......................##################...+...####.....k..z................###################
+####............,...................:...........+...####.................k.......###################
+####....,...........................:...........+...####..............k..........###################
+####...,.,..........................:...........+................................###################
+####..........C++++++++++++++++++++++++++++++++++...........x....................###################
+####.............,..................:.......s................................k...###################
+####................................:...............####.........................###################
+####.....,.......,...,..............:...............####.........................###################
+####..,..P.,...,...........#############################.....k............Z.k....###################
+####.........,,............#############################.........................###################
+####.,.....................#############################............k.........$..###################
+####......,,...........,...#############################.........................###################
+#####.....................###############################.......................####################
+####################################################################################################
+####################################################################################################
+####################################################################################################
+`},
+  {n:12, name:'Blasting Galleries', boss:'blastback', bossHp:16500, hpMul:2.15, xpMul:2.1, coinMul:2.7, look:'galleries',
+   objective:{kind:'seams', text:'Blast open the sealed seams', fuse:3, r:170, dmg:34, wake:{kobold:4, sapper:2}},
+   packs:{z:{elite:'kobold', make:() => ({kobold:5})}, s:{elite:'sapper', make:() => ({sapper:3, kobold:3})},
+          x:{elite:'sapper', make:() => ({kobold:4, sapper:2, rockgolem:1})}, t:{elite:'rockgolem', make:() => ({rockgolem:1, kobold:3})}},
+   trickle:{every:18, n:3, cap:28, mix:{kobold:2, sapper:2}}, foes:['kobold','sapper','rockgolem'],
+   desc:'Four rubble seams seal the galleries. Take a stick of dynamite from a crate, carry it to a seam and get clear before it blows. Take a hit while carrying it and you drop it. All four open Blastback\'s quarry.',
+   tags:['Carry dynamite','Blow 4 seams open','Sappers','Rock golems'], reward:{coins:250, items:['lucky', 'dull']}, map:`
+####################################################################################################
+####################################################################################################
+###############################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb##############################
+##############################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#############################
+##############################b%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%b#############################
+##############################b%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%b#############################
+##############################b%%%%bbbbbbbbbbbbbbbBbbbbbbbbbbbbbbb%%%%b#############################
+##############################b%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%b#############################
+##############################b%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%b#############################
+##############################b%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%b#############################
+##############################b%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%b#############################
+##############################b%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%b#############################
+##############################b%%%%bbbbbbbbbbbbbbbXbbbbbbbbbbbbbbb%%%%b#############################
+##############################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#############################
+###############################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb##############################
+##############################################=========#############################################
+#####################################...........................####################################
+####################################.............................###################################
+####################################..$..........................###################################
+####################################.r...........................###################################
+####################################........p...........p........###################################
+####################################................r............###################################
+####################################......s...............z......###################################
+####################################.............................###################################
+####################################.............................###################################
+####################################..r..........................###################################
+####################################........p...........p........###################################
+####################################.............................###################################
+####################################..............x..............###################################
+####################################...........r.................###################################
+#####################################...........................####################################
+###############################################RRRRRRR##############################################
+###############################################RRRRRRR##############################################
+###############################################RRRRRRR##############################################
+#####...................#######################RRRRRRR#######################...................####
+####.....................######################RRRRRRR######################.....................###
+####..$..................######.......................................######............x........###
+####.....................#####....,............,.......................#####.....................###
+####................x....#####.........,...........,...................#####..............k......###
+####.....................#####..,..%.............................%..,..#####.....................###
+####....z................#####....%%%...p.........Z.........p...%%%....#####....%%%%%%%%%%%%%....###
+####.....................#####...%%%%%.........................%%%%%.,.#####....%%%%%%%%%%%%%....###
+####..........%..........#####....%%%.........................,,%%%....#####.....................###
+####.......%%%%%%%.......#####.....%..,.......................,..%.....#####.............k.......###
+####......%%%%%%%%%......#####..........z................,..s..........#####.....................###
+####.....%%%%%%%%%%%.....RRRRR.........................,....,..........RRRRR.....................###
+####.....%%%%%%%%%%%.....RRRRR..,...............................,......RRRRR......z..............###
+####....%%%%%%%%%%%%%....RRRRR....................................,....RRRRR.....................###
+####.....%%%%%%%%%%%.....RRRRR..................D...D.......r..........RRRRR.....................###
+####.....%%%%%%%%%%%.....RRRRR..,........r.............................RRRRR.....................###
+####......%%%%%%%%%......RRRRR.........................................RRRRR................S....###
+####.......%%%%%%%.......RRRRR...r...................,.................RRRRR.....................###
+####..........%.....k....#####.........................,.....,...r.....#####......k......k.......###
+####..............k......#####.........................................#####.....................###
+####.....................#####.....%........x.........,.t........%.....#####....%%%%%%%%%%%%%....###
+####.....................#####....%%%............r..............%%%....#####....%%%%%%%%%%%%%....###
+####................s....#####...%%%%%..............,,.........%%%%%.,.#####.....................###
+####......k...........k..#####....%%%...p...,...............p...%%%....#####....k................###
+####........t............#####.,...%.......,.....................%.....#####....t................###
+####................k....#####................,..........r.............#####.....................###
+####.....................#####...........................,.............#####..................$..###
+####.....................######.......................................######.....................###
+#####...................#######################RRRRRRR#######################...................####
+##########.....################################RRRRRRR################################.....#########
+#####...........................###############RRRRRRR###############...........................####
+####.............................##############RRRRRRR##############.............................###
+####.............................##############.......##############.......r.....................###
+####...DD........................##############.......##############........................DD...###
+####.............................##############.......##############.............................###
+####............r................##############.......##############.............................###
+####.......r.....................##############.......##############.................rs..........###
+####.............................##############.......##############.............................###
+####..........s..................##############.......##############.............................###
+####.......r.....................##############.......##############.............................###
+####.............................##############.......##############..............r..............###
+####.............................##############.......##############.............................###
+####.............................####...........................####..........r..................###
+####.............................###.,,..,.................,.....###.............................###
+####..r.......r..................###........,.................,..###.............................###
+####.............r...............###.........,...................###...............r.............###
+####....................z........###....p.,.................p,...###........z.r..................###
+####.............................###...........................,.###.............................###
+####.............................................................................................###
+####.................................,..............,,...........................................###
+####.....rt.......................................,.......................................Z......###
+####...........................................................,.................................###
+####.............................###.,.....,...,...........,...,.###..............r..............###
+####.........r...................###...................,...,.....###.r...........................###
+####..$..........................###...,p.........P.........p....###..........................$..###
+####.............................###.............................###.............................###
+#####...........................####.............................####...........................####
+####################################.............,...............###################################
+#####################################...........................####################################
+####################################################################################################
+####################################################################################################
+####################################################################################################
+`},
+  {n:13, name:'Furnace Halls', boss:'furnaceheart', bossHp:17000, hpMul:2.25, xpMul:2.2, coinMul:2.8, look:'furnace',
+   heat:{grate:30, near:26, nearR:330, vent:22, cool:14, trough:62, burn:.05},
+   objective:{kind:'furnaces', text:'Vent the furnaces', time:9, radius:150, wave:{magma:3, forgeimp:2}},
+   packs:{z:{elite:'kobold', make:() => ({kobold:5, forgeimp:1})}, j:{elite:'magma', make:() => ({magma:4})},
+          e:{elite:'forgeimp', make:() => ({forgeimp:2, emberbat:3})}, x:{elite:'magma', make:() => ({magma:2, forgeimp:2, kobold:2})},
+          t:{elite:'rockgolem', make:() => ({rockgolem:1, magma:2})}},
+   trickle:{every:18, n:3, cap:28, mix:{emberbat:2, magma:1, forgeimp:1}}, foes:['magmaslime','forgeimp','emberbat','kobold','rockgolem'],
+   desc:'Three furnaces burn in three halls. Standing near one, or on a hot grate, heats you up, and past the limit you start to burn: cool off in the troughs. Vent each furnace by staying in its ring while the heat climbs.',
+   tags:['Heat: cool off in troughs','Vent 3 furnaces','Magma slimes','Forge imps'], reward:{coins:270, items:['scholar', 'hunted']}, map:`
+####################################################################################################
+####################################################################################################
+#############################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb############################
+############################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###########################
+############################bb%%%%bbdddbbbbbbbbbbbbbbbbbbbbbbbdddbb%%%%bb###########################
+############################bb%%%%bbdddbbbbbbbbbbbbbbbbbbbbbbbdddbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbBbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbdddbbbbbbbbbbbbbbbbbbbbbbbdddbb%%%%bb###########################
+############################bb%%%%bbdddbbbbbbbbbbbbbbbbbbbbbbbdddbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbXbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###########################
+#############################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb############################
+###############################################=======##############################################
+#################################...................................################################
+################################.....................................###############################
+################################..dddHHHHHHHH.E...................$..###############################
+################################..dddHHHHHHHH........................###############################
+################################....HHHHHHHHH...........p.....e......###############################
+################################....HHHHHHHHH........................###############################
+################################....HHHHUHHHH........................###############################
+################################....HHHHHHHHH........................###############################
+################################....HHHHHHHHH........................###############################
+################################....HHHHHHHHH........................###############################
+################################%%%%HHHHHHHHH.....x...........%%%%%%%###############################
+################################%%%%%%%.......................%%%%%%%###############################
+################################........................p............###############################
+################################.....................................###############################
+################################....j.......p...............dddd.....###############################
+################################............................dddd.....###############################
+################################............................t........###############################
+################################.....................................###############################
+#################################...................................################################
+##############################################.........#############################################
+#####...............%%%...............########.........########...............%%%...............####
+####................%%%................#######.........#######..............r.%%%................###
+####..$.............%%%............r...#######.........#######................%%%.............$..###
+####................%%%..ddd...........#######.........#######...........ddd..%%%................###
+####....J...........%%%..ddd...........#######.........#######...........ddd..%%%...........Z....###
+####................%%%................#######.........#######................%%%................###
+####................%%%.......p........#######HHHHHHHHH#######........p.......%%%................###
+####................%%%................#######HHHHHHHHH#######................%%%................###
+####....HHHHHHHHH......................#######HHHHHHHHH#######......................HHHHHHHHH....###
+####....HHHHHHHHH.......r..............#######.........#######......................HHHHHHHHH....###
+####....HHHHHHHHH.............j........#######.........#######........j.............HHHHHHHHH....###
+####....HHHHHHHHH...%%%................#######.........#######................%%%...HHHHHHHHH....###
+####....HHHHUHHHH...%%%................#######....j....#######................%%%...HHHHUHHHH....###
+####....HHHHHHHHH...%%%................#######.........#######................%%%...HHHHHHHHH....###
+####....HHHHHHHHH...%%%................#######.........#######................%%%...HHHHHHHHH....###
+####....HHHHHHHHH...%%%................#######.........#######................%%%...HHHHHHHHH....###
+####....HHHHHHHHH...%%%................#######.........#######................%%%...HHHHHHHHH....###
+####................%%%.............HHH.......................HHH..........r..%%%................###
+####................%%%.............HHH.......................HHH....r........%%%................###
+####................%%%.....r.......HHH.......................HHH.............%%%................###
+####............x...%%%.............HHH.......................HHH.............%%%...x............###
+####................%%%................#######.........#######................%%%................###
+####................%%%................#######....z....#######................%%%................###
+####................%%%................#######.........#######................%%%................###
+####......p.........%%%.......p........#######...ddd...#######........p.......%%%.........p......###
+####................%%%................#######...ddd...#######................%%%................###
+####...................................#######.........#######...................................###
+####...................r...............#######.........#######...................................###
+####........................dddd.......#######.........#######.......dddd........................###
+####................%%%.....dddd.......#######.........#######.......dddd.....%%%................###
+####....e...........%%%.....dddd.......#######.........#######.......dddd.r...%%%...........e....###
+####................%%%................#######.........#######................%%%................###
+####..........dddd..%%%.........t......#######HHHHHHHHH#######......t.........%%%..dddd..........###
+####..........dddd..%%%................#######HHHHHHHHH#######................%%%..dddd..........###
+####................%%%................#######HHHHHHHHH#######................%%%................###
+####................%%%................#######.........#######................%%%................###
+#####...............%%%...............########.........########...............%%%...............####
+##############################################.........#############################################
+##############################################.........#############################################
+##############################################.........#############################################
+#####.........................################.........################.........................####
+####...........................###############.........###############...........................###
+####...........k....k...e......##########...................##########................k.E....k.k.###
+####...........................#########.....................#########...........................###
+####...................k.......#########............,........#########...........................###
+####.k.........................#########.....,...............#########...........................###
+####..........z.....k.......................................................z....................###
+####.......................................,.........,...........................................###
+####..............k..............................,...................................k...........###
+####..k........................#########.,........P........,.#########.................k.k.......###
+####..$........................#########......,....,..,......#########........................$..###
+####...........................#########...............,...,.#########........k..................###
+#####.........................##########.....,...,...........##########.........................####
+#########################################...................########################################
+####################################################################################################
+####################################################################################################
+`},
+  {n:14, name:'Crystal Refinery', boss:'prismmatriarch', bossHp:17500, hpMul:2.35, xpMul:2.3, coinMul:2.9, look:'refinery',
+   // emitters [x, y, direction]; mirrors 'x,y': 0 = /, 1 = \ (their state at the start)
+   objective:{kind:'beams', text:'Bend the light into the receivers', dmg:12,
+     emitters:[[6, 70, 'E'], [94, 70, 'W'], [32, 40, 'E']],
+     mirrors:{'18,70':1, '18,50':1, '28,50':1, '82,70':0, '82,50':1, '72,50':0, '44,40':1, '44,26':0, '60,26':0}},
+   packs:{z:{elite:'kobold', make:() => ({kobold:5})}, i:{elite:'crystal', make:() => ({crystal:2, kobold:2})},
+          a:{elite:'emberbat', make:() => ({emberbat:6})}, x:{elite:'crystal', make:() => ({crystal:1, emberbat:3, kobold:2, forgeimp:1})}},
+   trickle:{every:18, n:3, cap:28, mix:{emberbat:2, kobold:2, crystal:.5}}, foes:['crystalgolem','emberbat','kobold','forgeimp'],
+   desc:'Three emitters fire beams of light across the refinery, and a beam burns whatever crosses it, enemies included. Walk up to a mirror to flip it. Bend each beam into its receiver to open the Prism Matriarch\'s geode.',
+   tags:['Turn mirrors','Beams burn everything','Crystal golems'], reward:{coins:290, items:['slowhands']}, map:`
+####################################################################################################
+####################################################################################################
+#############################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb############################
+############################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbBbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bb%%%%bbbbbbbbbbbbbbbbXbbbbbbbbbbbbbbbb%%%%bb###########################
+############################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb###########################
+#############################bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb############################
+###############################################=======##############################################
+###############################.......................................##############################
+##############################...................................r.....#############################
+##############################......$.....................r............#############################
+##############################.........................................#############################
+##############################.........................................#############################
+##############################..............O...............O..........#############################
+##############################.........................................#############################
+##############################..........r..............................#############################
+##############################............................r.....r......#############################
+#####...............................i...........................................................####
+####.............................................................................................###
+####..$.......................................r.....x.............a...........................$..###
+####.............................................................................................###
+####........x...............W...........................................W...............x........###
+####.............................................................................................###
+####........................................................W....................................###
+####......%............................................................r..................%......###
+####....%%%%%.........................z.................................................%%%%%....###
+####...%%%%%%%.........................................................................%%%%%%%...###
+####..%%%%%%%%%.................G...........O...................A.....................%%%%%%%%%..###
+####...%%%%%%%.........................................................................%%%%%%%...###
+####....%%%%%.................#.......................................#.................%%%%%....###
+####......%........................############.......############........................%......###
+####...............................##...........................##...............................###
+####...............................#.............................#..........................r....###
+####....I..........................#.............................#..........................Z....###
+####...............................#.............................#...............................###
+####...............................#....i........................#...............................###
+####..........r....................#.............................#..........r....................###
+####..............O.........O...........................................O.........O..............###
+####.............................................................................................###
+####.............................................r........r......................................###
+####......................................r......................................................###
+####...............................#.............................#...............................###
+####.............r........r........#.............................#...............................###
+####......i........................#........................a....#........................i......###
+####...............................#.............................#...............................###
+####...............................#.............................#......r........................###
+####...........r...................##...........................##...............................###
+####...............................############.......############.........r.....................###
+####........%......................############.......############..r...................%........###
+####......%%%%%...........a....r...############...z...############........a...........%%%%%......###
+####......%%%%%....................############.......############....................%%%%%......###
+####.....%%%%%%%...................############.......############...................%%%%%%%.....###
+####......%%%%%....................############.......############....................%%%%%......###
+####......%%%%%....................############.......############....................%%%%%......###
+####........%......................############.......############......................%........###
+####.....r.........................############.......############..............r................###
+####...............................############.......############...............................###
+####..G...........O................############.......############................O...........G..###
+####...............................############.......############...............................###
+####..........................z....############.......############....z..........................###
+####...............................############.......############...............................###
+#####.............................#############.......#############.............................####
+###############################################.......##############################################
+###############################################.......##############################################
+###############################################.......##############################################
+###############################################.......##############################################
+###############################################.......##############################################
+#####.........................#################.......#################.........................####
+####...........................################.......################...........................###
+####....................a......##########...................##########...........................###
+####..k................k.......#########.....................#########...........................###
+####...........................#########.....................#########..................I........###
+####.........................k.#########.....................#########................k..........###
+####..........z.........................................................k...z....................###
+####................k............................................................................###
+####.........k..............k....................................................................###
+####...........................#########..........P..........#########.k.........................###
+####..$........................#########.....................#########........k...............$k.###
+####...........................#########.....................#########....................k......###
+#####.........................##########.....................##########.........................####
+#########################################...................########################################
+####################################################################################################
+####################################################################################################
+`},
+  {n:15, name:'Heart of the Forge', boss:'forgeking', bossHp:21000, hpMul:2.5, xpMul:2.4, coinMul:3.2, themeEnd:true, look:'forge',
+   flood:{mode:'arena', dmg:14}, arms:{hp:3800, off:100},
+   escape:{gate:[50, 13], speed:150, delay:3, dmg:.1, rocks:.3},
+   packs:{z:{elite:'kobold', make:() => ({kobold:5, forgeimp:1})}, x:{elite:'rockgolem', make:() => ({kobold:3, sapper:2, magma:1, rockgolem:1})},
+          j:{elite:'magma', make:() => ({magma:4, forgeimp:1})}, t:{elite:'rockgolem', make:() => ({rockgolem:1, sapper:2, kobold:2})},
+          i:{elite:'crystal', make:() => ({crystal:2, emberbat:3})}, s:{elite:'sapper', make:() => ({sapper:3, kobold:3})}, e:{elite:'forgeimp', make:() => ({forgeimp:2, emberbat:3})}},
+   trickle:{every:18, n:3, cap:28, mix:{kobold:2, forgeimp:1, emberbat:1, magma:1}}, foes:['kobold','sapper','magmaslime','rockgolem','crystalgolem','forgeimp'],
+   desc:'Lava bridges lead down to the Forge Hall, where the Forge King waits with arms of iron. Break the arms, survive the magma that floods the ring, and when he falls the forge collapses: outrun the magma up the escape tunnel to the portal.',
+   tags:['A boss with arms','The magma rises','Escape the collapse'], reward:{coins:650, items:['cursed']}, map:`
+####################################################################################################
+####################################################################################################
+####################################################################################################
+####################################################################################################
+####################################################################################################
+#####...............................................################################################
+#####...........%.............%.....................################################################
+#####...............................................################################################
+#####...#########################################...################################################
+#####...#########################################...################################################
+#####...#########################################...################################################
+#####...#########################################...################################################
+#####...#########################################...################################################
+#####...#########################################===################################################
+#####...########################################bbbbb###############################################
+#####...##################################bbbbbbbbbbbbbbbbb#########################################
+#####...###############################bbbbbbbbbbbbbbbbbbbbbbb######################################
+#####...#############################bbbbbbbbbbbbbbbbbbbbbbbbbbb####################################
+#####...###########################bbbbbbbbbblllllllllllbbbbbbbbbb##################################
+#####...#########################bbbbbbbblllllllllllllllllllbbbbbbbb################################
+#####.%.########################bbbbbbblllllllbbbbbbbbblllllllbbbbbbb###############################
+#####...#######################bbbbbbllllllbbbbbbbbbbbbbbbllllllbbbbbb##############################
+#####...######################bbbbbbll%llbbbbbbbbbbbbbbbbbbbll%llbbbbbb#############################
+#####...#####################bbbbbbllllbbbbbbbbbbbbbbbbbbbbbbbllllbbbbbb############################
+#####...####################bbbbbbllllbbbbbbbbbbbbbbbbbbbbbbbbbllllbbbbbb###########################
+#####...####################bbbbbllllbbbbbbbbbbbbbbbbbbbbbbbbbbbllllbbbbb###########################
+#####...###################bbbbbblllbbbbbbbbbbbbbbbbbbbbbbbbbbbbblllbbbbbb##########################
+#####...###################bbbbbllllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbllllbbbbb##########################
+#####...###################bbbbblllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbblllbbbbb##########################
+#####...###################bbbbblllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbblllbbbbb##########################
+#####...##################bbbbbblllbbbbbbbbbbbbbbbBbbbbbbbbbbbbbbblllbbbbbb#########################
+#####...###################bbbbblllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbblllbbbbb##########################
+#####...###################bbbbblllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbblllbbbbb##########################
+#####...###################bbbbbllllbbbbbbbbbbbbbbbbbbbbbbbbbbbbbllllbbbbb##########################
+#####...###################bbbbbblllbbbbbbbbbbbbbbbbbbbbbbbbbbbbblllbbbbbb##########################
+#####...####################bbbbbllllbbbbbbbbbbbbbbbbbbbbbbbbbbbllllbbbbb###########################
+#####.%.####################bbbbbbllllbbbbbbbbbbbbbbbbbbbbbbbbbllllbbbbbb###########################
+#####...#####################bbbbbbllllbbbbbbbbbbbbbbbbbbbbbbbllllbbbbbb############################
+#####...######################bbbbbbll%llbbbbbbbbbbbbbbbbbbbll%llbbbbbb#############################
+#####...#######################bbbbbbllllllbbbbbbbbbbbbbbbllllllbbbbbb##############################
+#####...########################bbbbbbblllllllbbbbbbbbblllllllbbbbbbb###############################
+#####...#########################bbbbbbbblllllllllllllllllllbbbbbbbb################################
+#####...###########################bbbbbbbbbblllllllllllbbbbbbbbbb##################################
+#####...#############################bbbbbbbbbbbbbbbbbbbbbbbbbbb####################################
+#####...###############################bbbbbbbbbbbbbbbbbbbbbbb######################################
+#####...##################################bbbbbbbbbbbbbbbbb#########################################
+#####...#######################################bbbbbbb##############################################
+#####...#######################################bbbbbbb##############################################
+#####...#######################################=======##############################################
+#####...######################################.........#############################################
+#####...######################################.........#############################################
+#####...######################################.........#############################################
+#####.X.######################################....x....#############################################
+##############################################.........#############################################
+##############################################.........#############################################
+##############################################.........#############################################
+##############################################.........#############################################
+##############################################.........#############################################
+###############.......................................................................##############
+##############........%........................,r.t....................,......%.....,..#############
+##..........##......%%%%%...........r....r.,...............,.....,.....,.,..%%%%%......##.........##
+##..........##.....%%%%%%%........j...............................i........%%%%%%%.....##.........##
+##.$................%%%%%....,..........p...............,.,.p..,......,.....%%%%%...............$.##
+##........k......x....%..,.................r,.................................%...,x..............##
+##....J............................................,.............,............................I...##
+##..........##.............r...................,.......,..........................,....##.........##
+##..........##%%%%%%%%%%%%...%%%%%%%%%%%%%%%%%%%%...%%%%%%%%%%%%%%%%%%%%...%%%%%%%%%%%%##.........##
+##..........##%%%%%%%%%%%%...%%%%%%%%%%%%%%%%%%%%...%%%%%%%%%%%%%%%%%%%%...%%%%%%%%%%%%##.........##
+##..k.......##%%%%%%%%%%%%...%%%%%%%%%%%%%%%%%%%%...%%%%%%%%%%%%%%%%%%%%...%%%%%%%%%%%%##.........##
+##..........##.........,...............................................................##..k.k....##
+##...k..k...##.........,..............,......r.........e........................,......##.......k.##
+##..........##..................Z...%...........................%,..T..................##.....k...##
+##.$........##......p......r.,...%%%%%%%...r.............r...%%%%%%%...,........p......##.......$.##
+##..........##......,........,..%%%%%%%%%...................%%%%%%%%%...,.......,..,...##.........##
+##..........##.....rs............%%%%%%%.....................%%%%%%%............s......##.........##
+##############.....,.......,,.......%........,...........,......%.....,................#############
+###############.......................................................................##############
+###############################################.......##############################################
+###############################################.......##############################################
+###############################################.......##############################################
+###############################################.......##############################################
+###############################################.......##############################################
+###############################################.......##############################################
+###############################################.......##############################################
+###############################################.......##############################################
+###############################################.......##############################################
+#########################################...................########################################
+########################################.....................#######################################
+########################################.....................#######################################
+########################################.....................#######################################
+########################################....p...........p....#######################################
+########################################.....................#######################################
+########################################.....................#######################################
+########################################..........P..........#######################################
+########################################.....................#######################################
+########################################.....................#######################################
+########################################.....................#######################################
+#########################################...................########################################
+####################################################################################################
+####################################################################################################
+`},
+);
+Object.assign(ATK_NAME, {drillrush:'Drill Rush', dynamite:'Dynamite', foreman:'Foreman\'s Crew', runaway:'Runaway Carts', sparkspin:'Spark Spin',
+  barrels:'Burning Barrels', chainblast:'Chain Blast', plant:'Charges', cavein:'Cave-in', jets:'Flame Jets', jets2:'Flame Jets', jets3:'Flame Jets',
+  firespiral:'Fire Spiral', heatwave:'Heat Wave', magmacall:'Magma Call', molten:'Molten Rain', prismfan:'Prism Fan', shardrain:'Shard Rain',
+  ricochet:'Ricochet', pillars:'Prism Pillars', lancet:'Light Lance', anvils:'Anvils', magmawave:'Magma Wave', forgecall:'Call the Forge',
+  meteor:'Meteors', eruption:'Eruption', flamering:'Ring of Fire'});
+Object.assign(SFX, {
+  sizzle:{gap:.25, play(){ noise(.35, {filter:'highpass', f:2200, fto:5000, vol:.06}); }},
+  cart:  {gap:.4,  play(){ noise(.6, {filter:'bandpass', f:400, fto:900, q:2, vol:.1}); tone(90, .5, {type:'sawtooth', vol:.04, to:60, lp:500}); }},
+  flip:  {gap:.15, play(){ tone(1400, .08, {type:'triangle', vol:.07, to:2100}); tone(700, .12, {type:'sine', vol:.05, to:1050, at:.05}); }},
+});
+
+/* ---------- floor mechanics ---------- */
+const MN_KINDS = new Set(['cart', 'seams', 'furnaces', 'beams']);
+function dgMinesInit(){
+  const D = G.dg, L = D.L, def = D.def, O = D.obj;
+  D.heat = def.heat ? 0 : null; D.heatHot = false;
+  D.carry = false; D.dropped = null; D.charge = null; D.lastHp = G.p.hp;
+  D.runaway = (def.runaway || []).map(r => ({x0:(r[0] + .5) * DT, y0:(r[1] + .5) * DT, x1:(r[2] + .5) * DT, y1:(r[3] + .5) * DT, every:r[4], t:r[5]}));
+  D.carts = []; D.esc = null; D.beams = null;
+  if(def.escape){ const [gx, gy] = def.escape.gate; for(const g of L.gates) if(Math.abs(g.x - gx) <= 1 && g.y === gy){ g.locked = true; g.escape = true; dgSetGate(g, false); } }
+  if(!O || !MN_KINDS.has(O.kind)) return;
+  const od = def.objective;
+  if(O.kind === 'cart'){
+    // the rail line from the cart's start to the end of the line, tile by tile
+    const path = [], W = L.W, seen = new Set();
+    let i = L.cartStart.y * W + L.cartStart.x;
+    while(i >= 0 && path.length < 2000){
+      path.push(i); seen.add(i);
+      const x = i % W, y = (i - x) / W; let nx = -1;
+      for(const [dx, dy] of N4){ const j = (y + dy) * W + x + dx; if(L.rail[j] === 1 && !seen.has(j)){ nx = j; break; } }
+      i = nx;
+    }
+    const pts = path.map(j => [(j % W + .5) * DT, (Math.floor(j / W) + .5) * DT]);
+    D.cart = {pts, s:0, len:pts.length - 1, x:pts[0][0], y:pts[0][1], a:0, state:'wait', stations:od.stations.map(f => Math.round(f * (pts.length - 1))), st:0, ambT:0, amb:0};
+    O.need = 1;
+  } else if(O.kind === 'seams'){
+    // each connected group of rubble tiles is one seam
+    const W = L.W, seen = new Uint8Array(W * L.H), seams = [];
+    for(let i = 0; i < W * L.H; i++){
+      if(L.t[i] !== TT.SEAM || seen[i]) continue;
+      const tiles = [], q = [i]; seen[i] = 1;
+      while(q.length){ const j = q.pop(); tiles.push(j); const x = j % W, y = (j - x) / W; for(const [dx, dy] of N4){ const k = (y + dy) * W + x + dx; if(L.t[k] === TT.SEAM && !seen[k]){ seen[k] = 1; q.push(k); } } }
+      let sx = 0, sy = 0; for(const j of tiles){ sx += j % W; sy += Math.floor(j / W); }
+      seams.push({tiles, x:sx / tiles.length, y:sy / tiles.length, state:'idle', name:'Seam ' + 'ABCD'[seams.length]});
+    }
+    O.sites = seams; O.need = seams.length;
+  } else if(O.kind === 'beams'){
+    const B = D.beams = {emitters:[], mirrors:[], receivers:[], segs:[], dirty:true, tick:0};
+    for(const [x, y, d] of od.emitters) B.emitters.push({x, y, dir:{E:[1, 0], W:[-1, 0], N:[0, -1], S:[0, 1]}[d]});
+    for(const o of L.beamParts){
+      if(o.kind === 'O') B.mirrors.push({x:o.x, y:o.y, i:o.i, s:od.mirrors[o.x + ',' + o.y] || 0, armed:true, spin:0});
+      if(o.kind === 'W') B.receivers.push({x:o.x, y:o.y, i:o.i, lit:false});
+    }
+    O.sites = B.receivers; O.need = B.receivers.length;
+  }
+}
+function dgMinesObjText(O){
+  const D = G.dg;
+  if(O.kind === 'cart'){
+    const C = D.cart, pct = Math.round(C.s / C.len * 100);
+    return `${O.O.text} · ${pct}%` + (C.state === 'station' ? ' · fight off the ambush' : C.state === 'blocked' ? ' · enemies block it' : C.state === 'wait' ? ' · stay next to it' : '');
+  }
+  if(O.kind === 'seams') return `${O.O.text} · ${O.done} / ${O.need}` + (D.charge ? ' · GET CLEAR' : D.carry ? ' · carrying dynamite' : ' · take dynamite from a crate');
+  if(O.kind === 'furnaces'){
+    const run = O.sites.find(st => st.state === 'run' && st.near);
+    return run ? `Venting the furnace · ${Math.round(run.prog * 100)}%` : `${O.O.text} · ${O.done} / ${O.need}`;
+  }
+  if(O.kind === 'beams') return `${O.O.text} · ${O.done} / ${O.need}`;
+  return null;
+}
+// where the gold arrow points
+function dgMinesTargets(O){
+  const D = G.dg, L = D.L;
+  if(O.kind === 'cart') return [[D.cart.x, D.cart.y]];
+  if(O.kind === 'seams'){
+    if(D.carry) return O.sites.filter(s => s.state === 'idle').map(s => [(s.x + .5) * DT, (s.y + .5) * DT]);
+    const c = L.depots.map(o => [(o.x + .5) * DT, (o.y + .5) * DT]);
+    if(D.dropped) c.push([D.dropped.x, D.dropped.y]);
+    return c;
+  }
+  if(O.kind === 'furnaces') return O.sites.filter(st => st.state !== 'done').map(dgSitePos);
+  if(O.kind === 'beams') return D.beams.receivers.filter(r => !r.lit).map(r => [(r.x + .5) * DT, (r.y + .5) * DT]);
+  return null;
+}
+function dgMinesTick(dt){
+  const D = G.dg, O = D.obj, def = D.def, p = G.p;
+  // runaway carts on the side tracks
+  for(const R of D.runaway){
+    R.t -= dt;
+    if(R.t <= 0 && !(G.boss && def.boss === 'gearjaw')){
+      R.t = R.every * rand(.85, 1.15);
+      if(Math.hypot((R.x0 + R.x1) / 2 - p.x, (R.y0 + R.y1) / 2 - p.y) < 1300) dgRunaway(R.x0, R.y0, R.x1, R.y1, 1.3);
+    }
+  }
+  if(D.heat !== null) dgHeatTick(dt);
+  if(D.esc) dgEscapeTick(dt);
+  const b = G.boss;
+  if(b && b.skin === 'forgeking') dgForgeArms(b, dt);
+  if(D.beams) dgBeamsTick(dt);
+  if(D.charge) dgChargeTick(dt);
+  if(!O || O.complete) { D.lastHp = p.hp; return; }
+  if(O.kind === 'cart') dgCartTick(dt);
+  else if(O.kind === 'seams') dgCarryTick(dt);
+  else if(O.kind === 'furnaces') dgFurnaceTick(dt);
+  D.lastHp = p.hp;
+}
+
+// ---- floor 11: the ore cart ----
+function dgCartTick(dt){
+  const D = G.dg, C = D.cart, O = D.obj, od = O.O, p = G.p;
+  const near = Math.hypot(p.x - C.x, p.y - C.y) < od.near;
+  let blocked = false;
+  for(const e of G.enemies) if(!e.dead && !(e.rise > 0) && !e.boss && Math.hypot(e.x - C.x, e.y - C.y) < od.block + e.r){ blocked = true; break; }
+  const prev = C.state;
+  if(C.state === 'station'){
+    C.ambT -= dt;
+    const alive = G.enemies.some(e => !e.dead && e.amb === C.st);
+    if((!alive && C.ambT < 18) || C.ambT <= 0){ C.state = 'wait'; C.st++; addText(C.x, C.y - 60, 'THE CART ROLLS ON', 2); sfx('cart'); }
+  } else if(C.st < C.stations.length && C.s >= C.stations[C.st]){
+    // a station: the cart stops and the kobolds attack it
+    C.state = 'station'; C.ambT = 24;
+    showBanner(`STATION ${C.st + 1}`, 'warn', 'The kobolds want the ore. Hold them off');
+    sfx('swarm'); G.shake = .3;
+    const k = 1 + C.st * .35, comp = {};
+    for(const t in od.ambush) comp[t] = Math.round(od.ambush[t] * k);
+    if(C.st === C.stations.length - 1) comp.elite = 'kobold';
+    const ahead = C.pts[Math.min(C.len, Math.round(C.s) + 6)], behind = C.pts[Math.max(0, Math.round(C.s) - 8)];
+    const n = G.enemies.length;
+    dgSpawnGroup(comp, ahead[0], ahead[1], 0);
+    for(let k2 = n; k2 < G.enemies.length; k2++) G.enemies[k2].amb = C.st;
+    if(C.st){ const n2 = G.enemies.length; dgSpawnGroup({kobold:3 + C.st}, behind[0], behind[1], 0); for(let k2 = n2; k2 < G.enemies.length; k2++) G.enemies[k2].amb = C.st; }
+  } else if(near && !blocked){
+    C.state = 'roll';
+    C.s = Math.min(C.len, C.s + od.speed * dt / DT);
+  } else C.state = near ? 'blocked' : 'wait';
+  if(C.state === 'roll' && prev !== 'roll') sfx('cart');
+  // position along the line
+  const k = Math.floor(C.s), f = C.s - k, a = C.pts[k], b2 = C.pts[Math.min(C.len, k + 1)];
+  C.x = a[0] + (b2[0] - a[0]) * f; C.y = a[1] + (b2[1] - a[1]) * f;
+  if(b2 !== a) C.a = Math.atan2(b2[1] - a[1], b2[0] - a[0]);
+  if(C.state !== prev) dgObjective();
+  else if(C.state === 'roll' && Math.random() < dt * 4) dgObjective();
+  if(C.s >= C.len){
+    // the end of the line: the cart smashes the barricade
+    O.done = 1; G.shake = .7; sfx('bigboom');
+    burst(C.x, C.y - 40, '#ffb04a', 40, 300, 1.5);
+    G.fx.push({type:'ring', x:C.x, y:C.y, r:10, maxR:240, life:.5, max:.5, color:'#ffb04a', fill:true});
+  }
+}
+// a runaway cart: a warning line along the track, then the cart races down it
+function dgRunaway(x0, y0, x1, y1, warn){
+  if(Math.random() < .5){ [x0, x1] = [x1, x0]; [y0, y1] = [y1, y0]; }
+  const a = Math.atan2(y1 - y0, x1 - x0), len = Math.hypot(x1 - x0, y1 - y0);
+  G.hazards.push({kind:'tele', x:x0, y:y0, a, len, w:56, warn, max:warn});
+  G.hazards.push({kind:'cart', x:x0, y:y0, a, len, d:0, sp:720, wait:warn, dmg:22, hitP:false, hit:new Set()});
+}
+
+// ---- floor 12: dynamite ----
+function dgCarryTick(dt){
+  const D = G.dg, L = D.L, O = D.obj, p = G.p;
+  if(D.carry && p.hp < D.lastHp - .5){
+    // a hit knocks the stick out of your hands
+    // it flies a little way off, and takes a moment before you can grab it again
+    let dx = p.x, dy = p.y;
+    for(let k = 0; k < 10; k++){ const a = Math.random() * TAU, r = rand(60, 90), x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r; if(!dgWalkBlocked(L, Math.floor(x / DT), Math.floor(y / DT))){ dx = x; dy = y; break; } }
+    D.carry = false; D.dropped = {x:dx, y:dy, t:.8};
+    addText(p.x, p.y - 40, 'DROPPED THE DYNAMITE', 2); sfx('untick'); dgObjective();
+  }
+  if(!D.carry && !D.charge){
+    if(D.dropped && D.dropped.t > 0) D.dropped.t -= dt;
+    let take = D.dropped && D.dropped.t <= 0 && Math.hypot(D.dropped.x - p.x, D.dropped.y - p.y) < 60 ? 'dropped' : null;
+    if(!take) for(const o of L.depots) if(Math.hypot((o.x + .5) * DT - p.x, (o.y + .5) * DT - p.y) < 95){ take = 'crate'; break; }
+    if(take){
+      D.carry = true; if(take === 'dropped') D.dropped = null;
+      addText(p.x, p.y - 44, 'DYNAMITE · CARRY IT TO A SEAM', 2); sfx('select'); dgObjective();
+    }
+  }
+  if(D.carry && !D.charge){
+    // close enough to a seam: plant it on the seam's near edge
+    for(const st of O.sites){
+      if(st.state !== 'idle') continue;
+      let best = null, bd = 1e9;
+      for(const j of st.tiles){ const x = (j % L.W + .5) * DT, y = (Math.floor(j / L.W) + .5) * DT, d = Math.hypot(x - p.x, y - p.y); if(d < bd){ bd = d; best = [x, y]; } }
+      if(bd < 105){
+        D.carry = false; st.state = 'lit';
+        const od = O.O, x = (best[0] + p.x) / 2, y = (best[1] + p.y) / 2;
+        D.charge = {x, y, t:od.fuse, max:od.fuse, st};
+        addCircle(x, y, od.r, od.fuse, od.dmg, '#ff6a2a');
+        showBanner('FUSE LIT', 'warn', 'Get clear!'); sfx('sizzle'); dgObjective();
+        break;
+      }
+    }
+  }
+}
+function dgChargeTick(dt){
+  const D = G.dg, L = D.L, Ch = D.charge, O = D.obj;
+  Ch.t -= dt;
+  if(Math.random() < .6) G.parts.push({x:Ch.x + rand(-4, 4), y:Ch.y + rand(-4, 4), vx:rand(-40, 40), vy:rand(-60, -10), life:.4, max:.4, c:'#ffd27a', s:2});
+  if(Ch.t > 0) return;
+  D.charge = null;
+  const st = Ch.st, od = O.O;
+  for(const j of st.tiles){ L.t[j] = TT.FLOOR; L.moss[j] = Math.random() < .3 ? 1 : 0; }
+  st.state = 'done'; O.done++;
+  G.shake = .9; G.flash = .25; sfx('bigboom'); sfx('crumble');
+  burst(Ch.x, Ch.y, '#ffb04a', 50, 360, 1.8); burst((st.x + .5) * DT, (st.y + .5) * DT, '#8a7a6a', 40, 300, 1.6);
+  G.fx.push({type:'ring', x:Ch.x, y:Ch.y, r:10, maxR:od.r * 1.3, life:.5, max:.5, color:'#ff8a3d', fill:true});
+  for(const e of G.enemies) if(!e.dead && !e.boss && Math.hypot(e.x - Ch.x, e.y - Ch.y) < od.r + e.r) hitEnemy(e, 260, 'bomb');
+  D.flowDirty = true; D.mapDirty = true; dgDistField();
+  if(D3.level) d3BuildLevel();
+  showBanner(`${st.name.toUpperCase()} BLOWN`, 'elite', O.done < O.need ? `The blast wakes the mine · ${O.done} / ${O.need}` : 'The last seam is open'); sfx('treasure');
+  // the blast wakes whatever was on the other side
+  const [cx, cy] = dgFarSpot((st.x + .5) * DT, (st.y + .5) * DT, 300);
+  const comp = {}; for(const t in od.wake) comp[t] = od.wake[t] + O.done;
+  dgSpawnGroup(comp, cx, cy, 0);
+  dgObjective();
+}
+
+// ---- floor 13: heat and the furnaces ----
+function dgHeatTick(dt){
+  const D = G.dg, L = D.L, p = G.p, H = D.def.heat, O = D.obj;
+  const i = tileAt(L, p.x, p.y);
+  let up = 0;
+  if(L.hot[i] && !dgGrateCold(i)) up += H.grate;
+  if(O) for(const st of O.sites){
+    if(st.state === 'done') continue;
+    const [x, y] = dgSitePos(st), d = Math.hypot(p.x - x, p.y - y);
+    if(d < H.nearR) up += H.near * (1 - d / H.nearR);
+    if(st.state === 'run' && st.near) up += H.vent;
+  }
+  if(G.boss && G.boss.skin === 'furnaceheart'){ const d = Math.hypot(p.x - G.boss.x, p.y - G.boss.y); if(d < 420) up += 16 * (1 - d / 420); }
+  const cool = dgWaterAt(p.x, p.y) || dgNearTrough(p.x, p.y);
+  D.heat = Math.max(0, Math.min(130, D.heat + (up - (cool ? H.trough : H.cool)) * dt));
+  if(D.heat >= 100 && !D.heatHot){ D.heatHot = true; showBanner('OVERHEATING', 'warn', 'You are burning · find a trough'); sfx('sizzle'); }
+  if(D.heatHot && D.heat < 80){ D.heatHot = false; addText(p.x, p.y - 40, 'Cooled down', 2); }
+  if(D.heatHot){
+    D.burnT = (D.burnT || 0) - dt;
+    if(D.burnT <= 0){ D.burnT = .5; const h0 = p.hp; hurtPlayer(p.maxHp * H.burn); if(p.hp < h0) burst(p.x, p.y, '#ff7a1a', 8, 160); }
+    if(Math.random() < .5) G.parts.push({x:p.x + rand(-10, 10), y:p.y + rand(-10, 10), vx:rand(-20, 20), vy:rand(-80, -30), life:.5, max:.5, c:'#ff8a2a', s:2.4});
+  }
+}
+// a vented furnace stops heating the grates around it
+function dgGrateCold(i){
+  const D = G.dg, L = D.L, O = D.obj;
+  if(!O) return false;
+  const x = i % L.W, y = (i - x) / L.W;
+  for(const st of O.sites) if(st.state === 'done' && Math.abs(st.x - x) <= 6 && Math.abs(st.y - y) <= 6) return true;
+  return false;
+}
+function dgNearTrough(x, y){ for(const [dx, dy] of N8) if(dgWaterAt(x + dx * 40, y + dy * 40)) return true; return false; }
+function dgFurnaceTick(dt){
+  const D = G.dg, O = D.obj, od = O.O, p = G.p;
+  let busy = false;
+  for(const st of O.sites){
+    if(st.state === 'done') continue;
+    const [x, y] = dgSitePos(st);
+    st.near = Math.hypot(p.x - x, p.y - y) < od.radius;
+    if(st.near && st.state === 'idle'){
+      st.state = 'run'; st.waveT = 1;
+      showBanner('VENTING', 'warn', 'Stay in the ring. It gets hot'); sfx('charge'); G.shake = .25;
+    }
+    if(st.state !== 'run') continue;
+    busy = true;
+    if(st.near){
+      st.prog = Math.min(1, st.prog + dt / od.time);
+      st.waveT -= dt;
+      if(st.waveT <= 0){
+        st.waveT = 7;
+        const [cx, cy] = dgFarSpot(x, y, 320), comp = {};
+        for(const t in od.wave) comp[t] = od.wave[t] + O.done;
+        dgSpawnGroup(comp, cx, cy, 0);
+      }
+    }
+    if(st.prog >= 1){
+      st.state = 'done'; O.done++; G.shake = .4;
+      showBanner('FURNACE VENTED', 'elite', `Its hall cools down · ${O.done} / ${O.need}`); sfx('treasure'); sfx('sizzle');
+      for(let k = 0; k < 30; k++) G.parts.push({x:x + rand(-40, 40), y:y + rand(-40, 40), vx:rand(-30, 30), vy:rand(-120, -40), life:1.4, max:1.4, c:'#d8d8d8', s:4});
+      D.mapDirty = true; dgObjective();
+    }
+  }
+  if(busy) dgObjective();
+}
+
+// ---- floor 14: beams and mirrors ----
+const MIRROR_TURN = (s, dx, dy) => s === 0 ? [-dy, -dx] : [dy, dx];   // 0 = /, 1 = \
+function dgBeamTrace(){
+  const D = G.dg, L = D.L, B = D.beams, W = L.W, mir = new Map(B.mirrors.map(m => [m.i, m])), rec = new Map(B.receivers.map(r => [r.i, r]));
+  B.segs = [];
+  for(const em of B.emitters){
+    let x = em.x, y = em.y, [dx, dy] = em.dir, sx = x, sy = y;
+    for(let n = 0; n < 220; n++){
+      x += dx; y += dy;
+      if(x < 0 || y < 0 || x >= W || y >= L.H) break;
+      const i = y * W + x, t = L.t[i];
+      const m = mir.get(i);
+      if(m){ B.segs.push([sx, sy, x, y]); [dx, dy] = MIRROR_TURN(m.s, dx, dy); sx = x; sy = y; continue; }
+      const r = rec.get(i);
+      if(r){
+        B.segs.push([sx, sy, x, y]);
+        if(!r.lit){ r.lit = true; const O = D.obj; O.done++; showBanner('RECEIVER LIT', 'elite', `${O.done} / ${O.need}`); sfx('relic'); G.shake = .3; burst((x + .5) * DT, (y + .5) * DT, '#e8d8ff', 30, 260); dgObjective(); }
+        sx = -1; break;
+      }
+      if(t === TT.WALL || t === TT.PROP || t === TT.SEAM || (t === TT.GATE && L.closed[i])){ B.segs.push([sx, sy, x - dx * .55, y - dy * .55]); sx = -1; break; }
+    }
+    if(sx >= 0) B.segs.push([sx, sy, x, y]);
+  }
+  // in world units, through tile centres
+  B.segs = B.segs.map(([a, b, c, d]) => [(a + .5) * DT, (b + .5) * DT, (c + .5) * DT, (d + .5) * DT]);
+  B.dirty = false;
+}
+function dgBeamsTick(dt){
+  const D = G.dg, B = D.beams, p = G.p, od = D.def.objective;
+  for(const m of B.mirrors){
+    const d = Math.hypot((m.x + .5) * DT - p.x, (m.y + .5) * DT - p.y);
+    if(m.armed && d < 88){ m.armed = false; m.s ^= 1; m.spin = 1; B.dirty = true; sfx('flip'); addText((m.x + .5) * DT, (m.y + .5) * DT - 70, m.s ? '\\' : '/', 2); }
+    else if(!m.armed && d > 150) m.armed = true;
+    if(m.spin > 0) m.spin = Math.max(0, m.spin - dt * 4);
+  }
+  if(B.dirty) dgBeamTrace();
+  // the beams burn whoever crosses them (rolling through takes no damage)
+  B.tick -= dt;
+  const hitP = B.tick <= 0;
+  if(hitP) B.tick = .4;
+  for(const [x0, y0, x1, y1] of B.segs){
+    if(hitP && segDist(p.x, p.y, x0, y0, x1, y1) < 16 + p.r) hurtPlayer(od.dmg);
+    for(const e of G.enemies){
+      if(e.dead || e.boss || e.rise > 0 || e.type === 'prismpillar') continue;
+      if(G.t - (e.beamT || -9) < .25) continue;
+      if(segDist(e.x, e.y, x0, y0, x1, y1) < 16 + e.r){ e.beamT = G.t; hitEnemy(e, 30 + 6 * D.floor, 'beam'); }
+    }
+  }
+}
+
+// ---- floor 15: the Forge King's arms, and the collapse ----
+function dgForgeArms(b, dt){
+  const D = G.dg, A = D.def.arms;
+  if(!b.arms){
+    b.arms = [-1, 1].map(side => {
+      const e = dgSpawn('forgearm', b.x + side * A.off, b.y, false, 10);
+      if(!e) return null;
+      e.skin = side < 0 ? 'forgearmL' : 'forgearmR'; e.owner = b; e.side = side;
+      e.hp = e.maxHp = A.hp * G.s.enemyHp; e.rise = e.riseMax = 1.2; e.aT = 1.5 + (side > 0 ? 1.4 : 0); e.xp = 0;
+      return e;
+    }).filter(Boolean);
+    b.guardMul = .15;
+  }
+  if(!b.armsGone && b.arms.every(a => a.dead)){
+    b.armsGone = true; b.guardMul = 1;
+    G.shake = .6; sfx('bigboom'); burst(b.x, b.y, '#ff7a1a', 40, 300, 1.6);
+  }
+}
+function dgEscapeStart(){
+  const D = G.dg, L = D.L, def = D.def, W = L.W, N = W * L.H;
+  for(const g of L.gates) if(g.escape){ g.locked = false; dgSetGate(g, true); }
+  // distance from the Forge Hall along every walkable tile
+  const dist = new Int16Array(N).fill(-1), q = [];
+  const bx = L.boss.x, by = L.boss.y;   // the Forge Hall itself (not the portal tile, which also belongs to zone 10)
+  for(const i of L.zoneTiles[10] || []) if(L.t[i] !== TT.GATE && Math.hypot(i % W - bx, Math.floor(i / W) - by) < 30){ dist[i] = 0; q.push(i); }
+  for(let h = 0; h < q.length; h++){
+    const i = q[h], x = i % W, y = (i - x) / W;
+    for(const [dx, dy] of N4){ const nx = x + dx, ny = y + dy; if(dgWalkBlocked(L, nx, ny)) continue; const j = ny * W + nx; if(dist[j] < 0){ dist[j] = dist[i] + 1; q.push(j); } }
+  }
+  D.esc = {dist, front:-def.escape.delay * def.escape.speed / DT, rockT:1, burnT:0, order:q};
+  showBanner('THE FORGE COLLAPSES', 'warn', 'The magma is coming · run up the tunnel to the portal'); sfx('warning'); G.shake = 1;
+  setMusic('bossMines');
+  D.flood.on = true;
+}
+function dgEscapeTick(dt){
+  const D = G.dg, L = D.L, E = D.esc, p = G.p, X = D.def.escape;
+  E.front += X.speed / DT * dt;
+  const pi = tileAt(L, p.x, p.y), pd = E.dist[pi];
+  if(pd >= 0 && pd <= E.front){
+    E.burnT -= dt;
+    if(E.burnT <= 0){ E.burnT = .5; hurtPlayer(p.maxHp * X.dmg); addText(p.x, p.y - 40, 'THE MAGMA · RUN!', 1); }
+  }
+  // rocks fall ahead of you
+  E.rockT -= dt;
+  if(E.rockT <= 0 && pd >= 0){
+    E.rockT = X.rocks * rand(.7, 1.3);
+    for(let k = 0; k < 12; k++){
+      const i = E.order[Math.floor(Math.random() * E.order.length)], d = E.dist[i];
+      if(d < pd + 2 || d > pd + 14) continue;
+      addCircle((i % L.W + .5) * DT + rand(-16, 16), (Math.floor(i / L.W) + .5) * DT + rand(-16, 16), 60, .9, 20, '#c8a08a');
+      break;
+    }
+  }
+  if(Math.random() < dt * 3) G.shake = Math.max(G.shake, .15);
+}
+// floor 15: when the Forge King falls, the escape begins
+function dgMinesBossDead(b){
+  const D = G.dg;
+  if(D.def.escape) dgEscapeStart();
+  if(b.arms) for(const a of b.arms) if(!a.dead){ a.dead = true; burst(a.x, a.y, '#ff7a1a', 20, 200); }
+}
+
+/* ---------- enemy behaviour ---------- */
+Object.assign(DG_AI, {
+  // chases in swarms; up close it winds up and lunges with its pickaxe
+  kobold(e, ai, dt, d, dx, dy, sp){
+    if(e.st === 'wind'){ e.stT -= dt; if(e.stT <= 0){ e.st = 'dash'; e.stT = ai.dur; } return true; }
+    if(e.st === 'dash'){
+      e.stT -= dt; e.x += Math.cos(e.da) * ai.dash * dt; e.y += Math.sin(e.da) * ai.dash * dt; dgCollide(e, e.r);
+      if(e.stT <= 0){ e.st = null; e.aT = ai.cd * rand(.8, 1.2); }
+      return true;
+    }
+    if(e.aT <= 0 && d < ai.range && d > 50){
+      e.st = 'wind'; e.stT = ai.wind; e.da = Math.atan2(dy, dx);
+      G.hazards.push({kind:'tele', x:e.x, y:e.y, a:e.da, len:ai.dash * ai.dur + 30, w:e.r * 2, warn:ai.wind, max:ai.wind});
+      return true;
+    }
+    dgChase(e, sp, dt, dx, dy, d);
+    return true;
+  },
+  // keeps back and throws lit dynamite where you are heading
+  sapper(e, ai, dt, d, dx, dy, sp){
+    const p = G.p;
+    if(e.aT <= 0 && d < ai.range && dgLos(e.x, e.y, p.x, p.y)){
+      e.aT = ai.cd * rand(.85, 1.15);
+      const tx = p.x + p.vx * .7, ty = p.y + p.vy * .7, pw = e.pow || 1;
+      dgLob(e.x, e.y, tx, ty, ai.fuse, ai.r, ai.dmg * pw, '#ff6a2a', 'dynamite', () => { sfx('boom'); burst(tx, ty, '#ffb04a', 14, 220); });
+      sfx('sizzle');
+    }
+    if(d < ai.keep){ e.x -= dx / d * sp * .8 * dt; e.y -= dy / d * sp * .8 * dt; return true; }
+    return d < ai.keep + 70;
+  },
+  // slow; leaves burning ground behind it
+  magma(e, ai, dt, d, dx, dy, sp){
+    e.trT = (e.trT || 0) - dt;
+    if(e.trT <= 0 && G.hazards.length < 260){ e.trT = ai.every; addPool(e.x, e.y, ai.r * (e.vis || 1), ai.life, ai.dps * (e.pow || 1), '#ff7a1a'); }
+    dgChase(e, sp, dt, dx, dy, d);
+    return true;
+  },
+  // circles you at a distance, then swoops straight through where you are
+  bat(e, ai, dt, d, dx, dy, sp){
+    if(e.st === 'wind'){ e.stT -= dt; if(e.stT <= 0){ e.st = 'dash'; e.stT = ai.dur; } return true; }
+    if(e.st === 'dash'){
+      e.stT -= dt; e.x += Math.cos(e.da) * ai.dash * dt; e.y += Math.sin(e.da) * ai.dash * dt; dgCollide(e, e.r);
+      if(e.stT <= 0){ e.st = null; e.aT = ai.cd * rand(.8, 1.3); }
+      return true;
+    }
+    if(e.aT <= 0 && d < ai.orbit + 120 && dgLos(e.x, e.y, G.p.x, G.p.y)){
+      e.st = 'wind'; e.stT = ai.warn; e.da = Math.atan2(dy, dx);
+      G.hazards.push({kind:'tele', x:e.x, y:e.y, a:e.da, len:ai.dash * ai.dur, w:e.r * 2.4, warn:ai.warn, max:ai.warn});
+      return true;
+    }
+    if(d > ai.orbit + 60 || !dgLos(e.x, e.y, G.p.x, G.p.y)){ dgChase(e, sp, dt, dx, dy, d); return true; }
+    e.side = e.side || (Math.random() < .5 ? 1 : -1);
+    const a = Math.atan2(-dy, -dx) + e.side * 1.1 * dt, r = d + (ai.orbit - d) * Math.min(1, dt * 2);
+    const tx = G.p.x + Math.cos(a) * r, ty = G.p.y + Math.sin(a) * r, mx = tx - e.x, my = ty - e.y, ml = Math.hypot(mx, my) || 1;
+    e.x += mx / ml * Math.min(ml, sp * dt); e.y += my / ml * Math.min(ml, sp * dt);
+    return true;
+  },
+  // slow and heavy; stamps a shockwave you have to roll through
+  golem(e, ai, dt, d, dx, dy, sp){
+    if(e.st === 'wind'){
+      e.stT -= dt;
+      if(e.stT <= 0){ e.st = null; e.aT = ai.cd * rand(.85, 1.15); addWave(e, ai.waveR, ai.waveSp, '#ff8a3d', e.dmg * .55); G.shake = Math.max(G.shake, .2); sfx('thud'); }
+      return true;
+    }
+    if(e.aT <= 0 && d < ai.range){ e.st = 'wind'; e.stT = ai.wind; G.fx.push({type:'ring', x:e.x, y:e.y, r:e.r, maxR:e.r + 60, life:ai.wind, max:ai.wind, color:'#ff8a3d'}); sfx('charge'); return true; }
+    dgChase(e, sp, dt, dx, dy, d);
+    return true;
+  },
+  // fires a fan of crystal shards when it can see you
+  crystal(e, ai, dt, d, dx, dy, sp){
+    const p = G.p;
+    if(e.aT <= 0 && d < 520 && dgLos(e.x, e.y, p.x, p.y)){
+      e.aT = ai.cd * rand(.85, 1.15);
+      const a0 = Math.atan2(dy, dx);
+      for(let i = 0; i < ai.n; i++) ebullet(e.x, e.y, a0 + (i - (ai.n - 1) / 2) * .22, ai.bs, ai.dmg * (e.pow || 1), '#e8d8ff', {r:8, model:'crystal'});
+      sfx('crit');
+    }
+    dgChase(e, sp, dt, dx, dy, d);
+    return true;
+  },
+  // blinks to a spot near you, then hurls fireballs
+  imp(e, ai, dt, d, dx, dy, sp){
+    const p = G.p;
+    if(e.st === 'cast'){
+      e.stT -= dt;
+      if(e.stT <= 0){
+        e.st = null; e.aT = ai.cd * rand(.85, 1.15);
+        const a0 = Math.atan2(p.y - e.y, p.x - e.x);
+        for(let i = 0; i < ai.n; i++) ebullet(e.x, e.y, a0 + (i - (ai.n - 1) / 2) * .26, ai.bs, ai.dmg * (e.pow || 1), '#ff9a3d', {r:9});
+        sfx('fire');
+      }
+      return true;
+    }
+    if(e.aT <= 0 && d < 700){
+      // blink: somewhere 200-300 away from you that can see you
+      const L = G.dg.L;
+      for(let k = 0; k < 16; k++){
+        const a = Math.random() * TAU, r = rand(200, 300), x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r;
+        if(dgWalkBlocked(L, Math.floor(x / DT), Math.floor(y / DT)) || !dgLos(x, y, p.x, p.y)) continue;
+        burst(e.x, e.y, '#ffb04a', 10, 160); e.x = x; e.y = y; burst(x, y, '#ffe07a', 10, 160); sfx('blink');
+        break;
+      }
+      e.st = 'cast'; e.stT = .45;
+      return true;
+    }
+    if(d < ai.keep){ e.x -= dx / d * sp * .7 * dt; e.y -= dy / d * sp * .7 * dt; return true; }
+    dgChase(e, sp, dt, dx, dy, d);
+    return true;
+  },
+  // the Prism Matriarch's pillars: stand still, fire a short beam at you, then shatter
+  pillar(e, ai, dt, d, dx, dy){
+    e.lifeT = (e.lifeT === undefined ? ai.life : e.lifeT) - dt;
+    if(e.lifeT <= 0){ e.dead = true; dgShards(e.x, e.y, 8, 220, 9, '#e8d8ff', 'crystal'); burst(e.x, e.y, '#e8d8ff', 20, 200); return true; }
+    if(e.aT <= 0){ e.aT = ai.cd; addBeam({x:e.x, y:e.y, a:Math.atan2(dy, dx), rot:0, len:900, w:22, warn:.8, active:.35, dmg:14, color:'#e8d8ff', owner:e, once:true}); }
+    return true;
+  },
+  // the Forge King's arms: they stay at his sides and slam the ground where you stand
+  arm(e, ai, dt, d, dx, dy){
+    const b = e.owner;
+    if(!b || b.dead){ e.dead = true; return true; }
+    const f = b.face === undefined ? -Math.PI / 2 : b.face, off = G.dg.def.arms.off;
+    const tx = b.x + Math.cos(f + Math.PI / 2 * e.side) * off + Math.cos(f) * 30, ty = b.y + Math.sin(f + Math.PI / 2 * e.side) * off + Math.sin(f) * 30;
+    e.x += (tx - e.x) * Math.min(1, dt * 8); e.y += (ty - e.y) * Math.min(1, dt * 8);
+    e.face = f;
+    if(e.aT <= 0 && d < 520){
+      e.aT = 3.2 * rand(.85, 1.15); e.slams = (e.slams || 0) + 1;
+      const p = G.p, x = p.x + p.vx * .3, y = p.y + p.vy * .3;
+      addCircle(x, y, 120, .95, 30 * (b.armsGone ? 1 : 1), '#ff7a1a');
+      e.slamT = .95;
+      if(e.slams % 3 === 0) dgLater(.95, () => { if(!e.dead) addWave({x, y, r:40}, 380, 300, '#ff8a3d', 18); });
+    }
+    if(e.slamT > 0) e.slamT -= dt;
+    return true;
+  },
+});
+
+// a runaway cart racing down its track: it hits you once, and every enemy in its way
+Object.assign(HZX, {
+  cart(hz, dt){
+    if(hz.wait > 0){ hz.wait -= dt; if(hz.wait <= 0) sfx('cart'); return; }
+    hz.d += hz.sp * dt;
+    const x = hz.x + Math.cos(hz.a) * hz.d, y = hz.y + Math.sin(hz.a) * hz.d, p = G.p;
+    hz.cx = x; hz.cy = y;
+    if(!hz.hitP && Math.hypot(p.x - x, p.y - y) < 36 + p.r){
+      hz.hitP = true; const h0 = p.hp; hurtPlayer(hz.dmg);
+      if(p.hp < h0){ const n = Math.cos(hz.a + Math.PI / 2), m = Math.sin(hz.a + Math.PI / 2), s = (p.x - x) * n + (p.y - y) * m >= 0 ? 1 : -1; p.x += n * s * 50; p.y += m * s * 50; dgCollide(p, p.r); G.shake = .4; }
+    }
+    for(const e of G.enemies) if(!e.dead && !e.boss && e.type !== 'forgearm' && !hz.hit.has(e) && Math.hypot(e.x - x, e.y - y) < 36 + e.r){ hz.hit.add(e); hitEnemy(e, 320, 'cart'); }
+    if(Math.random() < .7) G.parts.push({x:x + rand(-20, 20), y:y + rand(-20, 20), vx:rand(-60, 60), vy:rand(-60, 60), life:.3, max:.3, c:'#ffd27a', s:2});
+    if(hz.d >= hz.len){ hz.done = true; burst(x, y, '#8a7a6a', 12, 160); }
+  },
+});
+/* ---------- dungeon 3D: the Ember Mines (lava, rails, grates, furnaces, beams, carts) ---------- */
+Object.assign(D3LOOK, {
+  mines:{bg:'#0e0705', sky:'#ffc89a', ground:'#2a140a', hemi:1.7, sun:'#ffcfa0', sunI:1.8, torch:'#ff8a3d', flame:['#ff6a1a', '#ffd27a', '#ffa03d'], mote:'#ffb070', bubbles:false},
+});
+Object.assign(D3FLOOR, {
+  cartline: {bg:'#100805', sky:'#ffd2a0', ground:'#2a160a', hemi:1.8, sun:'#ffd8a8', sunI:1.9, torch:'#ffa040', mfloor:'#e0c8b0', mwall:'#d0b098', embers:.4},
+  galleries:{bg:'#0d0a08', sky:'#e8d8c8', ground:'#2a2018', hemi:1.8, sun:'#f0e0c8', sunI:1.85, torch:'#ffb060', mfloor:'#d8ccc0', mwall:'#c8b8a8', dust:true, embers:.25},
+  furnace:  {bg:'#140503', sky:'#ffb080', ground:'#3a0e04', hemi:1.7, sun:'#ffb888', sunI:1.8, torch:'#ff6a2a', flame:['#ff4a10', '#ffd27a', '#ff8a2a'], mfloor:'#e8b8a0', mwall:'#d8a088', embers:1},
+  refinery: {bg:'#0a0610', sky:'#e0d0ff', ground:'#1a1028', hemi:1.9, sun:'#e8dcff', sunI:1.9, torch:'#c89aff', flame:['#a86aff', '#f0e0ff', '#c89aff'], mote:'#e0c8ff', mfloor:'#c8c0d8', mwall:'#b8a8d0', embers:.2, crystals:true},
+  forge:    {bg:'#120402', sky:'#ff9a60', ground:'#400c02', hemi:1.7, sun:'#ffa070', sunI:1.8, torch:'#ff5a1a', flame:['#ff3a0a', '#ffc860', '#ff7a1a'], mfloor:'#d8a890', mwall:'#c08a70', embers:1.2},
+});
+function d3TintMN(lk){
+  const MM = D3.MM;
+  if(!MM) return;
+  MM.floor.color.set(lk.mfloor || '#ffffff'); MM.moss.color.set(lk.mfloor || '#ffffff'); MM.wall.color.set(lk.mwall || '#ffffff');
+}
+function d3TexturesMN(){
+  const X = D3.tex, T = D3.T;
+  X.mnFloor = d3Tex(d3Canvas(128, (x, S, r) => {
+    paintStone(x, S, r, 100);
+    x.globalCompositeOperation = 'multiply'; x.fillStyle = '#d0b8a6'; x.fillRect(0, 0, S, S); x.globalCompositeOperation = 'source-over';
+    for(let k = 0; k < 90; k++){ const v = 40 + r() * 50 | 0; x.fillStyle = `rgba(${v},${v * .85 | 0},${v * .75 | 0},.7)`; x.fillRect(r() * S, r() * S, 2 + r() * 3, 2 + r() * 2); }
+    for(let k = 0; k < 7; k++){ x.fillStyle = `rgba(255,${120 + r() * 80 | 0},40,.45)`; x.fillRect(r() * S, r() * S, 2, 2); }
+    paintCracks(x, S, r, 4, 'rgba(0,0,0,.4)');
+  }));
+  X.mnAsh = d3Tex(d3Canvas(128, (x, S, r) => {
+    paintStone(x, S, r, 92);
+    x.globalCompositeOperation = 'multiply'; x.fillStyle = '#b8a8a2'; x.fillRect(0, 0, S, S); x.globalCompositeOperation = 'source-over';
+    for(let k = 0; k < 18; k++){ x.fillStyle = `rgba(${150 + r() * 40 | 0},${140 + r() * 30 | 0},${130 + r() * 30 | 0},.35)`; x.beginPath(); x.arc(r() * S, r() * S, S * (.03 + r() * .08), 0, TAU); x.fill(); }
+    for(let k = 0; k < 14; k++){ x.fillStyle = 'rgba(255,110,30,.6)'; x.fillRect(r() * S, r() * S, 1.6, 1.6); }
+  }));
+  X.mnWall = d3Tex(d3Canvas(128, (x, S, r) => {
+    x.fillStyle = '#2a2220'; x.fillRect(0, 0, S, S);
+    for(let k = 0; k < 26; k++){
+      const w = 18 + r() * 34, h = 12 + r() * 22, px = r() * S, py = r() * S, v = 70 + (r() * 30 - 15) | 0;
+      for(const ox of [-S, 0, S]) for(const oy of [-S, 0, S]){ x.fillStyle = `rgb(${v + 6},${v - 2},${v - 8})`; x.fillRect(px + ox, py + oy, w, h); x.fillStyle = 'rgba(255,255,255,.06)'; x.fillRect(px + ox, py + oy, w, 2); x.fillStyle = 'rgba(0,0,0,.3)'; x.fillRect(px + ox, py + oy + h - 3, w, 3); }
+    }
+    // a timber beam across the top, and glowing veins
+    x.fillStyle = '#5a3a20'; x.fillRect(0, 4, S, 10); x.fillStyle = 'rgba(0,0,0,.35)'; x.fillRect(0, 12, S, 2);
+    x.strokeStyle = 'rgba(255,120,30,.55)'; x.lineWidth = 1.5;
+    for(let k = 0; k < 3; k++){ let px = r() * S, py = 30 + r() * 90; x.beginPath(); x.moveTo(px, py); for(let j = 0; j < 5; j++){ px += (r() - .5) * 22; py += 6 + r() * 10; x.lineTo(px, py); } x.stroke(); }
+    for(let k = 0; k < 500; k++){ x.fillStyle = r() < .5 ? 'rgba(0,0,0,.16)' : 'rgba(255,255,255,.04)'; x.fillRect(r() * S, r() * S, 1.5, 1.5); }
+  }));
+  X.grate = d3Tex(d3Canvas(128, (x, S) => {
+    const g = x.createRadialGradient(S / 2, S / 2, 4, S / 2, S / 2, S * .7); g.addColorStop(0, '#ffd27a'); g.addColorStop(.5, '#ff6a1a'); g.addColorStop(1, '#5a1404');
+    x.fillStyle = g; x.fillRect(0, 0, S, S);
+    x.fillStyle = '#2a2624';
+    for(let k = 0; k <= 8; k++){ x.fillRect(k * 16 - 3, 0, 6, S); x.fillRect(0, k * 16 - 3, S, 6); }
+    x.fillStyle = 'rgba(255,255,255,.08)'; for(let k = 0; k <= 8; k++){ x.fillRect(k * 16 - 3, 0, 1.5, S); x.fillRect(0, k * 16 - 3, S, 1.5); }
+  }));
+  X.grateCold = d3Tex(d3Canvas(128, (x, S) => {
+    x.fillStyle = '#141210'; x.fillRect(0, 0, S, S);
+    x.fillStyle = '#3a3634';
+    for(let k = 0; k <= 8; k++){ x.fillRect(k * 16 - 3, 0, 6, S); x.fillRect(0, k * 16 - 3, S, 6); }
+  }));
+  X.lava = d3Tex(d3Canvas(128, (x, S, r) => {
+    x.fillStyle = '#ff5a10'; x.fillRect(0, 0, S, S);
+    const wrapDo = (px, py, fn) => { for(const ox of [-S, 0, S]) for(const oy of [-S, 0, S]) fn(px + ox, py + oy); };
+    for(let k = 0; k < 26; k++){ const px = r() * S, py = r() * S, rr = 8 + r() * 22; wrapDo(px, py, (qx, qy) => { const g = x.createRadialGradient(qx, qy, 0, qx, qy, rr); g.addColorStop(0, 'rgba(255,230,120,.8)'); g.addColorStop(1, 'rgba(255,230,120,0)'); x.fillStyle = g; x.fillRect(qx - rr, qy - rr, rr * 2, rr * 2); }); }
+    for(let k = 0; k < 16; k++){ const px = r() * S, py = r() * S, w = 10 + r() * 24, h = 6 + r() * 14; wrapDo(px, py, (qx, qy) => { x.fillStyle = 'rgba(60,14,4,.75)'; x.beginPath(); x.ellipse(qx, qy, w / 2, h / 2, r() * 3, 0, TAU); x.fill(); }); }
+  }));
+  X.rail = d3Tex(d3Canvas(128, (x, S) => {
+    x.clearRect(0, 0, S, S);
+    for(let k = 0; k < 4; k++){ x.fillStyle = '#5a3a20'; x.fillRect(14, k * 32 + 6, S - 28, 14); x.fillStyle = 'rgba(0,0,0,.35)'; x.fillRect(14, k * 32 + 17, S - 28, 3); }
+    for(const rx of [36, 88]){ x.fillStyle = '#8a8f98'; x.fillRect(rx, 0, 7, S); x.fillStyle = '#d8dce4'; x.fillRect(rx + 1, 0, 2, S); }
+  }));
+  X.track = d3Tex(d3Canvas(128, (x, S) => {
+    x.clearRect(0, 0, S, S);
+    for(let k = 0; k < 4; k++){ x.fillStyle = k % 2 ? '#d8b020' : '#2a2420'; x.fillRect(14, k * 32 + 6, S - 28, 14); }
+    for(const rx of [36, 88]){ x.fillStyle = '#7a5a50'; x.fillRect(rx, 0, 7, S); x.fillStyle = '#ff9a6a'; x.fillRect(rx + 1, 0, 2, S); }
+  }));
+  const lam = o => new T.MeshLambertMaterial(o);
+  D3.MM = {
+    floor: lam({map:X.mnFloor, vertexColors:true}), moss: lam({map:X.mnAsh, vertexColors:true}), wall: lam({map:X.mnWall, vertexColors:true}),
+    stair: D3.M.stair, crumble: D3.M.crumble, slick: D3.MA.slick, deck: D3.MA.deck,
+    hot: lam({map:X.grate, vertexColors:true, emissive:'#ff5a1a', emissiveIntensity:.55, emissiveMap:X.grate}),
+    grate: lam({map:X.grateCold, vertexColors:true}),
+    lava: new T.MeshBasicMaterial({map:X.lava, color:'#ffffff'}),
+    rail: new T.MeshLambertMaterial({map:X.rail, transparent:true, alphaTest:.3, depthWrite:false}),
+    track: new T.MeshLambertMaterial({map:X.track, transparent:true, alphaTest:.3, depthWrite:false}),
+  };
+}
+function d3GeometriesMN(){
+  const T = D3.T, G3 = D3.geo, N = G3.mn = {};
+  const wood = '#6a4a2a', dwood = '#4a3018', iron = '#4a4a50', rockC = '#5a4a42';
+  N.p = gMerge([gTint(gBox(18, 150, 18, 0, 75, 0), wood), gTint(gBox(60, 12, 18, 0, 150, 0), dwood), gTint(gBox(6, 60, 6, -16, 118, 0), dwood, .9),
+    gTint(gBox(6, 60, 6, 16, 118, 0), dwood, .9), gTint(gBox(30, 10, 30, 0, 5, 0), rockC), gTint(gBox(20, 4, 20, 0, 120, 0), iron)]);
+  N.pb = gMerge([gTint(gBox(18, 60, 18, 0, 30, 0), wood), gTint(gBox(14, 12, 70, 18, 6, 10), dwood), gTint(gBox(30, 10, 30, 0, 5, 0), rockC)]);
+  const rub = seed => { const r = mulberry(seed), list = []; for(let k = 0; k < 7; k++){ const s = 12 + r() * 22; list.push(gTint(gBox(s * (1 + r() * .5), s * .75, s, (r() - .5) * 38, s * .37, (r() - .5) * 38), k % 3 ? '#5a4a42' : '#4a3c36', .8 + r() * .3)); } list.push(gTint(gBox(4, 3, 4, 6, 14, 4), '#ff8a3d')); return gMerge(list); };
+  N.r = [rub(31), rub(37), rub(41)];
+  N.k = gMerge([gTint(gBox(30, 26, 30, -12, 13, -8), wood), gTint(gBox(31, 3, 31, -12, 22, -8), dwood), gTint(gBox(16, 10, 16, -12, 30, -8), '#c8a040'),
+    gTint(gBox(20, 14, 26, 16, 7, 10), iron), gTint(gBox(16, 8, 20, 16, 17, 10), '#8a7a6a')]);
+  N.o = gMerge([gTint(gBox(30, 30, 30, 0, 15, 0), dwood), gTint(gBox(40, 10, 20, 0, 35, 0), iron), gTint(gBox(16, 8, 12, -24, 37, 0), iron), gTint(gBox(20, 6, 20, 0, 43, 0), '#5a5a62')]);
+  N.L = gMerge([gTint(gBox(10, 6, 10, 0, 3, 0), iron), gTint(gBox(5, 70, 5, 0, 38, 0), wood), gTint(gBox(20, 4, 4, 6, 72, 0), wood), gTint(gBox(10, 14, 10, 14, 62, 0), '#ffcf6a')]);
+  N.D = gMerge([gTint(gBox(40, 24, 32, 0, 12, 0), '#7a3a24'), gTint(gBox(41, 3, 33, 0, 4, 0), dwood), gTint(gBox(41, 3, 33, 0, 21, 0), dwood),
+    gTint(gBox(30, 4, 12, 0, 12, 16.5), '#e8d8b0'), ...[-12, -4, 4, 12].map(x => gTint(gCyl(4, 4, 22, 8, x, 30, -3), '#c8283a')),
+    ...[-8, 0, 8].map(x => gTint(gCyl(4, 4, 22, 8, x, 30, 6), '#c8283a')), gTint(gBox(2, 8, 2, 0, 44, 0), '#e8e0c0')]);
+  N.U = gMerge([gTint(gBox(110, 16, 110, 0, 8, 0), '#3a3030'), gTint(gBox(90, 70, 90, 0, 51, 0), '#6a3a2a'), gTint(gBox(92, 6, 92, 0, 30, 0), '#4a2a1e'),
+    gTint(gBox(70, 26, 70, 0, 99, 0), '#5a3226'), gTint(gBox(40, 20, 40, 0, 120, 0), '#4a2a20'), gTint(gBox(22, 90, 22, 0, 175, 0), '#3a2a24'),
+    gTint(gBox(46, 34, 6, 0, 44, 45), '#2a1008'), gTint(gBox(38, 26, 4, 0, 44, 47), '#ff7a1a'), gTint(gBox(14, 50, 14, -50, 25, 40), iron), gTint(gBox(14, 50, 14, 50, 25, 40), iron)]);
+  N.G = gMerge([gTint(gBox(44, 30, 44, 0, 15, 0), '#3a3448'), gTint(gBox(30, 30, 30, 0, 45, 0), '#4a4060'), gTint(gBox(18, 18, 18, 0, 68, 0), '#e8d8ff'), gTint(gBox(36, 6, 36, 0, 32, 0), '#2a2438')]);
+  N.O = gMerge([gTint(gBox(40, 16, 40, 0, 8, 0), '#3a3448'), gTint(gCyl(10, 12, 18, 10, 0, 25, 0), '#4a4060')]);
+  N.W = gMerge([gTint(gBox(44, 24, 44, 0, 12, 0), '#3a3448'), gTint(gBox(8, 40, 8, -16, 44, -16), '#4a4060'), gTint(gBox(8, 40, 8, 16, 44, -16), '#4a4060'),
+    gTint(gBox(8, 40, 8, -16, 44, 16), '#4a4060'), gTint(gBox(8, 40, 8, 16, 44, 16), '#4a4060'), gTint(gBox(24, 24, 24, 0, 46, 0), '#8a7ab8')]);
+  N.seam = gMerge(Array.from({length:9}, (_, k) => { const r = mulberry(70 + k); const s = 22 + r() * 22; return gTint(gBox(s, s * (.9 + r() * .8), s, (r() - .5) * 40, s * .5 + (k > 5 ? 30 : 0), (r() - .5) * 40), k % 2 ? '#6a5040' : '#7a6050', .8 + r() * .3); }));
+  for(const k in N){ const v = N[k]; for(const g of Array.isArray(v) ? v : [v]) g.userData.keep = true; }
+  // things thrown at you, and the mirror plates
+  const M = G3.thrown;
+  M.dynamite = gMerge([...[-4, 0, 4].map(x => gTint(gCyl(3.2, 3.2, 20, 8, x, 0, 0), '#c8283a')), gTint(gBox(12, 3, 7, 0, 4, 0), '#e8d8b0'), gTint(gBox(1.6, 7, 1.6, 0, 13, 0), '#e8e0c0')]);
+  M.barrel = gMerge([gTint(gCyl(13, 13, 30, 12, 0, 0, 0), '#7a4a24'), gTint(gCyl(13.6, 13.6, 4, 12, 0, 9, 0), '#c8283a'), gTint(gCyl(13.6, 13.6, 4, 12, 0, -9, 0), '#3a3a40')]);
+  M.anvil = gMerge([gTint(gBox(40, 12, 18, 0, 8, 0), '#4a4a52'), gTint(gBox(18, 12, 14, 0, -4, 0), '#3a3a42'), gTint(gBox(30, 6, 22, 0, -12, 0), '#4a4a52'), gTint(gBox(14, 8, 8, 24, 10, 0), '#4a4a52')]);
+  M.meteor = gMerge([gTint(gBox(26, 22, 24, 0, 0, 0), '#3a2a24'), gTint(gBox(18, 26, 18, 4, 2, -3), '#4a3026'), gTint(gBox(28, 6, 26, 0, -2, 0), '#ff7a1a')]);
+  M.crystal = gMerge([gTint(gBox(5, 5, 18, 0, 0, 0), '#e0c8ff'), gTint(gBox(3, 3, 8, 0, 0, 11), '#ffffff')]);
+  M.mirror = gMerge([gTint(gBox(62, 50, 5, 0, 0, 0), '#3a3448'), gTint(gBox(56, 44, 6, 0, 0, 0), '#dce8ff')]);
+  for(const k of ['dynamite', 'barrel', 'anvil', 'meteor', 'crystal', 'mirror']) M[k].userData.keep = true;
+}
+// lava, rails, side tracks and rubble seams (called from the level build)
+function d3BuildMines(){
+  const D = G.dg, L = D.L, W = L.W, G3 = D3.geo, MM = D3.MM;
+  if(!MM) return;
+  const lava = [], rails = [], tracks = [], seams = [];
+  for(let y = 0; y < L.H; y++) for(let x = 0; x < W; x++){
+    const i = y * W + x, t = L.t[i];
+    if(t === TT.LAVA) lava.push({x, y});
+    else if(t === TT.SEAM) seams.push({x, y, r:hash3(x, y, 91) * TAU});
+    if(L.rail[i]){ const h = L.rail[i - 1] || L.rail[i + 1]; (L.rail[i] === 1 ? rails : tracks).push({x, y, a:h && !(L.rail[i - W] && L.rail[i + W]) ? Math.PI / 2 : 0}); }
+  }
+  D3.lavaTiles = lava;
+  d3Instanced(G3.ground, MM.lava, lava, (m, i, o) => d3Inst(m, i, o.x * DT + 32, -9, o.y * DT + 32, 0, 1.02, 1, 1.02), {recv:false});
+  d3Instanced(G3.ground, MM.rail, rails, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 1.2, o.y * DT + 32, o.a, 1, 1, 1), {order:2});
+  d3Instanced(G3.ground, MM.track, tracks, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 1.2, o.y * DT + 32, o.a, 1, 1, 1), {order:2});
+  d3Instanced(G3.mn.seam, D3.M.stone, seams, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 0, o.y * DT + 32, o.r, 1, 1, 1), {cast:true});
+  D3.escMesh = null;
+}
+// floor 15: the magma that follows you up the escape tunnel, shown tile by tile
+function d3BuildEscape(){
+  const D = G.dg, E = D.esc, L = D.L;
+  if(!E || !D3.level) return;
+  const tiles = E.order.filter(i => E.dist[i] >= 0).map(i => ({x:i % L.W, y:Math.floor(i / L.W), d:E.dist[i]})).sort((a, b) => a.d - b.d);
+  const g = d3Instanced(D3.geo.ground, D3.MM.lava, tiles, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 3, o.y * DT + 32, 0, 0, 0, 0), {recv:false, order:1});
+  if(g) g.children.forEach(m => { m.frustumCulled = false; });   // they start at scale 0, so their bounds are useless
+  D3.escMesh = g ? {g, tiles, n:0} : null;
+}
+function d3ThingsMN(dt, ts){
+  const g = G, D = g.dg, p = g.p;
+  if(D3.theme !== 'mines' || !D3.MM) return;
+  const M = d3ModelMeshes(), lk = D3.look, L = D.L, cx = D3.cx, cy = D3.cy, far = D3.dist * 1.5, vis = (x, y) => Math.abs(x - cx) < far && Math.abs(y - cy) < far;
+  D3.tex.lava.offset.set(Math.sin(ts * .3) * .08 + ts * .015, ts * .02);
+  // lava glows; embers rise from it
+  const tx0 = Math.floor((cx - 900) / DT), tx1 = Math.floor((cx + 900) / DT), ty0 = Math.floor((cy - 800) / DT), ty1 = Math.floor((cy + 500) / DT);
+  for(const o of D3.lavaTiles || []){
+    if(o.x < tx0 || o.x > tx1 || o.y < ty0 || o.y > ty1) continue;
+    gp((o.x + .5) * DT, 2, (o.y + .5) * DT, '#ff6a1a', 120, .1 + .05 * Math.sin(ts * 2 + o.x * 1.7 + o.y), 0);
+    if(Math.random() < .02 * (lk.embers || .5)) g.parts.push({x:(o.x + Math.random()) * DT, y:(o.y + Math.random()) * DT, vx:rand(-10, 10), vy:rand(-50, -20), life:1.2, max:1.2, c:Math.random() < .5 ? '#ffb04a' : '#ff6a1a', s:2.2});
+  }
+  if(lk.embers && Math.random() < .5 * lk.embers) g.parts.push({x:cx + rand(-700, 700), y:cy + rand(-600, 300), vx:rand(-8, 8), vy:rand(-30, -10), life:2, max:2, c:'#ff9a3d', s:1.8});
+  // the ore cart, and the runaway carts on the side tracks
+  const C = D.cart;
+  if(C && vis(C.x, C.y)){
+    d3Entity('orecart', 'orecart', C.x, C.y, C.a, 1.25, {ph:C.s * 3, mv:C.state === 'roll' ? 1 : 0, t:ts, seed:2, pose:0, cast:0, swing:0}, 0, null, 0, 0);
+    const col = C.state === 'roll' ? '#7dff9a' : C.state === 'station' ? '#ff5a5a' : '#ffcf6a';
+    gp(C.x, 70, C.y, col, 40 + 10 * Math.sin(ts * 5), .7, .6);
+    if(C.state === 'roll' && Math.random() < .4) g.parts.push({x:C.x + rand(-16, 16), y:C.y + rand(-16, 16), vx:rand(-40, 40), vy:rand(-40, 40), life:.3, max:.3, c:'#ffd27a', s:1.8});
+  }
+  for(const hz of g.hazards) if(hz.kind === 'cart' && hz.wait <= 0 && vis(hz.cx, hz.cy)){
+    d3Entity('orecart', 'runcart', hz.cx, hz.cy, hz.a, 1.25, {ph:hz.d * .1, mv:1, t:ts, seed:4, pose:0, cast:0, swing:0}, 0, null, 0, 0);
+    gp(hz.cx, 30, hz.cy, '#ff8a3d', 70, .6, .3);
+  }
+  // dynamite: carried on your back, dropped, planted; the crates glow
+  const O = D.obj;
+  if(O && O.kind === 'seams' && !O.complete){
+    for(const o of L.depots){ const x = (o.x + .5) * DT, z = (o.y + .5) * DT; if(vis(x, z)) gp(x, 60, z, '#ff6a2a', 46 + 8 * Math.sin(ts * 4 + o.x), .55, .4); }
+    if(D.carry){ d3PutModel(M, 'dynamite', p.x - p.fx * 10, 62, p.y - p.fy * 10, 0, ts, 1.4); gp(p.x - p.fx * 10, 80, p.y - p.fy * 10, '#ffd27a', 12 + 6 * Math.random(), 1, 1); }
+    if(D.dropped){ d3PutModel(M, 'dynamite', D.dropped.x, 8, D.dropped.y, Math.PI / 2, 0, 1.4); gp(D.dropped.x, 20, D.dropped.y, '#ff6a2a', 50 + 10 * Math.sin(ts * 6), .7, .4); }
+    for(const st of O.sites) if(st.state === 'idle'){ const x = (st.x + .5) * DT, z = (st.y + .5) * DT; if(vis(x, z) && D.carry) gp(x, 90, z, '#ffcf6a', 36 + 8 * Math.sin(ts * 6), .8, .8); }
+  }
+  if(D.charge){ const Ch = D.charge; d3PutModel(M, 'dynamite', Ch.x, 12, Ch.y, 0, 0, 1.6); gp(Ch.x, 30, Ch.y, '#ffd27a', 14 + 10 * Math.random(), 1, 1); gp(Ch.x, 20, Ch.y, '#ff4a1a', 90 * (1 - Ch.t / Ch.max) + 20, .5, 0); }
+  // furnaces: a fire in the mouth (or steam once vented)
+  if(O && O.kind === 'furnaces') for(const st of O.sites){
+    const [x, z] = dgSitePos(st);
+    if(!vis(x, z)) continue;
+    if(st.state === 'done'){ if(Math.random() < .3) g.parts.push({x:x + rand(-30, 30), y:z + rand(-10, 30), vx:rand(-10, 10), vy:rand(-40, -20), life:1.5, max:1.5, c:'#d8d8d8', s:4}); continue; }
+    const f = .85 + .15 * Math.sin(ts * 9 + st.x);
+    gp(x, 44, z + 50, '#ff6a1a', 120 * f, .7, .3); gp(x, 44, z + 50, '#ffd27a', 50 * f, .9, .8);
+    gp(x, 200, z, '#ff8a3d', 40, .4, 0);
+    if(st.state === 'run') for(let k = 0; k < 3; k++) gp(x + rand(-40, 40), 60 + Math.random() * 120, z + rand(-40, 40), '#ffb04a', 20, .6, .5);
+    if(Math.random() < .25) g.parts.push({x:x + rand(-20, 20), y:z + 40, vx:rand(-20, 20), vy:rand(-60, -30), life:.8, max:.8, c:'#ff9a3d', s:2.4});
+  }
+  // hot grates shimmer
+  if(D.heat !== null && Math.random() < .6){
+    const tx = Math.floor((cx + rand(-700, 700)) / DT), ty = Math.floor((cy + rand(-600, 400)) / DT);
+    if(tx >= 0 && ty >= 0 && tx < L.W && ty < L.H && L.hot[ty * L.W + tx] && !dgGrateCold(ty * L.W + tx)) g.parts.push({x:(tx + Math.random()) * DT, y:(ty + Math.random()) * DT, vx:0, vy:-20, life:.7, max:.7, c:'#ffb04a', s:2});
+  }
+  // beams of light, emitters, mirrors and receivers
+  const B = D.beams;
+  if(B){
+    for(const [x0, y0, x1, y1] of B.segs){
+      const len = Math.hypot(x1 - x0, y1 - y0), n = Math.ceil(len / 22);
+      for(let k = 0; k <= n; k++){
+        const q = k / n, x = x0 + (x1 - x0) * q, z = y0 + (y1 - y0) * q;
+        if(!vis(x, z)) continue;
+        gp(x, 34, z, '#c8a8ff', 46, .35 + .1 * Math.sin(ts * 20 + k), .2); gp(x, 34, z, '#ffffff', 14, .9, 1);
+      }
+    }
+    for(const em of B.emitters){ const x = (em.x + .5) * DT, z = (em.y + .5) * DT; if(vis(x, z)){ gp(x, 68, z, '#e8d8ff', 90, .6, .6); gp(x, 68, z, '#ffffff', 26, 1, 1); } }
+    for(const m of B.mirrors){
+      const x = (m.x + .5) * DT, z = (m.y + .5) * DT;
+      if(!vis(x, z)) continue;
+      const ry = (m.s === 0 ? Math.PI / 4 : -Math.PI / 4) + m.spin * Math.PI * 1.5;
+      d3PutModel(M, 'mirror', x, 64, z, 0, ry, 1);
+      if(m.armed && Math.hypot(x - p.x, z - p.y) < 300) gp(x, 100, z, '#c8f8ff', 24 + 6 * Math.sin(ts * 5), .7, .7);
+    }
+    for(const r of B.receivers){ const x = (r.x + .5) * DT, z = (r.y + .5) * DT; if(vis(x, z)){ if(r.lit){ gp(x, 46, z, '#e8d8ff', 140, .7, .6); gp(x, 46, z, '#ffffff', 40, 1, 1); } else gp(x, 46, z, '#6a5a9a', 40 + 8 * Math.sin(ts * 3), .6, .2); } }
+  }
+  if(lk.crystals && Math.random() < .3) g.parts.push({x:cx + rand(-600, 600), y:cy + rand(-500, 300), vx:rand(-6, 6), vy:rand(-12, -4), life:2.2, max:2.2, c:Math.random() < .5 ? '#e0c8ff' : '#c8f8ff', s:2});
+  // floor 15: the magma follows you up the tunnel
+  const E = D.esc;
+  if(E){
+    if(!D3.escMesh) d3BuildEscape();
+    const Em = D3.escMesh;
+    if(Em){
+      let changed = new Set();
+      while(Em.n < Em.tiles.length && Em.tiles[Em.n].d <= E.front){ const [m, j] = Em.g.at(Em.n); const o = Em.tiles[Em.n]; d3Inst(m, j, o.x * DT + 32, 3, o.y * DT + 32, 0, 1.02, 1, 1.02); changed.add(m); Em.n++; }
+      for(const m of changed) m.instanceMatrix.needsUpdate = true;
+      for(let k = Math.max(0, Em.n - 12); k < Em.n; k++){ const o = Em.tiles[k]; gp((o.x + .5) * DT, 8, (o.y + .5) * DT, '#ffb04a', 110, .25, .2); if(Math.random() < .05) g.parts.push({x:(o.x + Math.random()) * DT, y:(o.y + Math.random()) * DT, vx:0, vy:-40, life:.8, max:.8, c:'#ffd27a', s:2.4}); }
+    }
+  }
+  // the Forge King's arms glow when they are about to slam
+  for(const e of g.enemies) if(!e.dead && e.type === 'forgearm' && e.slamT > 0) gp(e.x, 10, e.y, '#ff7a1a', 80, .5, .3);
+}
+// every rig's instance count, after everything that draws characters this frame
+function d3RigCounts(){
+  for(const id in D3.rigs){
+    const R2 = D3.rigs[id];
+    for(const m of R2.meshes){ m.count = R2.n; m.instanceMatrix.needsUpdate = true; if(m.instanceColor) m.instanceColor.needsUpdate = true; }
+  }
+}
+// 2D: the heat gauge, the fuse countdown, the cart's progress
+function dgOverlayMN(){
+  const D = G.dg;
+  if(D.heat !== null && D.heat !== undefined && !TDEMO_RUN){
+    const w = Math.min(260, W * .5), x = W / 2 - w / 2, y = H - (W < 560 ? 150 : 96), k = Math.min(1, D.heat / 100), hot = D.heatHot;
+    ctx.fillStyle = 'rgba(9,11,24,.7)'; ctx.fillRect(x - 3, y - 3, w + 6, 16);
+    const gr = ctx.createLinearGradient(x, 0, x + w, 0); gr.addColorStop(0, '#ffd27a'); gr.addColorStop(.6, '#ff8a3d'); gr.addColorStop(1, '#ff2a1a');
+    ctx.fillStyle = gr; ctx.fillRect(x, y, w * k, 10);
+    if(hot && Math.floor(G.t * 6) % 2){ ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(x, y, w * k, 10); }
+    ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1; ctx.strokeRect(x - .5, y - .5, w + 1, 11);
+    ctx.font = '700 11px "Chakra Petch", system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = hot ? '#ff6a5a' : '#ffd8b0';
+    ctx.strokeStyle = 'rgba(0,0,0,.8)'; ctx.lineWidth = 3;
+    const label = hot ? 'OVERHEATING · FIND A TROUGH' : `HEAT ${Math.round(D.heat)}`;
+    ctx.strokeText(label, W / 2, y - 6); ctx.fillText(label, W / 2, y - 6);
+  }
+  if(D.charge){
+    const s = d3Project(D.charge.x, 70, D.charge.y);
+    if(s){ const t = Math.max(0, D.charge.t).toFixed(1); ctx.font = '700 22px "Chakra Petch", system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.strokeStyle = 'rgba(0,0,0,.85)'; ctx.lineWidth = 4; ctx.fillStyle = '#ffcf6a'; ctx.strokeText(t, s[0], s[1]); ctx.fillText(t, s[0], s[1]); }
+  }
+  const O = D.obj;
+  if(O && !O.complete && !TDEMO_RUN && O.kind === 'furnaces') for(const st of O.sites){
+    if(st.state === 'done') continue;
+    const [x, y] = dgSitePos(st), s = d3Project(x, 150, y);
+    if(!s || Math.hypot(x - G.p.x, y - G.p.y) > 900) continue;
+    ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(9,11,24,.7)'; ctx.beginPath(); ctx.arc(s[0], s[1], 22, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = '#ff8a3d'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(s[0], s[1], 22, -Math.PI / 2, -Math.PI / 2 + TAU * st.prog); ctx.stroke();
+  }
+  if(O && !O.complete && !TDEMO_RUN && O.kind === 'cart'){
+    const C = D.cart, s = d3Project(C.x, 80, C.y);
+    if(s){ ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(9,11,24,.7)'; ctx.beginPath(); ctx.arc(s[0], s[1], 18, 0, TAU); ctx.stroke(); ctx.strokeStyle = C.state === 'roll' ? '#7dff9a' : '#ffcf6a'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(s[0], s[1], 18, -Math.PI / 2, -Math.PI / 2 + TAU * C.s / C.len); ctx.stroke(); }
+  }
+}
+function dgMinimapMN(at, ts){
+  const D = G.dg, O = D.obj, L = D.L;
+  if(D.cart && O && !O.complete){ const [x, y] = at(D.cart.x, D.cart.y); dot(x, y, 3.4 + Math.sin(ts * 5) * .6, '#7dff9a'); }
+  if(O && O.kind === 'seams' && !O.complete){
+    for(const st of O.sites) if(st.state !== 'done'){ const [x, y] = at((st.x + .5) * DT, (st.y + .5) * DT); dot(x, y, 3.2 + Math.sin(ts * 5) * .6, '#ffb04a'); }
+    for(const o of L.depots){ const [x, y] = at((o.x + .5) * DT, (o.y + .5) * DT); dot(x, y, 2.4, '#ff4a3a'); }
+  }
+  if(O && O.kind === 'furnaces' && !O.complete) for(const st of O.sites){ const [x, y] = at(...dgSitePos(st)); dot(x, y, st.state === 'done' ? 2.2 : 3.2 + Math.sin(ts * 5) * .6, st.state === 'done' ? '#d8d8d8' : '#ff6a1a'); }
+  if(D.beams){ for(const r of D.beams.receivers){ const [x, y] = at((r.x + .5) * DT, (r.y + .5) * DT); dot(x, y, r.lit ? 2.6 : 3.2 + Math.sin(ts * 5) * .6, r.lit ? '#ffffff' : '#a88aff'); } for(const m of D.beams.mirrors){ const [x, y] = at((m.x + .5) * DT, (m.y + .5) * DT); dot(x, y, 1.8, '#c8f8ff'); } }
+}
+// ---- Ember Mines models ----
+const legs8 = (dx, y, z0, step, len, col) => [0, 1, 2, 3].flatMap(i => [-1, 1].map(s =>
+  ['leg', [len, 3.5, 3.5], [s * dx, y, z0 - i * step], [s * len * .45, -2, 0], col, 'legS', {ry:-s * (.7 - i * .45), rz:-s * .5, k:i * 1.4 + (s > 0 ? Math.PI : 0)}]));
+const koboldBase = () => [
+  ['legL', [5, 9, 5], [-3, 9, 0], [0, -4.5, 0], 'dark', 'legL'],
+  ['legR', [5, 9, 5], [3, 9, 0], [0, -4.5, 0], 'dark', 'legR'],
+  ['torso', [12, 11, 8], [0, 9, 0], [0, 5.5, 0], 'body', 'body'],
+  ['belly', [8, 7, 1], [0, 9, 0], [0, 5, 4.3], '#e0b080', 'body'],
+  ['head', [10, 8, 10], [0, 21, 1], [0, 3, 1.5], 'body', 'head'],
+  ['snout', [6, 4, 6], [0, 21, 1], [0, 1.5, 8.5], 'body', 'head'],
+  ['helmet', [11, 4, 11], [0, 21, 1], [0, 7.5, 1], 'alt', 'head'],
+  ['lamp', [3, 3, 2], [0, 21, 1], [0, 7.5, 7], 'glow', 'head', {g:1}],
+  ['eyeL', [2, 2, 1], [0, 21, 1], [-2.6, 4.5, 6.7], 'glow', 'head', {g:1}],
+  ['eyeR', [2, 2, 1], [0, 21, 1], [2.6, 4.5, 6.7], 'glow', 'head', {g:1}],
+  ['tail', [3, 3, 10], [0, 8, -4], [0, 0, -5], 'body', 'wig', {k:0, R:2}],
+  ['armL', [3.5, 9, 3.5], [-7.5, 17, 0], [0, -4.5, 0], 'body', 'armL'],
+];
+Object.assign(RIGS, {
+  kobold:{r:11, parts:[...koboldBase(),
+    ['armR', [3.5, 9, 3.5], [7.5, 17, 0], [0, -4.5, 0], 'body', 'throw', {rx:-.6}],
+    ['pickH', [2, 2, 20], [7.5, 17, 0], [0, -9, 6], '#6a4a2a', 'throw', {rx:-.6}],
+    ['pickB', [12, 3, 3], [7.5, 17, 0], [0, -9, 15], 'alt', 'throw', {rx:-.6}],
+  ]},
+  sapper:{r:11, parts:[...koboldBase(),
+    ['pack', [11, 11, 6], [0, 9, 0], [0, 6, -6.5], '#6a3a24', 'body'],
+    ['tntA', [3, 10, 3], [0, 9, 0], [-3.5, 15, -6.5], '#c8283a', 'body'],
+    ['tntB', [3, 10, 3], [0, 9, 0], [0, 16, -6.5], '#c8283a', 'body'],
+    ['tntC', [3, 10, 3], [0, 9, 0], [3.5, 15, -6.5], '#c8283a', 'body'],
+    ['armR', [3.5, 9, 3.5], [7.5, 17, 0], [0, 4.5, 0], 'body', 'throw', {rx:-.4}],
+    ['stick', [2.6, 8, 2.6], [7.5, 17, 0], [0, 11, 0], '#c8283a', 'throw', {rx:-.4}],
+    ['fuse', [2, 3, 2], [7.5, 17, 0], [0, 16.5, 0], 'glow', 'throw', {rx:-.4, g:1}],
+  ]},
+  magma:{r:16, parts:[
+    ['core', [26, 16, 24], [0, 8, 0], [0, 0, 0], 'body', 'pulse'],
+    ['top', [18, 10, 16], [0, 8, 0], [0, 10, 0], 'body', 'pulse'],
+    ['crackA', [27, 2, 25], [0, 8, 0], [0, -1, 0], 'glow', 'pulse', {g:1}],
+    ['crackB', [19, 2, 17], [0, 8, 0], [0, 8, 0], 'glow', 'pulse', {g:1}],
+    ['crackC', [2, 14, 25], [0, 8, 0], [6, 2, 0], 'glow', 'pulse', {g:1}],
+    ['eyeL', [4, 3, 2], [0, 8, 0], [-5, 5, 12.5], 'alt', 'pulse', {g:1}],
+    ['eyeR', [4, 3, 2], [0, 8, 0], [5, 5, 12.5], 'alt', 'pulse', {g:1}],
+    ['lump', [9, 7, 9], [0, 8, 0], [-8, 13, -5], 'dark', 'pulse'],
+    ['drip', [6, 8, 6], [0, 8, 0], [10, -4, 8], 'glow', 'pulse', {g:1}],
+  ]},
+  emberbat:{r:10, float:28, parts:[
+    ['body', [9, 9, 12], [0, 10, 0], [0, 0, 0], 'body', 'body'],
+    ['head', [8, 7, 7], [0, 10, 0], [0, 2, 8], 'body', 'body'],
+    ['earL', [2, 5, 2], [0, 10, 0], [-2.5, 7.5, 8], 'dark', 'body'],
+    ['earR', [2, 5, 2], [0, 10, 0], [2.5, 7.5, 8], 'dark', 'body'],
+    ['eyeL', [2, 2, 1], [0, 10, 0], [-2, 3, 11.6], 'glow', 'body', {g:1}],
+    ['eyeR', [2, 2, 1], [0, 10, 0], [2, 3, 11.6], 'glow', 'body', {g:1}],
+    ['wingL', [20, 2, 12], [-4, 12, 0], [-10, 0, 0], 'dark', 'wig', {k:0, R:0, rz:.3}],
+    ['wingR', [20, 2, 12], [4, 12, 0], [10, 0, 0], 'dark', 'wig', {k:Math.PI, R:0, rz:-.3}],
+    ['emberL', [10, 2, 4], [-4, 12, 0], [-14, -1, -4], 'alt', 'wig', {k:0, R:0, rz:.3, g:1}],
+    ['emberR', [10, 2, 4], [4, 12, 0], [14, -1, -4], 'alt', 'wig', {k:Math.PI, R:0, rz:-.3, g:1}],
+    ['tail', [2, 2, 10], [0, 9, -6], [0, 0, -5], 'glow', 'wig', {k:1, R:2, g:1}],
+  ]},
+  crystalgolem:{r:16, parts:[
+    ['legL', [9, 14, 9], [-6, 14, 0], [0, -7, 0], 'dark', 'legL'],
+    ['legR', [9, 14, 9], [6, 14, 0], [0, -7, 0], 'dark', 'legR'],
+    ['torso', [24, 20, 16], [0, 14, 0], [0, 10, 0], 'body', 'body'],
+    ['head', [12, 10, 11], [0, 34, 2], [0, 4, 1], 'body', 'head'],
+    ['eyes', [9, 2.4, 1], [0, 34, 2], [0, 5, 7], 'glow', 'head', {g:1}],
+    ['shardA', [7, 18, 7], [0, 14, 0], [-9, 24, -3], 'alt', 'breathe', {rz:.35, g:1}],
+    ['shardB', [8, 22, 8], [0, 14, 0], [2, 26, -6], 'alt', 'breathe', {rz:-.2, g:1}],
+    ['shardC', [6, 14, 6], [0, 14, 0], [10, 22, -2], 'alt', 'breathe', {rz:-.45, g:1}],
+    ['armL', [8, 18, 8], [-15, 28, 0], [0, -9, 0], 'body', 'armL'],
+    ['armR', [8, 18, 8], [15, 28, 0], [0, -9, 0], 'body', 'armR'],
+    ['fistL', [10, 9, 10], [-15, 28, 0], [0, -20, 0], 'alt', 'armL', {g:1}],
+    ['fistR', [10, 9, 10], [15, 28, 0], [0, -20, 0], 'alt', 'armR', {g:1}],
+  ]},
+  imp:{r:11, float:10, parts:[
+    ['legL', [4, 8, 4], [-3, 8, 0], [0, -4, 0], 'dark', 'legL'],
+    ['legR', [4, 8, 4], [3, 8, 0], [0, -4, 0], 'dark', 'legR'],
+    ['body', [10, 11, 8], [0, 8, 0], [0, 5.5, 0], 'body', 'body'],
+    ['head', [10, 9, 9], [0, 19, 0], [0, 4.5, 0], 'body', 'head'],
+    ['hornL', [2, 7, 2], [0, 19, 0], [-3.5, 11, 0], 'alt', 'head', {rz:.4}],
+    ['hornR', [2, 7, 2], [0, 19, 0], [3.5, 11, 0], 'alt', 'head', {rz:-.4}],
+    ['eyeL', [2.4, 2, 1], [0, 19, 0], [-2.2, 5, 4.7], 'glow', 'head', {g:1}],
+    ['eyeR', [2.4, 2, 1], [0, 19, 0], [2.2, 5, 4.7], 'glow', 'head', {g:1}],
+    ['wingL', [12, 2, 8], [-4, 16, -3], [-6, 0, 0], 'dark', 'wig', {k:0, R:0, rz:.5}],
+    ['wingR', [12, 2, 8], [4, 16, -3], [6, 0, 0], 'dark', 'wig', {k:Math.PI, R:0, rz:-.5}],
+    ['tail', [2, 2, 12], [0, 8, -3], [0, 0, -6], 'body', 'wig', {k:1, R:2}],
+    ['armL', [3, 8, 3], [-6.5, 15, 0], [0, -4, 0], 'body', 'zarmL', {rx:-1}],
+    ['armR', [3, 8, 3], [6.5, 15, 0], [0, -4, 0], 'body', 'zarmR', {rx:-1}],
+    ['flame', [6, 6, 6], [0, 14, 8], [0, 0, 0], 'glow', 'orbit', {k:0, R:7, g:1}],
+  ]},
+  prismpillar:{r:18, parts:[
+    ['base', [26, 8, 26], [0, 4, 0], [0, 0, 0], 'dark', 'body'],
+    ['shaft', [12, 40, 12], [0, 8, 0], [0, 20, 0], 'body', 'body'],
+    ['top', [16, 16, 16], [0, 56, 0], [0, 0, 0], 'glow', 'pulse', {g:1, ry:.78}],
+    ['shardA', [5, 12, 5], [0, 40, 0], [0, 0, 0], 'alt', 'orbit', {k:0, R:16, g:1}],
+    ['shardB', [5, 12, 5], [0, 40, 0], [0, 0, 0], 'alt', 'orbit', {k:2.1, R:16, g:1}],
+    ['shardC', [5, 12, 5], [0, 40, 0], [0, 0, 0], 'alt', 'orbit', {k:4.2, R:16, g:1}],
+  ]},
+  orecart:{r:20, parts:[
+    ['box', [34, 18, 46], [0, 12, 0], [0, 9, 0], 'alt', 'body'],
+    ['rim', [36, 4, 48], [0, 12, 0], [0, 19, 0], 'dark', 'body'],
+    ['oreA', [24, 8, 30], [0, 12, 0], [0, 22, 0], 'body', 'body'],
+    ['oreB', [10, 8, 10], [0, 12, 0], [-6, 27, 6], 'glow', 'body', {g:1}],
+    ['oreC', [8, 7, 8], [0, 12, 0], [7, 26, -8], 'glow', 'body', {g:1}],
+    ['wheelA', [4, 12, 12], [0, 6, 0], [-18, 0, 14], 'dark', 'body'],
+    ['wheelB', [4, 12, 12], [0, 6, 0], [18, 0, 14], 'dark', 'body'],
+    ['wheelC', [4, 12, 12], [0, 6, 0], [-18, 0, -14], 'dark', 'body'],
+    ['wheelD', [4, 12, 12], [0, 6, 0], [18, 0, -14], 'dark', 'body'],
+    ['bumper', [30, 6, 3], [0, 12, 0], [0, 6, 24.5], 'dark', 'body'],
+  ]},
+  forgearm:{r:34, many:true, parts:[
+    ['shoulder', [30, 22, 30], [0, 96, 0], [0, 0, 0], 'dark', 'hammer'],
+    ['upper', [22, 44, 22], [0, 96, 0], [0, -30, 0], 'body', 'hammer'],
+    ['band', [26, 6, 26], [0, 96, 0], [0, -46, 0], 'alt', 'hammer'],
+    ['fist', [38, 32, 38], [0, 96, 0], [0, -70, 0], 'dark', 'hammer'],
+    ['knuckle', [40, 8, 10], [0, 96, 0], [0, -76, 15], 'alt', 'hammer'],
+    ['runeA', [4, 18, 4], [0, 96, 0], [12, -30, 9], 'glow', 'hammer', {g:1}],
+    ['runeB', [4, 18, 4], [0, 96, 0], [-12, -30, 9], 'glow', 'hammer', {g:1}],
+    ['glowF', [30, 4, 30], [0, 96, 0], [0, -87, 0], 'glow', 'hammer', {g:1}],
+  ]},
+  // Gearjaw: a kobold foreman riding a drill cart
+  drillcart:{r:40, parts:[
+    ['cart', [62, 30, 74], [0, 16, 0], [0, 15, -6], 'alt', 'body'],
+    ['rim', [66, 6, 78], [0, 16, 0], [0, 32, -6], 'dark', 'body'],
+    ['wheelA', [8, 26, 26], [0, 13, 0], [-34, 0, 18], 'dark', 'body'],
+    ['wheelB', [8, 26, 26], [0, 13, 0], [34, 0, 18], 'dark', 'body'],
+    ['wheelC', [8, 26, 26], [0, 13, 0], [-34, 0, -28], 'dark', 'body'],
+    ['wheelD', [8, 26, 26], [0, 13, 0], [34, 0, -28], 'dark', 'body'],
+    ['drillA', [34, 34, 14], [0, 28, 32], [0, 0, 7], 'dark', 'wheel'],
+    ['drillB', [24, 24, 14], [0, 28, 32], [0, 0, 20], 'alt', 'wheel', {rz:.78}],
+    ['drillC', [14, 14, 12], [0, 28, 32], [0, 0, 32], 'dark', 'wheel'],
+    ['drillD', [6, 6, 10], [0, 28, 32], [0, 0, 42], 'glow', 'wheel', {g:1}],
+    ['boiler', [24, 26, 24], [0, 30, -30], [0, 13, 0], 'body', 'breathe'],
+    ['stack', [8, 22, 8], [0, 30, -30], [0, 36, 0], 'dark', 'breathe'],
+    ['ember', [9, 4, 9], [0, 30, -30], [0, 48, 0], 'glow', 'pulse', {g:1}],
+    ['torso', [22, 20, 14], [0, 36, 4], [0, 10, 0], 'body', 'body'],
+    ['vest', [23, 8, 15], [0, 36, 4], [0, 6, 0], '#d8a020', 'body'],
+    ['head', [18, 14, 16], [0, 58, 6], [0, 5, 2], 'body', 'head'],
+    ['jaw', [16, 5, 10], [0, 58, 6], [0, -1, 9], '#8a8f98', 'head'],
+    ['helmet', [20, 6, 18], [0, 58, 6], [0, 13, 2], '#d8a020', 'head'],
+    ['lamp', [6, 5, 3], [0, 58, 6], [0, 13, 12], 'glow', 'head', {g:1}],
+    ['eyeL', [3, 3, 1], [0, 58, 6], [-4, 7, 10.5], 'glow', 'head', {g:1}],
+    ['eyeR', [3, 3, 1], [0, 58, 6], [4, 7, 10.5], 'glow', 'head', {g:1}],
+    ['armL', [6, 16, 6], [-14, 52, 4], [0, -8, 0], 'body', 'zarmL', {rx:-.9}],
+    ['armR', [6, 16, 6], [14, 52, 4], [0, -8, 0], 'body', 'throw', {rx:-.8}],
+    ['wrench', [4, 4, 26], [14, 52, 4], [0, -16, 10], '#8a8f98', 'throw', {rx:-.8}],
+  ]},
+  // Blastback: a demolition golem with a rack of barrels on its back and a wrecking ball for a fist
+  demolisher:{r:46, parts:[
+    ['legL', [20, 32, 20], [-14, 32, 0], [0, -16, 0], 'dark', 'legL'],
+    ['legR', [20, 32, 20], [14, 32, 0], [0, -16, 0], 'dark', 'legR'],
+    ['torso', [52, 40, 34], [0, 32, 0], [0, 20, 0], 'body', 'body'],
+    ['chest', [30, 16, 4], [0, 32, 0], [0, 24, 17.5], 'glow', 'pulse', {g:1}],
+    ['head', [22, 18, 20], [0, 72, 4], [0, 8, 2], 'body', 'head'],
+    ['visor', [18, 4, 2], [0, 72, 4], [0, 10, 12.5], 'glow', 'head', {g:1}],
+    ['rack', [44, 10, 14], [0, 32, 0], [0, 30, -24], '#4a3a2a', 'body'],
+    ['barrelA', [14, 22, 14], [0, 32, 0], [-14, 46, -24], 'alt', 'body'],
+    ['barrelB', [14, 22, 14], [0, 32, 0], [14, 46, -24], 'alt', 'body'],
+    ['barrelC', [14, 22, 14], [0, 32, 0], [0, 50, -26], 'alt', 'body'],
+    ['armL', [16, 36, 16], [-34, 64, 0], [0, -18, 0], 'body', 'armL'],
+    ['fistL', [20, 16, 20], [-34, 64, 0], [0, -40, 0], 'dark', 'armL'],
+    ['armR', [16, 34, 16], [34, 64, 0], [0, -17, 0], 'body', 'hammer'],
+    ['chain', [4, 20, 4], [34, 64, 0], [0, -44, 0], '#5a5a60', 'hammer'],
+    ['ball', [30, 30, 30], [34, 64, 0], [0, -64, 0], 'dark', 'hammer'],
+    ['spike', [34, 6, 6], [34, 64, 0], [0, -64, 0], '#8a8f98', 'hammer'],
+  ]},
+  // the Furnace Heart: a great furnace with a molten core floating in its open crown
+  furnace:{r:50, parts:[
+    ['base', [110, 20, 110], [0, 10, 0], [0, 0, 0], 'dark', 'body'],
+    ['ring', [96, 34, 96], [0, 20, 0], [0, 17, 0], 'body', 'breathe'],
+    ['ventA', [100, 6, 20], [0, 20, 0], [0, 12, 0], 'glow', 'pulse', {g:1}],
+    ['ventB', [20, 6, 100], [0, 20, 0], [0, 12, 0], 'glow', 'pulse', {g:1}],
+    ['crown', [76, 18, 76], [0, 54, 0], [0, 9, 0], 'body', 'breathe'],
+    ['lip', [80, 5, 80], [0, 54, 0], [0, 19, 0], 'dark', 'breathe'],
+    ['core', [36, 36, 36], [0, 98, 0], [0, 0, 0], 'glow', 'pulse', {g:1, ry:.78}],
+    ['coreIn', [22, 22, 22], [0, 98, 0], [0, 0, 0], 'alt', 'pulse', {g:1}],
+    ['shardA', [10, 18, 10], [0, 98, 0], [0, 0, 0], 'glow', 'orbit', {k:0, R:46, g:1}],
+    ['shardB', [10, 18, 10], [0, 98, 0], [0, 0, 0], 'glow', 'orbit', {k:2.1, R:46, g:1}],
+    ['shardC', [10, 18, 10], [0, 98, 0], [0, 0, 0], 'glow', 'orbit', {k:4.2, R:46, g:1}],
+    ['pipeA', [10, 70, 10], [0, 20, 0], [-44, 35, -44], 'dark', 'body'],
+    ['pipeB', [10, 70, 10], [0, 20, 0], [44, 35, -44], 'dark', 'body'],
+    ['pipeC', [10, 60, 10], [0, 20, 0], [-44, 30, 44], 'dark', 'body'],
+    ['pipeD', [10, 60, 10], [0, 20, 0], [44, 30, 44], 'dark', 'body'],
+  ]},
+  // the Prism Matriarch: a crystal spider queen with a crown of light
+  prism:{r:40, parts:[
+    ['abdomen', [40, 30, 44], [0, 30, -20], [0, 0, -6], 'body', 'breathe'],
+    ['shardA', [10, 26, 10], [0, 30, -20], [-10, 20, -8], 'alt', 'breathe', {rz:.3, g:1}],
+    ['shardB', [12, 32, 12], [0, 30, -20], [4, 22, -14], 'alt', 'breathe', {rz:-.2, g:1}],
+    ['shardC', [8, 20, 8], [0, 30, -20], [14, 16, -4], 'alt', 'breathe', {rz:-.5, g:1}],
+    ['thorax', [30, 20, 26], [0, 28, 8], [0, 0, 0], 'body', 'body'],
+    ['torso', [20, 26, 14], [0, 36, 18], [0, 13, 0], 'body', 'body'],
+    ['head', [16, 16, 14], [0, 62, 20], [0, 7, 1], 'body', 'head'],
+    ['crownA', [6, 16, 6], [0, 62, 20], [-6, 20, 0], 'glow', 'head', {rz:.3, g:1}],
+    ['crownB', [6, 20, 6], [0, 62, 20], [0, 22, 0], 'glow', 'head', {g:1}],
+    ['crownC', [6, 16, 6], [0, 62, 20], [6, 20, 0], 'glow', 'head', {rz:-.3, g:1}],
+    ['eyes', [12, 3, 1], [0, 62, 20], [0, 8, 8], 'glow', 'head', {g:1}],
+    ['armL', [5, 22, 5], [-12, 56, 18], [0, -11, 0], 'body', 'zarmL', {rx:-.8}],
+    ['armR', [5, 22, 5], [12, 56, 18], [0, -11, 0], 'body', 'zarmR', {rx:-.8}],
+    ...legs8(14, 26, 14, 9, 40, 'alt'),
+  ]},
+  // the Forge King: a towering iron torso on a throne of anvils (his arms are separate)
+  forgeking:{r:56, parts:[
+    ['throne', [80, 26, 60], [0, 13, 0], [0, 0, -6], 'dark', 'body'],
+    ['anvil', [96, 12, 40], [0, 26, 0], [0, 6, -6], '#3a3430', 'body'],
+    ['hips', [60, 26, 40], [0, 32, 0], [0, 13, 0], 'body', 'body'],
+    ['torso', [76, 56, 46], [0, 58, 0], [0, 28, 0], 'body', 'breathe'],
+    ['core', [26, 26, 4], [0, 58, 0], [0, 30, 23.5], 'glow', 'pulse', {g:1}],
+    ['grill', [30, 6, 5], [0, 58, 0], [0, 30, 24], 'dark', 'pulse'],
+    ['pauldL', [30, 18, 36], [0, 58, 0], [-44, 50, 0], 'alt', 'breathe'],
+    ['pauldR', [30, 18, 36], [0, 58, 0], [44, 50, 0], 'alt', 'breathe'],
+    ['head', [30, 28, 28], [0, 118, 4], [0, 12, 2], 'dark', 'head'],
+    ['face', [24, 18, 2], [0, 118, 4], [0, 12, 17], 'body', 'head'],
+    ['eyeL', [6, 4, 1], [0, 118, 4], [-6, 15, 18.5], 'glow', 'head', {g:1}],
+    ['eyeR', [6, 4, 1], [0, 118, 4], [6, 15, 18.5], 'glow', 'head', {g:1}],
+    ['beard', [20, 14, 4], [0, 118, 4], [0, 1, 17], 'glow', 'head', {g:1}],
+    ['crownA', [34, 6, 32], [0, 118, 4], [0, 28, 2], 'alt', 'head'],
+    ['crownB', [6, 14, 6], [0, 118, 4], [-12, 37, 2], 'alt', 'head'],
+    ['crownC', [6, 18, 6], [0, 118, 4], [0, 39, 2], 'glow', 'head', {g:1}],
+    ['crownD', [6, 14, 6], [0, 118, 4], [12, 37, 2], 'alt', 'head'],
+    ['stackL', [12, 40, 12], [0, 58, 0], [-24, 66, -26], 'dark', 'body'],
+    ['stackR', [12, 40, 12], [0, 58, 0], [24, 66, -26], 'dark', 'body'],
+    ['smokeL', [10, 5, 10], [0, 58, 0], [-24, 88, -26], 'glow', 'pulse', {g:1}],
+    ['smokeR', [10, 5, 10], [0, 58, 0], [24, 88, -26], 'glow', 'pulse', {g:1}],
+  ]},
+});
+Object.assign(SKINS, {
+  orecart: {name:'Ore cart', rig:'orecart', body:'#6a5a4a', dark:'#2a2a30', glow:'#ffcf6a', alt:'#7a6a58'},
+  runcart: {name:'Runaway cart', rig:'orecart', body:'#3a2a24', dark:'#1a1a1e', glow:'#ff5a2a', alt:'#5a4a42'},
+});
 /* ---------- title screen: a live dungeon floor plays behind the menu ----------
    A hero walks a real floor on its own: it picks a far-off spot, follows a path there and fights
    whatever comes. It cannot die, nothing is saved and it makes no sound. Every 40 s it fades to
    another floor. Until the 3D engine has loaded (or without WebGL) the old 2D demo shows instead. */
 const TDEMO = {g:null, failed:false, loading:false, last:0, t:0, fade:1, floor:0, path:[], pi:0, stuckT:0, sx:0, sy:0, rollT:3, idx:-1};
-const TDEMO_FLOORS = [1, 6, 4, 9, 2, 7, 5, 10, 3];   // floor 8 is left out: it is dark until its lanterns are lit
+const TDEMO_FLOORS = [1, 6, 11, 4, 9, 14, 2, 7, 12, 5, 10, 15, 3, 13];   // floor 8 is left out: it is dark until its lanterns are lit
 const TDEMO_LOADOUTS = [['mage', ['orbit', 'fireball', 'frost', 'tough']], ['knight', ['orbit', 'lightning', 'drone', 'swift']]];
 
 function tdemoStart(){
