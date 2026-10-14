@@ -127,6 +127,7 @@ input[type=text]{width:100%;background:var(--ink2);border:1px solid var(--line2)
 .foe img{width:64px;height:64px;border-radius:12px;background:var(--ink2);border:1px solid var(--line)}
 .foe figcaption{font-size:11.5px;color:var(--mute);text-align:center;line-height:1.2}
 .foe .mv{font-size:10.5px;color:var(--dim)}
+.foe .mv.el{display:block;margin-top:3px;color:#ffd84a;font-weight:600}
 .foe{width:84px}
 .foe.boss img{border-color:var(--neg);box-shadow:0 0 18px -6px var(--neg)}
 .foe.boss figcaption{color:#ffc4d3;font-weight:700}
@@ -2607,7 +2608,7 @@ function itemCard(id, st, combos){
   const sel = B.items.includes(id), forced = st.forced.includes(id), banned = st.banned.includes(id);
   const full = it.type === 'ability' && !sel && abilityCount(B.items) >= MAX_ABILITIES;
   const eff = effCost(id, sel ? combos : activeCombos([...B.items, id]));
-  const ptxt = (eff !== it.cost ? `<s>${it.cost}</s>` : '') + (it.type === 'neg' ? '+' : '') + eff;
+  const ptxt = (eff !== it.cost ? `<s>${costTxt(id, it.cost)}</s> ` : '') + costTxt(id, eff);
   let tag = '';
   if(forced) tag = `<span class="tag">${ico('pin')} Forced by this stage</span>`;
   else if(banned) tag = `<span class="tag">${ico('ban')} Banned on this stage</span>`;
@@ -2643,9 +2644,10 @@ function poolHtml(st, combos){
   return h;
 }
 
+const costTxt = (id, c) => (ITEMS[id].type === 'neg' ? '−' : '+') + c;
 function traitChip(id, combos, removable){
   const it = ITEMS[id], c = effCost(id, combos);
-  return `<${removable ? 'button' : 'span'} class="tc ${it.type}${removable ? '' : ' static'}" ${removable ? `data-act="item" data-id="${id}"` : ''} title="${esc(it.desc)}">${ico(id)} ${it.name} <em>${it.type === 'neg' ? '+' : '−'}${c}</em>${removable ? `<span class="x">${ico('close')}</span>` : ''}</${removable ? 'button' : 'span'}>`;
+  return `<${removable ? 'button' : 'span'} class="tc ${it.type}${removable ? '' : ' static'}" ${removable ? `data-act="item" data-id="${id}"` : ''} title="${esc(it.desc)}">${ico(id)} ${it.name} <em>${costTxt(id, c)}</em>${removable ? `<span class="x">${ico('close')}</span>` : ''}</${removable ? 'button' : 'span'}>`;
 }
 
 function rackHtml(st, combos){
@@ -2670,7 +2672,7 @@ function rackHtml(st, combos){
   h += `<div><div class="lbl"><span>Abilities</span><span>${abl.length} / ${MAX_ABILITIES}</span></div><div class="slots">`;
   for(let i = 0; i < MAX_ABILITIES; i++){
     const id = abl[i];
-    h += id ? `<button class="slot fill" data-act="item" data-id="${id}"><span class="si">${ico(id)}</span>${ITEMS[id].name}<span class="x">${effCost(id, combos)} pts ${ico('close')}</span></button>`
+    h += id ? `<button class="slot fill" data-act="item" data-id="${id}"><span class="si">${ico(id)}</span>${ITEMS[id].name}<span class="x">${costTxt(id, effCost(id, combos))} ${ico('close')}</span></button>`
             : `<div class="slot">Empty ability slot</div>`;
   }
   h += '</div></div>';
@@ -2729,9 +2731,9 @@ function renderCollection(){
   for(const ty of ['ability','pos','neg']){
     h += `<div class="ghead t-${ty}">${TYPE_LABEL[ty]}</div><div class="items">`;
     for(const id of Object.keys(ITEMS).filter(k => ITEMS[k].type === ty)){
-      const it = ITEMS[id], lbl = ty === 'neg' ? 'GIVES' : 'COST';
+      const it = ITEMS[id], lbl = 'COST';
       h += isUnlocked(id)
-        ? `<div class="it t-${ty} lk own"><span class="ic">${ico(id)}</span><span><span class="nm">${it.name}</span><span class="ds">${it.desc}</span></span><span class="pt"><small>${lbl}</small><b>${ty === 'neg' ? '+' : ''}${it.cost}</b></span></div>`
+        ? `<div class="it t-${ty} lk own"><span class="ic">${ico(id)}</span><span><span class="nm">${it.name}</span><span class="ds">${it.desc}</span></span><span class="pt"><small>${lbl}</small><b>${costTxt(id, it.cost)}</b></span></div>`
         : `<div class="it t-${ty} lk"><span class="ic">${ico('lock')}</span><span><span class="nm">???</span><span class="ds">${['','Common','Rare','Epic'][it.rarity]} · ${unlockSource(id)}</span></span><span class="pt"><small>${lbl}</small><b>?</b></span></div>`;
     }
     h += '</div>';
@@ -3179,20 +3181,20 @@ function startRun(stage, charId, items){
 function recalcStats(){
   const p = G.p, ch = CHARACTERS[G.char], s = G.s;
   const oldMax = p.maxHp;
-  p.maxHp = Math.max(10, Math.round(ch.hp * (1 + posV('tough') - 0.5 * negF('fragile') + skV('vit'))));
+  p.maxHp = Math.max(10, Math.round(ch.hp * (1 + posV('tough') - 0.5 * negF('fragile') + skV('vit') + posV('titan') + posV('avatar') - 0.5 * negF('doomed'))));
   if(oldMax) p.hp = Math.min(p.maxHp, p.hp + Math.max(0, p.maxHp - oldMax));
-  p.speed = ch.speed * (1 + posV('swift') - 0.25 * negF('sluggish') + skV('fleet'));
-  s.dmgMul = 1 + posV('power') + skV('sharp');
-  s.cdMul = (1 - posV('haste')) * (1 + 0.25 * negF('slowhands')) * (1 - skV('quick'));
-  s.pickup = 70 * (1 + posV('magnet') + skV('magnet')) * (1 - 0.5 * negF('clumsy'));
+  p.speed = ch.speed * (1 + posV('swift') - 0.25 * negF('sluggish') + skV('fleet') + posV('avatar'));
+  s.dmgMul = 1 + posV('power') + skV('sharp') + posV('overdrive') + posV('avatar');
+  s.cdMul = (1 - posV('haste')) * (1 + 0.25 * negF('slowhands')) * (1 - skV('quick')) * (G.pos.overdrive ? .75 : 1);
+  s.pickup = 70 * (1 + posV('magnet') + skV('magnet') + posV('avatar')) * (1 - 0.5 * negF('clumsy'));
   s.crit = (0.05 + posV('lucky') + skV('keen')) * (1 - negF('unlucky'));
   s.critMul = G.pos.precision ? ITEMS.precision.lv(G.pos.precision).v / 100 : 2;
   s.dropMul = 1 - 0.5 * negF('unlucky');
-  s.area = 1 + posV('giant');
+  s.area = 1 + posV('giant') + posV('avatar');
   s.regen = G.pos.regen ? ITEMS.regen.lv(G.pos.regen).v : 0;
   s.xpMul = 1 + posV('scholar') - 0.3 * negF('dull') + skV('study');
-  s.armor = ch.armor + (G.combos.has('fortress') ? 2 : 0) + (G.pos.plating ? ITEMS.plating.lv(G.pos.plating).v : 0) + skV('skin');
-  s.dmgTaken = 1 + 0.3 * negF('brittle');
+  s.armor = ch.armor + (G.combos.has('fortress') ? 2 : 0) + (G.pos.plating ? ITEMS.plating.lv(G.pos.plating).v : 0) + skV('skin') + (G.pos.titan ? 3 : 0);
+  s.dmgTaken = (1 + 0.3 * negF('brittle') + 0.6 * negF('glassbones') + 0.3 * negF('doomed')) * (1 - posV('bulwark'));
   s.enemyHp = 1 + 0.25 * negF('cursed');
   s.vision = visionFor(negF('nearsighted'));
   s.weaponMul = 1 - 0.4 * negF('feeble');
@@ -3208,9 +3210,12 @@ function recalcStats(){
   s.still = posV('stillness') * (G.combos.has('turret') ? 2 : 1);
   s.exec = G.pos.executioner ? posV('executioner') + (G.combos.has('overkill') ? .1 : 0) : 0;
   s.frenzyMax = G.pos.frenzy ? ITEMS.frenzy.lv(G.pos.frenzy).v * (G.combos.has('feeding') ? 2 : 1) : 0;
-  s.revive = G.pos.secondwind ? (G.combos.has('lastbreath') ? 1 : posV('secondwind')) : 0;
+  s.revive = G.pos.phoenix ? 1 : G.pos.secondwind ? (G.combos.has('lastbreath') ? 1 : posV('secondwind')) : 0;
   s.bleed = negF('bleeding');
-  s.enemySpeed = 1 + 0.15 * negF('hunted');
+  s.enemySpeed = (1 + 0.15 * negF('hunted')) * (1 - posV('timewarp'));
+  s.shotMul = (1 + 0.25 * negF('marked')) * (1 - posV('timewarp'));
+  s.farshot = posV('farshot'); s.hunter = posV('hunter'); s.dim = 0.35 * negF('dim'); s.vampire = posV('vampire');
+  s.bloodlust = G.pos.bloodlust ? ITEMS.bloodlust.lv(G.pos.bloodlust).v : 0;
   s.spawnMul = 1 + 0.25 * negF('swarmed');
   s.invT = 0.45 * (1 - 0.5 * negF('frail'));
   s.choices = 3 + (G.combos.has('bloomer') ? 1 : 0) - (negF('rigid') > .5 ? 1 : 0);
@@ -4628,6 +4633,7 @@ function update(dt){
     const sp = e.speed * (e.slow > 0 ? 0.5 : 1) * s.enemySpeed;
     let held = false;
     if(e.boss) held = bossStep(e, dt, d);
+    else if(e.elite && g.dg && dgEliteTick(e, dt, d, dx, dy)) held = true;
     else if(SKINS[e.skin].ai) held = aiStep(e, SKINS[e.skin].ai, dt, d, dx, dy, sp);
     if(e.dead) continue;
     if(!held){ if(g.dg) dgChase(e, sp, dt, dx, dy, d); else { e.x += dx / d * sp * dt; e.y += dy / d * sp * dt; } }
@@ -5618,7 +5624,7 @@ const DG_FLOORS = [
 ####################################################################################################
 `},
   {n:4, name:'Stairway to the Altar', boss:'altarkeeper', bossHp:10500, hpMul:1.5, xpMul:1.45, coinMul:1.6,
-   trickle:{every:8, n:4, mix:{revenant:2, crawler:2, archer:1}}, foes:['revenant','stonespider','ruinarcher'],
+   trickle:{every:10, n:4, cap:30, mix:{revenant:2, crawler:2, archer:1}}, foes:['revenant','stonespider','ruinarcher'],
    desc:'Great stairs climb toward the altar. Pools of toxic moss narrow the way, and all three enemy types attack together.',
    tags:['Moss pools poison you','Mixed hordes'], reward:{coins:120, items:['stillness', 'haste', 'shield']}, map:`
 ################################################################################################
@@ -6807,6 +6813,7 @@ function dgSpawn(type, x, y, elite, zone){
   const k = dgFar(x, y), s = DG_DIST.near + (DG_DIST.far - DG_DIST.near) * k;
   e.pow = 1; e.vis = .92 + .3 * k;
   if(type !== 'egg'){ e.hp *= DG_MOB.hp * s; e.maxHp = e.hp; e.dmg *= DG_MOB.dmg * s; e.pow = DG_MOB.dmg * s; e.xp *= .85 + 1.15 * k; }   // and pay up to twice the XP
+  if(elite){ e.hp *= 1.4 * (1 + .5 * negF('badomen')); e.maxHp = e.hp; e.dmg *= 1.15; e.armor += 1; e.speed *= 1.1; }   // dungeon elites: about 12.6x HP, a point of armor, and a special attack (ELITE_SP)
   dgCollide(e, e.r);
   if(G.parts.length < 600) burst(e.x, e.y, '#9a8a6a', 5, 110);
   return e;
@@ -7070,6 +7077,7 @@ function dgRoll(){
   if(!G || !G.dg || G.state !== 'play') return;
   const D = G.dg, p = G.p, R = D.roll;
   if(R.n <= 0 || R.t > 0) return;
+  if(negF('grounded') > .5){ addText(p.x, p.y - 34, 'GROUNDED', 2); sfx('untick'); return; }   // the Grounded trait
   let dx = p.vx, dy = p.vy, l = Math.hypot(dx, dy);
   if(l < 5){ dx = p.fx; dy = p.fy; l = Math.hypot(dx, dy) || 1; }
   R.dx = dx / l; R.dy = dy / l; R.t = DG_ROLL.time; R.n--; if(R.cd <= 0) R.cd = D.rollCd; p.rootT = 0; p.pull = null;
@@ -7110,7 +7118,7 @@ function dgFloorClear(){
   G.state = 'portal';
   joy.active = false; joy.dx = joy.dy = 0;
   sfx('portal');
-  const poorF = negF('poor'), fort = skV('fortune'), coins = Math.round(D.carried.coins * (1 - .5 * poorF) * (1 + fort));
+  const poorF = negF('poor'), fort = skV('fortune'), coins = Math.round(D.carried.coins * (1 - .5 * poorF) * (1 + fort) * (1 + posV('treasure') + posV('midas')));
   const lines = [[`Coins you carried${poorF > 0 ? ' (Poor)' : ''}${fort ? ` (Treasure Hunter +${skPct(fort)})` : ''}`, coins]], unlocked = [];
   const skp = save.dg.cleared[n] ? 0 : skFloorPts(n), newChars = [];
   for(const id of D.carried.items) if(!isUnlocked(id)){ save.unlocked.push(id); unlocked.push(id); }
@@ -8409,10 +8417,12 @@ function d3Quality(){
 }
 function d3AutoRes(dt){
   const Q = D3.q || (D3.q = {ft:1 / 60, t:0, hold:2, up:8});
-  if(!(dt > 0) || save.gfx === 'fast') return;
+  if(!(dt > 0)) return;
+  if(save.gfx === 'fast'){ D3.lite = true; return; }
   Q.ft += (dt - Q.ft) * .05; Q.t += dt; Q.hold -= dt;
   if(Q.hold > 0 || Q.t < 1) return;
   Q.t = 0;
+  D3.lite = D3.res < .7;
   if(Q.ft > 1 / 48 && D3.res > .55){ D3.res = Math.max(.55, D3.res * .85); Q.hold = 1.5; Q.up = 8; d3Resize(); }
   else if(Q.ft < 1 / 56 && D3.res < 1 && --Q.up <= 0){ D3.res = Math.min(1, D3.res * 1.1); Q.hold = 2; d3Resize(); }
 }
@@ -8855,12 +8865,12 @@ function d3Dynamic(){
   pts.frustumCulled = false; pts.renderOrder = 6;
   D3.dyn.add(pts);
   // the ground layer: a canvas that follows the player
-  const dc = document.createElement('canvas'); dc.width = dc.height = 1024;
+  const DPX = innerWidth < 800 ? 512 : 768, dc = document.createElement('canvas'); dc.width = dc.height = DPX;   // re-uploaded every frame, so kept small
   const dtex = new T.CanvasTexture(dc); dtex.colorSpace = T.SRGBColorSpace;
   const dmesh = new T.Mesh(new T.PlaneGeometry(1800, 1800).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({map:dtex, transparent:true, depthWrite:false, fog:false}));
   dmesh.renderOrder = 4; dmesh.frustumCulled = false;
   D3.dyn.add(dmesh);
-  D3.decal = {canvas:dc, ctx:dc.getContext('2d'), tex:dtex, mesh:dmesh, px:1024, w:1800};
+  D3.decal = {canvas:dc, ctx:dc.getContext('2d'), tex:dtex, mesh:dmesh, px:DPX, w:1800};
   D3.sprites = [];
 }
 const HEXC = new Map();
@@ -8872,6 +8882,7 @@ function hexRGB(h){
 function gp(x, y, z, hex, size, a, core){
   const P = D3.gp;
   if(P.n >= P.cap || a <= .003) return;
+  if(size > 80 && D3.lite) size = 80 + (size - 80) * .5;   // a struggling device: big glows shrink (they cost the most to fill)
   const n = P.n++, c = hexRGB(hex);
   P.pos[n * 3] = x; P.pos[n * 3 + 1] = y; P.pos[n * 3 + 2] = z;
   P.col[n * 3] = c[0] * a; P.col[n * 3 + 1] = c[1] * a; P.col[n * 3 + 2] = c[2] * a;
@@ -8999,7 +9010,7 @@ function d3Characters(dt){
     const toP = Math.atan2(p.y - e.y, p.x - e.x), moveA = v > 12 ? Math.atan2(my, mx) : toP;
     const want = e.boss || Math.hypot(p.x - e.x, p.y - e.y) < 260 ? toP : moveA;
     e._fa = e.face !== undefined && sk.shell ? e.face : e._fa === undefined ? want : lerpAngle(e._fa, want, Math.min(1, dt * 9));
-    const acting = e.boss ? !!e.act : (e.st === 'wind' || e.st === 'fuse' || e.aT < .35);
+    const acting = e.boss ? !!e.act : (e.st === 'wind' || e.st === 'fuse' || e.aT < .35 || !!e.sp);
     e._pose = (e._pose || 0) + ((acting ? 1 : 0) - (e._pose || 0)) * Math.min(1, dt * 8);
     const scale = e.r / rig.r * VIS * (e.vis || 1) * (e.vis2 || 1);
     const yOff = (e.rise > 0 ? -(e.rise / e.riseMax) * rig.r * 4.4 * scale : 0) + (e.airH || 0)
@@ -9825,7 +9836,7 @@ function dgFloorCard(f){
     ${un && f.n > 1 ? `<span class="dft">${ico('portal')} Fast travel</span>` : ''}</button>`;
 }
 function dgBriefHtml(f){
-  const foe = s => `<figure class="foe"><img src="${dgPortraitSrc(s)}" alt=""><figcaption>${SKINS[s].name}<br><span class="mv">${SKINS[s].move || ''}</span></figcaption></figure>`;
+  const foe = s => `<figure class="foe"><img src="${dgPortraitSrc(s)}" alt=""><figcaption>${SKINS[s].name}<br><span class="mv">${SKINS[s].move || ''}</span>${eliteSpOfSkin(s) ? `<span class="mv el">Elite: ${eliteSpOfSkin(s).name}</span>` : ''}</figcaption></figure>`;
   const boss = (s, label) => `<figure class="foe boss"><img src="${dgPortraitSrc(s)}" alt=""><figcaption>${SKINS[s].name}<br><span class="mv">${label}</span></figcaption></figure>`;
   const rw = [];
   if(save.dg.cleared[f.n]) rw.push(`<span class="rchip done">${ico('check')} First-clear reward claimed</span>`);
@@ -10021,7 +10032,7 @@ function renderSkills(){
 // ---- in the dungeon ----
 function dgSkillsFloor(){
   const D = G.dg, R = D.roll;
-  D.rollCd = DG_ROLL.cd * (1 - skV('rollcd'));
+  D.rollCd = DG_ROLL.cd * (1 - skV('rollcd')) * (1 - posV('nimble')) * (1 + .6 * negF('heavy'));
   D.rollSp = DG_ROLL.speed * (1 + skV('rollfar'));
   R.max = 1 + skV('double'); R.n = R.max; R.cd = 0; R.t = 0;
   D.flask = {n:skV('flask'), max:skV('flask')};
@@ -10094,7 +10105,7 @@ Object.assign(SKINS, {
   sapper:     {name:'Kobold Sapper',  rig:'sapper',   family:'forge',   body:'#b8743a', dark:'#2a1a12', glow:'#ff5a2a', alt:'#d8c8a0',
                move:'Keeps back and throws lit dynamite where you are going', ai:{type:'sapper', range:580, keep:300, cd:3.4, fuse:1.25, r:86, dmg:12}},
   magmaslime: {name:'Magma Slime',    rig:'magma',    family:'forge',   body:'#3a2a24', dark:'#1a1210', glow:'#ff7a1a', alt:'#ffb04a',
-               move:'Leaves burning ground behind it and splits in two when it dies', ai:{type:'magma', every:.42, r:34, life:2.6, dps:10}, deathSplit:{type:'magmite', n:2}},
+               move:'Leaves burning ground behind it and splits in two when it dies', ai:{type:'magma', every:.7, r:40, life:2.4, dps:10}, deathSplit:{type:'magmite', n:2}},
   magmite:    {name:'Magmite',        rig:'magma',    family:'forge',   body:'#4a2a1a', dark:'#1a1210', glow:'#ffb04a', alt:'#ffd27a'},
   emberbat:   {name:'Ember Bat',      rig:'emberbat', family:'forge',   body:'#5a2a2a', dark:'#1a0e0e', glow:'#ffcf6a', alt:'#ff6a2a',
                move:'Circles you, then swoops straight through', ai:{type:'bat', orbit:220, cd:2.9, warn:.55, dash:640, dur:.42}},
@@ -11106,7 +11117,8 @@ Object.assign(DG_AI, {
   // slow; leaves burning ground behind it
   magma(e, ai, dt, d, dx, dy, sp){
     e.trT = (e.trT || 0) - dt;
-    if(e.trT <= 0 && G.hazards.length < 260){ e.trT = ai.every; addPool(e.x, e.y, ai.r * (e.vis || 1), ai.life, ai.dps * (e.pow || 1), '#ff7a1a'); }
+    if(e.trT <= 0 && G.hazards.length < 90 && d < 1100){   // no trails off screen, and a cap so a crowd of slimes stays cheap
+      e.trT = ai.every; addPool(e.x, e.y, ai.r * (e.vis || 1), ai.life, ai.dps * (e.pow || 1), '#ff7a1a'); }
     dgChase(e, sp, dt, dx, dy, d);
     return true;
   },
@@ -11353,6 +11365,9 @@ function d3BuildMines(){
     if(L.rail[i]){ const h = L.rail[i - 1] || L.rail[i + 1]; (L.rail[i] === 1 ? rails : tracks).push({x, y, a:h && !(L.rail[i - W] && L.rail[i + W]) ? Math.PI / 2 : 0}); }
   }
   D3.lavaTiles = lava;
+  // one glow per 2x2 block of lava instead of one per tile: a quarter of the overlapping sprites
+  const blk = new Map(); for(const o of lava){ const k = (o.y >> 1) * 1000 + (o.x >> 1); blk.set(k, (blk.get(k) || 0) + 1); }
+  D3.lavaGlow = [...blk].map(([k, n]) => ({x:(k % 1000) * 2 + 1, y:Math.floor(k / 1000) * 2 + 1, n}));
   d3Instanced(G3.ground, MM.lava, lava, (m, i, o) => d3Inst(m, i, o.x * DT + 32, -9, o.y * DT + 32, 0, 1.02, 1, 1.02), {recv:false});
   d3Instanced(G3.ground, MM.rail, rails, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 1.2, o.y * DT + 32, o.a, 1, 1, 1), {order:2});
   d3Instanced(G3.ground, MM.track, tracks, (m, i, o) => d3Inst(m, i, o.x * DT + 32, 1.2, o.y * DT + 32, o.a, 1, 1, 1), {order:2});
@@ -11375,10 +11390,10 @@ function d3ThingsMN(dt, ts){
   D3.tex.lava.offset.set(Math.sin(ts * .3) * .08 + ts * .015, ts * .02);
   // lava glows; embers rise from it
   const tx0 = Math.floor((cx - 900) / DT), tx1 = Math.floor((cx + 900) / DT), ty0 = Math.floor((cy - 800) / DT), ty1 = Math.floor((cy + 500) / DT);
-  for(const o of D3.lavaTiles || []){
+  for(const o of D3.lavaGlow || []){
     if(o.x < tx0 || o.x > tx1 || o.y < ty0 || o.y > ty1) continue;
-    gp((o.x + .5) * DT, 2, (o.y + .5) * DT, '#ff6a1a', 120, .1 + .05 * Math.sin(ts * 2 + o.x * 1.7 + o.y), 0);
-    if(Math.random() < .02 * (lk.embers || .5)) g.parts.push({x:(o.x + Math.random()) * DT, y:(o.y + Math.random()) * DT, vx:rand(-10, 10), vy:rand(-50, -20), life:1.2, max:1.2, c:Math.random() < .5 ? '#ffb04a' : '#ff6a1a', s:2.2});
+    gp(o.x * DT, 2, o.y * DT, '#ff6a1a', 170, (.1 + .05 * Math.sin(ts * 2 + o.x * 1.7 + o.y)) * (.5 + o.n / 8), 0);
+    if(Math.random() < .06 * (lk.embers || .5)) g.parts.push({x:(o.x - 1 + Math.random() * 2) * DT, y:(o.y - 1 + Math.random() * 2) * DT, vx:rand(-10, 10), vy:rand(-50, -20), life:1.2, max:1.2, c:Math.random() < .5 ? '#ffb04a' : '#ff6a1a', s:2.2});
   }
   if(lk.embers && Math.random() < .5 * lk.embers) g.parts.push({x:cx + rand(-700, 700), y:cy + rand(-600, 300), vx:rand(-8, 8), vy:rand(-30, -10), life:2, max:2, c:'#ff9a3d', s:1.8});
   // the ore cart, and the runaway carts on the side tracks
@@ -11422,11 +11437,11 @@ function d3ThingsMN(dt, ts){
   const B = D.beams;
   if(B){
     for(const [x0, y0, x1, y1] of B.segs){
-      const len = Math.hypot(x1 - x0, y1 - y0), n = Math.ceil(len / 22);
+      const len = Math.hypot(x1 - x0, y1 - y0), n = Math.ceil(len / 40);
       for(let k = 0; k <= n; k++){
         const q = k / n, x = x0 + (x1 - x0) * q, z = y0 + (y1 - y0) * q;
         if(!vis(x, z)) continue;
-        gp(x, 34, z, '#c8a8ff', 46, .35 + .1 * Math.sin(ts * 20 + k), .2); gp(x, 34, z, '#ffffff', 14, .9, 1);
+        gp(x, 34, z, '#c8a8ff', 56, .4 + .1 * Math.sin(ts * 20 + k), .25); gp(x, 34, z, '#ffffff', 18, .9, 1);
       }
     }
     for(const em of B.emitters){ const x = (em.x + .5) * DT, z = (em.y + .5) * DT; if(vis(x, z)){ gp(x, 68, z, '#e8d8ff', 90, .6, .6); gp(x, 68, z, '#ffffff', 26, 1, 1); } }
@@ -11730,6 +11745,417 @@ Object.assign(SKINS, {
   orecart: {name:'Ore cart', rig:'orecart', body:'#6a5a4a', dark:'#2a2a30', glow:'#ffcf6a', alt:'#7a6a58'},
   runcart: {name:'Runaway cart', rig:'orecart', body:'#3a2a24', dark:'#1a1a1e', glow:'#ff5a2a', alt:'#5a4a42'},
 });
+/* ---------- elites: one special attack each ----------
+   Every enemy type that can come as an elite has a signature move (ELITE_SP). An elite uses it every few seconds
+   when it can see you, shouts its name first, and always shows a warning (a ring, a line or a circle on the floor)
+   before anything hurts. While it performs the move it stands still or moves on its own (dgEliteTick returns true).
+   k: slam (leaps onto you) · charge (a long dash) · volley (an aimed fan) · nova (rings of shots) · rain (circles drop
+   around you) · mortar (lobbed bombs) · pools (lobbed puddles that burn) · pull (drags you in, then bursts) ·
+   blink (vanishes and strikes from behind) · summon (calls more of its kind) · spikes (a line of eruptions toward you) */
+const ELITE_SP = {
+  // Mossy Ruins
+  revenant: {k:'slam',   name:'Grave Slam',       r:120, dmg:1.5, cd:6.5, color:'#c8ff8a'},
+  crawler:  {k:'volley', name:'Web Volley',       n:5, spread:.9, sp:330, dmg:.6, slow:1.4, cd:5.5, color:'#e8e8e8', model:'pebble'},
+  archer:   {k:'rain',   name:'Arrow Rain',       n:6, spread:150, r:62, dmg:1.1, cd:6.5, color:'#ffd84a'},
+  soldier:  {k:'charge', name:'Shield Rush',      dmg:1.6, sp:820, dur:.5, cd:6, color:'#d8d8d8'},
+  // Flooded Aqueducts
+  sailor:   {k:'mortar', name:'Anchor Toss',      n:3, spread:110, r:80, dmg:1.3, t:1.1, cd:6.5, color:'#9ad8ff', model:'anchor'},
+  harpooner:{k:'volley', name:'Harpoon Fan',      n:3, spread:.5, sp:620, dmg:1, cd:5.5, color:'#c8e8ff', model:'spine', bursts:2},
+  crab:     {k:'charge', name:'Shell Spin',       dmg:1.4, sp:760, dur:.6, cd:6, color:'#ff8a5a', shards:8},
+  siren:    {k:'pull',   name:'Siren Song',       r:150, dmg:1.6, pull:150, dur:1.5, cd:8, color:'#ff7ad8'},
+  eel:      {k:'nova',   name:'Static Burst',     n:14, sp:260, dmg:.7, rings:2, cd:6, color:'#7dfcff', model:'rivet'},
+  jelly:    {k:'pools',  name:'Toxic Bloom',      n:4, spread:120, r:70, dps:16, life:4, t:1, cd:7, color:'#c87dff'},
+  puffer:   {k:'nova',   name:'Spine Storm',      n:16, sp:300, dmg:.7, rings:1, cd:5.5, color:'#ffe07a', model:'spine'},
+  angler:   {k:'blink',  name:'Lure Strike',      r:95, dmg:1.25, cd:7, color:'#7dfff0'},
+  barnacle: {k:'nova',   name:'Barnacle Barrage', n:12, sp:230, dmg:.8, rings:3, cd:5, color:'#d8c8a0', model:'shell'},
+  wraith:   {k:'blink',  name:'Phase Strike',     r:85, dmg:1.4, cd:6, color:'#9adfff'},
+  leaper:   {k:'slam',   name:'Tidal Leap',       r:130, dmg:1.5, cd:6, color:'#5ad0ff'},
+  // Ember Mines
+  kobold:   {k:'summon', name:"Foreman's Call",   type:'kobold', n:3, cd:11, color:'#ffd27a'},
+  sapper:   {k:'mortar', name:'Bundle Charge',    n:4, spread:140, r:84, dmg:1.4, t:1.25, cd:6.5, color:'#ff6a2a', model:'dynamite'},
+  magma:    {k:'spikes', name:'Eruption',         n:7, gap:58, r:46, dmg:1.3, cd:6, color:'#ff6a1a'},
+  emberbat: {k:'charge', name:'Firebomb Dive',    dmg:1.3, sp:900, dur:.45, cd:5.5, color:'#ff8a3d', fire:true},
+  rockgolem:{k:'mortar', name:'Boulder Toss',     n:3, spread:90, r:96, dmg:1.2, t:1.3, cd:7, color:'#c8a080', model:'rock'},
+  crystal:  {k:'nova',   name:'Prism Nova',       n:12, sp:250, dmg:.75, rings:2, cd:6, color:'#d8b8ff', model:'crystal'},
+  forgeimp: {k:'volley', name:'Hellfire Volley',  n:7, spread:1.1, sp:300, dmg:.6, cd:5.5, color:'#ff7a2a', bursts:2},
+};
+
+// a short ring on the elite while it winds up, so you know something is coming
+function dgEliteWind(e, S, t){ G.fx.push({type:'ring', x:e.x, y:e.y, r:e.r * 2.6, maxR:e.r * .8, life:t, max:t, color:S.color}); }
+// move the player without walking them into a wall
+function dgNudgePlayer(vx, vy){
+  const p = G.p, L = G.dg.L, nx = p.x + vx, ny = p.y + vy;
+  if(!dgWalkBlocked(L, Math.floor(nx / DT), Math.floor(p.y / DT))) p.x = nx;
+  if(!dgWalkBlocked(L, Math.floor(p.x / DT), Math.floor(ny / DT))) p.y = ny;
+}
+
+function dgEliteTick(e, dt, d, dx, dy){
+  const S = ELITE_SP[e.type], p = G.p;
+  if(!S) return false;
+  if(e.sp) return dgEliteRun(e, S, dt);
+  if(e.spT === undefined) e.spT = rand(1.5, 3.5);
+  e.spT -= dt;
+  if(e.spT > 0 || d > (S.range || 560) || e.stunT > 0 || !dgLos(e.x, e.y, p.x, p.y)) return false;
+  e.spT = S.cd * rand(.9, 1.15) * (1 - .3 * negF('badomen'));
+  e.sp = {t:0, step:0, a:Math.atan2(dy, dx), tx:p.x, ty:p.y, x0:e.x, y0:e.y};
+  addText(e.x, e.y - e.r - 34, S.name.toUpperCase(), 2); sfx('elite');
+  return dgEliteRun(e, S, 0);
+}
+
+// one frame of a special in progress; returns true while the elite is busy with it
+function dgEliteRun(e, S, dt){
+  const A = e.sp, p = G.p, dmg = e.dmg * S.dmg, done = () => { e.sp = null; return true; };
+  A.t += dt;
+  switch(S.k){
+    case 'slam': {
+      // crouch, then leap onto where you stood; the landing hurts inside the circle and sends out a shockwave
+      if(A.step === 0){ A.step = 1; addCircle(A.tx, A.ty, S.r, 1.1, dmg, S.color); dgEliteWind(e, S, .5); }
+      if(A.t > .5 && A.t < 1.1){ const q = Math.min(1, (A.t - .5) / .6); e.x = A.x0 + (A.tx - A.x0) * q; e.y = A.y0 + (A.ty - A.y0) * q; e.airH = Math.sin(q * Math.PI) * 90; }
+      if(A.t >= 1.1){ e.airH = 0; dgCollide(e, e.r); addWave(e, S.r * 2.2, 380, S.color, dmg * .45); G.shake = Math.max(G.shake, .25); sfx('thud'); return done(); }
+      return true;
+    }
+    case 'charge': {
+      // a long red line, then a dash along it at great speed
+      if(A.step === 0){ A.step = 1; const len = S.sp * S.dur + 40; G.hazards.push({kind:'tele', x:e.x, y:e.y, a:A.a, len, w:e.r * 2.2, warn:.7, max:.7}); dgEliteWind(e, S, .7); }
+      if(A.t < .7) return true;
+      if(A.t < .7 + S.dur){
+        const ox = e.x, oy = e.y; e.x += Math.cos(A.a) * S.sp * dt; e.y += Math.sin(A.a) * S.sp * dt; dgCollide(e, e.r);
+        if(Math.hypot(e.x - ox, e.y - oy) < S.sp * dt * .3) A.t = 9;   // hit a wall: stop
+        if(!A.hit && Math.hypot(p.x - e.x, p.y - e.y) < e.r + p.r + 8){ A.hit = true; hurtPlayer(dmg); }
+        if(S.fire && Math.random() < .5) addPool(e.x, e.y, 34, 1.6, dmg * .4, '#ff7a1a');
+        return true;
+      }
+      if(S.shards) dgShards(e.x, e.y, S.shards, 240, dmg * .5, S.color, 'shell');
+      return done();
+    }
+    case 'volley': {
+      // an aimed fan of shots (twice for some)
+      if(A.step === 0){ A.step = 1; dgEliteWind(e, S, .5); }
+      const shots = S.bursts || 1;
+      if(A.step <= shots && A.t >= .5 + (A.step - 1) * .35){
+        const a = Math.atan2(p.y - e.y, p.x - e.x);
+        for(let i = 0; i < S.n; i++){ const q = S.n > 1 ? i / (S.n - 1) - .5 : 0; ebullet(e.x, e.y, a + q * S.spread, S.sp, dmg, S.color, {r:7, model:S.model, slow:S.slow}); }
+        A.step++;
+      }
+      return A.step > shots ? done() : true;
+    }
+    case 'nova': {
+      // rings of shots in every direction, each ring turned a little so there is a gap to slip through
+      if(A.step === 0){ A.step = 1; dgEliteWind(e, S, .7); }
+      if(A.step <= S.rings && A.t >= .7 + (A.step - 1) * .4){
+        const o = A.step * .5 / S.n * TAU + Math.random() * .2;
+        for(let i = 0; i < S.n; i++) ebullet(e.x, e.y, o + i / S.n * TAU, S.sp, dmg, S.color, {r:7, model:S.model});
+        A.step++; sfx('shoot');
+      }
+      return A.step > S.rings ? done() : true;
+    }
+    case 'rain': {
+      // circles fall around you one after another
+      if(A.step === 0){
+        A.step = 1; dgEliteWind(e, S, .4);
+        for(let i = 0; i < S.n; i++){ const a = Math.random() * TAU, r = i === 0 ? 0 : rand(40, S.spread); addCircle(p.x + Math.cos(a) * r, p.y + Math.sin(a) * r, S.r, .8 + i * .12, dmg, S.color); }
+      }
+      return A.t < .4 ? true : done();
+    }
+    case 'mortar': case 'pools': {
+      // lobbed bombs (or puddles) around where you are
+      if(A.step === 0){ A.step = 1; dgEliteWind(e, S, .4); }
+      if(A.step === 1 && A.t >= .4){
+        A.step = 2;
+        for(let i = 0; i < S.n; i++){
+          const a = Math.random() * TAU, r = i === 0 ? 0 : rand(50, S.spread), x = p.x + p.vx * .4 + Math.cos(a) * r, y = p.y + p.vy * .4 + Math.sin(a) * r;
+          if(S.k === 'mortar') dgLob(e.x, e.y, x, y, S.t + i * .12, S.r, dmg, S.color, S.model, () => burst(x, y, S.color, 10, 200));
+          else { addCircle(x, y, S.r, S.t, 0, S.color); G.fx.push({type:'lob', x0:e.x, y0:e.y, x, y, life:S.t, max:S.t, color:S.color}); dgLater(S.t, () => addPool(x, y, S.r, S.life, S.dps * (e.pow || 1), S.color)); }
+        }
+      }
+      return A.t < .6 ? true : done();
+    }
+    case 'pull': {
+      // you are dragged toward it (roll to break free), then everything close by gets hit
+      if(A.step === 0){ A.step = 1; addCircle(e.x, e.y, S.r, S.dur, dmg, S.color); }
+      if(A.t < S.dur){
+        const ddx = e.x - p.x, ddy = e.y - p.y, dd = Math.hypot(ddx, ddy) || 1;
+        if(dd > 30 && !(G.dg.roll && G.dg.roll.t > 0)) dgNudgePlayer(ddx / dd * S.pull * dt, ddy / dd * S.pull * dt);
+        if(Math.random() < .5) G.parts.push({x:e.x + Math.cos(A.t * 9) * S.r * 1.6, y:e.y + Math.sin(A.t * 9) * S.r * 1.6, vx:-Math.cos(A.t * 9) * 160, vy:-Math.sin(A.t * 9) * 160, life:.5, max:.5, c:S.color, s:2.4});
+        return true;
+      }
+      return done();
+    }
+    case 'blink': {
+      // fades out, reappears behind you and strikes
+      if(A.step === 0){ A.step = 1; dgEliteWind(e, S, .45); }
+      if(A.step === 1 && A.t >= .45){
+        A.step = 2;
+        const fa = Math.atan2(p.fy || 0, p.fx || 1);
+        let bx = p.x - Math.cos(fa) * 90, by = p.y - Math.sin(fa) * 90;
+        if(dgWalkBlocked(G.dg.L, Math.floor(bx / DT), Math.floor(by / DT))){ bx = p.x + Math.cos(fa + Math.PI / 2) * 90; by = p.y + Math.sin(fa + Math.PI / 2) * 90; }
+        if(!dgWalkBlocked(G.dg.L, Math.floor(bx / DT), Math.floor(by / DT))){ burst(e.x, e.y, S.color, 12, 200); e.x = bx; e.y = by; burst(e.x, e.y, S.color, 12, 200); }
+        addCircle(e.x, e.y, S.r, .55, dmg, S.color); sfx('blink');
+      }
+      return A.t < 1 ? true : done();
+    }
+    case 'summon': {
+      // calls more of its kind out of the ground
+      if(A.step === 0){ A.step = 1; dgEliteWind(e, S, .8); }
+      if(A.step === 1 && A.t >= .8){
+        A.step = 2;
+        if(G.enemies.filter(o => !o.dead).length < 50) for(let i = 0; i < S.n; i++){ const a = i / S.n * TAU + Math.random(), x = e.x + Math.cos(a) * 70, y = e.y + Math.sin(a) * 70; if(!dgWalkBlocked(G.dg.L, Math.floor(x / DT), Math.floor(y / DT))) dgSpawn(S.type, x, y, false, e.zone); }
+        sfx('warning');
+      }
+      return A.t < 1 ? true : done();
+    }
+    case 'spikes': {
+      // eruptions in a line toward you, one after another
+      if(A.step === 0){
+        A.step = 1; dgEliteWind(e, S, .4);
+        const a = Math.atan2(p.y - e.y, p.x - e.x);
+        for(let i = 1; i <= S.n; i++){ const x = e.x + Math.cos(a) * S.gap * i, y = e.y + Math.sin(a) * S.gap * i; if(dgWalkBlocked(G.dg.L, Math.floor(x / DT), Math.floor(y / DT))) break; addCircle(x, y, S.r, .6 + i * .09, dmg, S.color, {life:1.2, dps:dmg * .3}); }
+      }
+      return A.t < .5 ? true : done();
+    }
+  }
+  return done();
+}
+// the elite move of the enemy drawn with a skin (for the floor brief and the bestiary)
+function eliteSpOfSkin(s){
+  for(const st of DG_STAGES) for(const t in st.skins) if(st.skins[t] === s && ELITE_SP[t]) return ELITE_SP[t];
+  return null;
+}
+/* ---------- more abilities and traits ----------
+   Seven abilities, thirteen positive traits (six of them big and expensive, rarity 3) and seven negative traits.
+   The stat ones are folded into recalcStats (see apply_dgonly.py); the rest hook in here: useAbility for the new
+   abilities, hitEnemy for damage bonuses and life steal, hurtPlayer for Phoenix, ebullet for shot speed, and
+   itemsTick (run after every update) for the gravity wells. */
+Object.assign(ITEMS, {
+  chain:     {type:'ability',name:'Chain Lightning',cost:3,rarity:2,desc:'A bolt that jumps from enemy to enemy.',
+    lv:L => ({jumps:3 + Math.floor((L - 1) / 2), dmg:16 * (1 + 0.15 * (L - 1)), cd:2.2 * (1 - 0.04 * (L - 1))}),
+    show:[['jumps','Jumps','int'],['dmg','Damage','1'],['cd','Cooldown','s']]},
+  meteor:    {type:'ability',name:'Meteor',cost:5,rarity:3,desc:'A meteor falls on a group of enemies and blasts a wide area.',
+    lv:L => ({n:1 + (L >= 5) + (L >= 9), dmg:90 * (1 + 0.15 * (L - 1)), aoe:120 * (1 + 0.05 * (L - 1)), cd:5 * (1 - 0.04 * (L - 1))}),
+    show:[['n','Meteors','int'],['dmg','Damage','1'],['aoe','Blast radius','int'],['cd','Cooldown','s']]},
+  lance:     {type:'ability',name:'Piercing Lance',cost:3,rarity:1,desc:'A fast lance that goes through every enemy in a line.',
+    lv:L => ({n:1 + (L >= 4) + (L >= 8), dmg:22 * (1 + 0.14 * (L - 1)), cd:1.5 * (1 - 0.04 * (L - 1))}),
+    show:[['n','Lances','int'],['dmg','Damage','1'],['cd','Cooldown','s']]},
+  bladestorm:{type:'ability',name:'Blade Storm',cost:3,rarity:1,desc:'Throws a ring of short-range blades around you.',
+    lv:L => ({n:8 + (L - 1), dmg:10 * (1 + 0.14 * (L - 1)), cd:2.6 * (1 - 0.04 * (L - 1))}),
+    show:[['n','Blades','int'],['dmg','Damage','1'],['cd','Cooldown','s']]},
+  smite:     {type:'ability',name:'Smite',cost:4,rarity:3,desc:'Strikes the toughest enemy in sight for heavy damage.',
+    lv:L => ({dmg:60 * (1 + 0.16 * (L - 1)), cd:3 * (1 - 0.045 * (L - 1))}),
+    show:[['dmg','Damage','1'],['cd','Cooldown','s']]},
+  gravity:   {type:'ability',name:'Gravity Well',cost:4,rarity:3,desc:'Opens a well that pulls enemies together and crushes them.',
+    lv:L => ({rad:150 * (1 + 0.05 * (L - 1)), dps:14 * (1 + 0.15 * (L - 1)), dur:2.5 + 0.1 * (L - 1), cd:7 * (1 - 0.04 * (L - 1))}),
+    show:[['rad','Radius','int'],['dps','Damage / s','1'],['dur','Duration','s'],['cd','Cooldown','s']]},
+  pulse:     {type:'ability',name:'Healing Pulse',cost:4,rarity:2,desc:'Every few seconds, heals you and pushes a wave out.',
+    lv:L => ({heal:6 + 0.8 * (L - 1), dmg:12 * (1 + 0.15 * (L - 1)), cd:9 * (1 - 0.04 * (L - 1))}),
+    show:[['heal','Heal (% max HP)','1'],['dmg','Wave damage','1'],['cd','Cooldown','s']]},
+
+  vampire:   {type:'pos',name:'Vampiric',cost:3,rarity:2,desc:'Heal 2% of the damage you deal (up to 6 HP a second).', lv:L => ({v:2 + 0.5 * (L - 1)}), show:[['v','Life steal','pct']]},
+  bulwark:   {type:'pos',name:'Bulwark',cost:2,rarity:1,desc:'Damage taken −15%.',                 lv:L => ({v:Math.min(40, 15 + 3 * (L - 1))}), show:[['v','Damage taken','mpct']]},
+  nimble:    {type:'pos',name:'Nimble',cost:1,rarity:1,desc:'Dodge roll recharges 25% faster.',    lv:L => ({v:Math.min(50, 25 + 4 * (L - 1))}), show:[['v','Roll cooldown','mpct']]},
+  treasure:  {type:'pos',name:'Treasure Hunter',cost:1,rarity:1,desc:'Coins secured +40%.',        lv:L => ({v:40 + 10 * (L - 1)}), show:[['v','Coins','pct']]},
+  farshot:   {type:'pos',name:'Far Shot',cost:2,rarity:2,desc:'Damage +35% to enemies more than 250 away.', lv:L => ({v:35 + 8 * (L - 1)}), show:[['v','Far damage','pct']]},
+  bloodlust: {type:'pos',name:'Bloodlust',cost:2,rarity:2,desc:'Every kill heals 1 HP.',           lv:L => ({v:1 + 0.25 * (L - 1)}), show:[['v','HP per kill','1']]},
+  hunter:    {type:'pos',name:'Big Game Hunter',cost:2,rarity:2,desc:'Damage +40% to elites and bosses.', lv:L => ({v:40 + 10 * (L - 1)}), show:[['v','Elite / boss damage','pct']]},
+  // big and expensive
+  overdrive: {type:'pos',name:'Overdrive',cost:6,rarity:3,desc:'Damage +40% and all cooldowns −25%.', lv:L => ({v:40 + 8 * (L - 1)}), show:[['v','Damage','pct']]},
+  titan:     {type:'pos',name:'Titan',cost:6,rarity:3,desc:'Max HP +100% and +3 armor.',          lv:L => ({v:100 + 15 * (L - 1)}), show:[['v','Max HP','pct']]},
+  phoenix:   {type:'pos',name:'Phoenix',cost:5,rarity:3,desc:'Once per floor, rise from death at full HP and burn everything near you for 300.', lv:L => ({v:300 + 60 * (L - 1)}), show:[['v','Rebirth blast','int']]},
+  avatar:    {type:'pos',name:'Avatar',cost:7,rarity:3,desc:'+30% damage, move speed, max HP, area and pickup range.', lv:L => ({v:30 + 5 * (L - 1)}), show:[['v','Everything','pct']]},
+  midas:     {type:'pos',name:'Midas Touch',cost:4,rarity:3,desc:'Coins secured ×2.5.',             lv:L => ({v:150 + 25 * (L - 1)}), show:[['v','Coins','pct']]},
+  timewarp:  {type:'pos',name:'Time Warp',cost:6,rarity:3,desc:'Enemies and their shots move 25% slower.', lv:L => ({v:Math.min(45, 25 + 3 * (L - 1))}), show:[['v','Enemy slow','pct']]},
+
+  glassbones:{type:'neg',name:'Glass Bones',cost:4,rarity:1,desc:'Damage taken +60%.',              pen:f => `Damage taken +${r0(60 * f)}%`},
+  dim:       {type:'neg',name:'Dim Magic',cost:3,rarity:1,desc:'Ability damage −35%.',             pen:f => `Ability damage −${r0(35 * f)}%`},
+  heavy:     {type:'neg',name:'Heavy Feet',cost:2,rarity:1,desc:'Dodge roll recharges 60% slower.', pen:f => `Roll cooldown +${r0(60 * f)}%`},
+  badomen:   {type:'neg',name:'Bad Omen',cost:2,rarity:2,desc:'Elites have +50% HP and use their special attack more often.', pen:f => `Elite HP +${r0(50 * f)}%`},
+  marked:    {type:'neg',name:'Marked',cost:2,rarity:2,desc:'Enemy shots fly 25% faster.',          pen:f => `Enemy shot speed +${r0(25 * f)}%`},
+  grounded:  {type:'neg',name:'Grounded',cost:5,rarity:2,desc:'You cannot dodge roll (until you overcome it).', pen:f => f > .5 ? 'No dodge roll' : 'Dodge roll back'},
+  doomed:    {type:'neg',name:'Doomed',cost:6,rarity:2,desc:'Max HP −50% and damage taken +30%.', pen:f => `Max HP −${r0(50 * f)}%, damage taken +${r0(30 * f)}%`},
+});
+Object.assign(ICONS, {
+  chain: 'M4 4l5 4-3 3 6 3-3 3 7 4M9 8l4-1M12 14l4-1',
+  meteor: C(15, 15, 5) + 'M3 3l8 8M7 3l6 6M3 7l6 6',
+  lance: 'M3 21L19 5M15 4h5v5M5 15l4 4',
+  bladestorm: C(12, 12, 3) + 'M12 2v5M12 17v5M2 12h5M17 12h5M5 5l3.5 3.5M15.5 15.5L19 19M19 5l-3.5 3.5M8.5 15.5L5 19',
+  smite: 'M12 2v6M9 5h6M12 8l-3 6h6l-3 8',
+  gravity: C(12, 12, 2) + 'M12 4a8 8 0 0 1 8 8M20 12a8 8 0 0 1-8 8M12 20a8 8 0 0 1-8-8M4 12a8 8 0 0 1 8-8M12 7.5a4.5 4.5 0 0 1 4.5 4.5M7.5 12A4.5 4.5 0 0 1 12 7.5',
+  pulse: 'M2 12h5l2-5 3 10 2-6 1.5 1H22M12 3v3M12 18v3',
+  vampire: 'M5 6c2 2 4 3 7 3s5-1 7-3M8 9l1.5 5L11 9M13 9l1.5 5L16 9M6 14c1 4 3.5 6 6 6s5-2 6-6',
+  bulwark: 'M4 4h16v7c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10zM8 9h8M8 13h8',
+  nimble: 'M4 18c4 0 5-4 7-8s4-6 9-6M14 20c2-1 4-3 5-6M4 12l3-3',
+  treasure: 'M3 10h18v10H3zM3 10l3-5h12l3 5M12 10v10M9 14h6',
+  farshot: C(12, 12, 8) + C(12, 12, 4) + C(12, 12, 1) + 'M12 2v3M12 19v3M2 12h3M19 12h3',
+  bloodlust: 'M12 3c3.2 4.2 6 7.3 6 11a6 6 0 0 1-12 0c0-3.7 2.8-6.8 6-11zM9 14h6M12 11v6',
+  hunter: 'M4 20L20 4M14 4h6v6M6 12l6 6M4 14l6 6',
+  overdrive: 'M3 16a9 9 0 0 1 18 0M12 16l5-6M6 16h1M17 16h1M12 8v1',
+  titan: 'M8 3h8l2 5-6 3-6-3zM6 8l-2 9h16l-2-9M9 17v4M15 17v4',
+  phoenix: 'M12 21c-4-2-6-5-6-9 2 1 3 2 3.5 4C9 11 10 7 12 3c2 4 3 8 2.5 13 .5-2 1.5-3 3.5-4 0 4-2 7-6 9z',
+  avatar: C(12, 6, 3) + 'M5 21c0-5 3-8 7-8s7 3 7 8M2 9l3 1M22 9l-3 1M12 0v1',
+  midas: C(12, 12, 8) + 'M12 7v10M9.5 9.5c0-1 1-1.8 2.5-1.8s2.5.8 2.5 1.8-1 1.5-2.5 1.8-2.5.8-2.5 1.9 1 1.8 2.5 1.8 2.5-.8 2.5-1.8',
+  timewarp: 'M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9',
+  glassbones: 'M7 4a2 2 0 1 0-2 3l4 4-1 6 4-3 3 6 2-5M14 13l3-3',
+  dim: 'M12 3v2M5 6l1.5 1.5M19 6l-1.5 1.5M8 14a4 4 0 1 1 8 0c0 2-1.5 3-1.5 5h-5c0-2-1.5-3-1.5-5zM4 20L20 4',
+  heavy: 'M7 21h10l-2-9H9zM9 12V8a3 3 0 0 1 6 0v4M3 21h18',
+  badomen: C(12, 12, 9) + C(12, 12, 3) + 'M12 3v6M12 15v6',
+  marked: C(12, 12, 8) + 'M12 2v6M12 16v6M2 12h6M16 12h6',
+  grounded: 'M4 20h16M7 20V10l5-6 5 6v10M9 14h6M4 4l16 16',
+  doomed: 'M6 10a6 6 0 0 1 12 0v4l-2 2v4H8v-4l-2-2zM9.5 11h1M13.5 11h1M10 17v2M14 17v2',
+});
+
+// ---- the new abilities ----
+const _useAbility0 = useAbility;
+useAbility = function(id){
+  const p = G.p, s = G.s;
+  switch(id){
+    case 'chain': {
+      const st = abS('chain'), first = nearestEnemy(p.x, p.y, 450);
+      if(!first) return 0.3;
+      const hit = new Set(); let cur = first, from = {x:p.x, y:p.y};
+      for(let k = 0; k <= st.jumps && cur; k++){
+        G.fx.push({type:'bolt', x:cur.x, y:cur.y, x0:from.x, y0:from.y, life:.2, max:.2, color:'#b8a8ff'});
+        hit.add(cur); HITFROM = from; hitEnemy(cur, st.dmg * (1 - k * .06), 'chain'); HITFROM = null;
+        from = cur; let nb = null, nd = 170 * 170;
+        query(cur.x, cur.y, 170, tmpB);
+        for(const o of tmpB){ if(o.dead || hit.has(o)) continue; const d = (o.x - cur.x) ** 2 + (o.y - cur.y) ** 2; if(d < nd){ nd = d; nb = o; } }
+        cur = nb;
+      }
+      sfx('zap'); return st.cd * cdm();
+    }
+    case 'meteor': {
+      const st = abS('meteor');
+      const vis = G.enemies.filter(e => !e.dead && !e.hidden && Math.hypot(e.x - p.x, e.y - p.y) < 520);
+      if(!vis.length) return 0.4;
+      for(let i = 0; i < st.n; i++){
+        // aim at the enemy with the most others around it
+        let best = vis[0], bn = -1;
+        for(let k = 0; k < Math.min(vis.length, 14); k++){ const e = vis[Math.floor(Math.random() * vis.length)]; let n = 0; for(const o of vis) if((o.x - e.x) ** 2 + (o.y - e.y) ** 2 < st.aoe * st.aoe) n++; if(n > bn){ bn = n; best = e; } }
+        const x = best.x, y = best.y, R = st.aoe * s.area, t = .75 + i * .2;
+        G.fx.push({type:'lob', x0:x - 160, y0:y - 320, x, y, life:t, max:t, color:'#ff8a3d', model:'meteor', spin:4});
+        G.fx.push({type:'ring', x, y, r:R, maxR:R * .9, life:t, max:t, color:'#ff8a3d'});
+        dgLater(t, () => {
+          if(!G) return;
+          query(x, y, R + 45, tmpB);
+          HITFROM = {x, y}; for(const e of tmpB) if(Math.hypot(e.x - x, e.y - y) < R + e.r) hitEnemy(e, st.dmg, 'meteor'); HITFROM = null;
+          G.fx.push({type:'ring', x, y, r:10, maxR:R, life:.45, max:.45, color:'#ff6a1a', fill:true});
+          burst(x, y, '#ffb04a', 26, 320, 1.4); G.shake = Math.max(G.shake, .25); sfx('bigboom');
+        });
+      }
+      sfx('lob'); return st.cd * cdm();
+    }
+    case 'lance': {
+      const st = abS('lance'), t = nearestEnemy(p.x, p.y, 600), base = t ? Math.atan2(t.y - p.y, t.x - p.x) : Math.atan2(p.fy, p.fx);
+      for(let i = 0; i < st.n; i++) shoot('bolt', p.x, p.y, base + (i - (st.n - 1) / 2) * .16, 900, {src:'lance', dmg:st.dmg, r:7, life:.75, pierce:99, color:'#bfe8ff'});
+      sfx('whoosh'); return st.cd * cdm();
+    }
+    case 'bladestorm': {
+      const st = abS('bladestorm'), o = Math.random() * TAU;
+      if(!nearestEnemy(p.x, p.y, 260)) return 0.3;
+      for(let i = 0; i < st.n; i++) shoot('bolt', p.x, p.y, o + i / st.n * TAU, 380, {src:'bladestorm', dmg:st.dmg, r:6, life:.5 * s.area, pierce:1, color:'#e8e8ff'});
+      sfx('slash'); return st.cd * cdm();
+    }
+    case 'smite': {
+      const st = abS('smite'), hw = W / 2 / ZOOM, hh = H / 2 / ZOOM;
+      let best = null;
+      for(const e of G.enemies) if(!e.dead && !e.hidden && Math.abs(e.x - p.x) < hw && Math.abs(e.y - p.y) < hh && (!best || e.maxHp > best.maxHp)) best = e;
+      if(!best) return 0.3;
+      G.fx.push({type:'bolt', x:best.x, y:best.y, x0:best.x, y0:best.y - hh - 60, life:.3, max:.3, color:'#fff6c8'});
+      G.fx.push({type:'ring', x:best.x, y:best.y, r:8, maxR:70, life:.35, max:.35, color:'#ffe89a', fill:true});
+      HITFROM = best; hitEnemy(best, st.dmg, 'smite'); HITFROM = null;
+      G.shake = Math.max(G.shake, .1); sfx('zap'); return st.cd * cdm();
+    }
+    case 'gravity': {
+      const st = abS('gravity'), t = nearestEnemy(p.x, p.y, 480);
+      if(!t) return 0.4;
+      (G.wells || (G.wells = [])).push({x:t.x, y:t.y, r:st.rad * s.area, dps:st.dps, life:st.dur, max:st.dur, tick:0, fxT:0});
+      sfx('charge'); return st.cd * cdm();
+    }
+    case 'pulse': {
+      const st = abS('pulse'), heal = Math.round(p.maxHp * st.heal / 100), R = 130 * s.area;
+      if(p.hp < p.maxHp){ p.hp = Math.min(p.maxHp, p.hp + heal); addText(p.x, p.y - 34, `+${heal} HP`, 2); }
+      query(p.x, p.y, R + 45, tmpB);
+      for(const e of tmpB) if(Math.hypot(e.x - p.x, e.y - p.y) < R + e.r){
+        hitEnemy(e, st.dmg, 'pulse');
+        if(!e.boss && !ENEMIES[e.type].fixed){ const d = Math.hypot(e.x - p.x, e.y - p.y) || 1; e.x += (e.x - p.x) / d * 50; e.y += (e.y - p.y) / d * 50; if(G.dg) dgCollide(e, e.r); }
+      }
+      G.fx.push({type:'ring', x:p.x, y:p.y, r:10, maxR:R, life:.45, max:.45, color:'#3dffa8', fill:true});
+      sfx('heal'); return st.cd * cdm();
+    }
+  }
+  return _useAbility0(id);
+};
+
+// ---- damage bonuses, life steal and kill heals ----
+const ABIL_SRC = new Set(['orbit','fireball','frost','drone','lightning','poison','boomerang','chain','meteor','lance','bladestorm','smite','gravity','pulse']);
+const _hitEnemy0 = hitEnemy;
+hitEnemy = function(e, base, src){
+  if(e.dead) return;
+  const s = G.s, p = G.p;
+  let m = 1;
+  if(s.farshot && Math.hypot(e.x - p.x, e.y - p.y) > 250) m *= 1 + s.farshot;
+  if(s.hunter && (e.elite || e.boss)) m *= 1 + s.hunter;
+  if(s.dim && ABIL_SRC.has(src)) m *= 1 - s.dim;
+  const hp0 = e.hp;
+  _hitEnemy0(e, base * m, src);
+  if(s.vampire && p.hp < p.maxHp && p.hp > 0){
+    const now = G.t, V = G.vamp || (G.vamp = {t:now, n:0});
+    if(now - V.t > 1){ V.t = now; V.n = 0; }
+    const h = Math.min(6 - V.n, Math.max(0, hp0 - Math.max(0, e.hp)) * s.vampire);
+    if(h > 0){ V.n += h; p.hp = Math.min(p.maxHp, p.hp + h); }
+  }
+  if(s.bloodlust && e.dead && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + s.bloodlust);
+};
+
+// ---- Phoenix: the rebirth burns everything close by ----
+const _hurtPlayer0 = hurtPlayer;
+hurtPlayer = function(dmg){
+  const was = G.revived;
+  _hurtPlayer0(dmg);
+  if(!was && G.revived && G.pos.phoenix && G.state === 'play'){
+    const p = G.p, R = 260, D = ITEMS.phoenix.lv(G.pos.phoenix).v;
+    query(p.x, p.y, R + 45, tmpB);
+    for(const e of tmpB.slice()) if(Math.hypot(e.x - p.x, e.y - p.y) < R + e.r) hitEnemy(e, D, 'phoenix');
+    G.fx.push({type:'ring', x:p.x, y:p.y, r:10, maxR:R, life:.6, max:.6, color:'#ff8a3d', fill:true});
+    burst(p.x, p.y, '#ffb04a', 50, 380, 1.6); showBanner('PHOENIX', 'elite', 'Reborn in fire'); G.shake = .4;
+  }
+};
+
+// ---- enemy shot speed: Marked makes them faster, Time Warp slower ----
+const _ebullet0 = ebullet;
+ebullet = function(x, y, a, sp, dmg, color, o){ _ebullet0(x, y, a, sp * (G && G.s.shotMul || 1), dmg, color, o); };
+
+// ---- per frame: gravity wells ----
+const _update0 = update;
+update = function(dt){
+  _update0(dt);
+  if(G && G.state === 'play' && G.wells && G.wells.length) itemsTick(dt);
+};
+function itemsTick(dt){
+  for(const w of G.wells){
+    w.life -= dt; w.tick -= dt; w.fxT -= dt;
+    query(w.x, w.y, w.r + 45, tmpB);
+    const hitNow = w.tick <= 0; if(hitNow) w.tick = .25;
+    for(const e of tmpB){
+      const dx = w.x - e.x, dy = w.y - e.y, d = Math.hypot(dx, dy) || 1;
+      if(d > w.r + e.r) continue;
+      if(!e.boss && !ENEMIES[e.type].fixed && d > 14){ e.x += dx / d * 140 * dt; e.y += dy / d * 140 * dt; }
+      if(hitNow){ HITFROM = w; hitEnemy(e, w.dps * .25, 'gravity'); HITFROM = null; }
+    }
+    if(w.fxT <= 0){ w.fxT = .35; G.fx.push({type:'ring', x:w.x, y:w.y, r:w.r, maxR:12, life:.35, max:.35, color:'#b07dff'}); }
+    if(Math.random() < .6){ const a = Math.random() * TAU; G.parts.push({x:w.x + Math.cos(a) * w.r, y:w.y + Math.sin(a) * w.r, vx:-Math.cos(a) * w.r * 1.6, vy:-Math.sin(a) * w.r * 1.6, life:.55, max:.55, c:'#c8a8ff', s:2.6}); }
+  }
+  G.wells = G.wells.filter(w => w.life > 0);
+}
+
+// where the new items drop in the dungeon (besides the gacha)
+DG_RELICS.melee.items.push('bloodlust', 'bulwark', 'glassbones');
+DG_RELICS.venom.items.push('nimble', 'vampire', 'heavy');
+DG_RELICS.ranged.items.push('lance', 'farshot', 'marked');
+DG_RELICS.tide.items.push('pulse', 'treasure', 'doomed');
+DG_RELICS.shell.items.push('bladestorm', 'hunter', 'grounded');
+DG_RELICS.deep.items.push('chain', 'gravity', 'dim');
+DG_RELICS.forge.items.push('meteor', 'overdrive', 'badomen');
+DG_RELICS.stone.items.push('titan', 'smite');
+DG_RELICS.crystal.items.push('timewarp', 'avatar', 'midas', 'phoenix');
 /* ---------- title screen: a live dungeon floor plays behind the menu ----------
    A hero walks a real floor on its own: it picks a far-off spot, follows a path there and fights
    whatever comes. It cannot die, nothing is saved and it makes no sound. Every 40 s it fades to

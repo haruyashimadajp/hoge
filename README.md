@@ -5,7 +5,8 @@ A browser survivor-like dungeon crawler with a deckbuilding twist. Open `index.h
 ## Core idea
 
 - Before each dive, build a **loadout** of abilities and traits.
-- Abilities and positive traits **cost** points. Negative traits **give points back**.
+- Abilities and positive traits **cost** points, shown as +n. Negative traits **give points back**, shown as −n.
+- There are 15 abilities, 34 positive traits and 24 negative traits. The rarest positive traits are big and expensive (Overdrive, Titan, Phoenix, Avatar, Midas Touch and Time Warp cost 4–7 points), and the harshest negative traits give the most back (Doomed −6, Grounded −5).
 - The total must fit the **budget** of the theme you are diving into.
 - Some pairs form **combos** that change costs or effects.
 - In a run, each level-up is a small upgrade: weapon and abilities go to Lv 10, positive traits to Lv 8, and a negative trait can be **overcome** in 10 steps. Cards show the exact before → after numbers.
@@ -39,6 +40,7 @@ Seen from behind and above, in the style of Minecraft Dungeons. It follows the d
   - Floor 13, Furnace Halls: a heat meter fills near furnaces and on hot grates; past 100 you burn until you cool off in a trough. Vent three furnaces by staying in their rings while the heat climbs. Boss: the Furnace Heart, which never moves and sweeps the room with turning flame jets.
   - Floor 14, Crystal Refinery: three emitters fire beams along the tile grid, and the beams burn anything crossing them. Walk up to a mirror to flip it between / and \, and bend each beam into its receiver (the puzzles are checked by a solver in the map script). Boss: the Prism Matriarch.
   - Floor 15, Heart of the Forge: the Forge King's two arms are separate enemies, and while either stands he takes 15% damage. Break them and the magma ring in his hall floods. When he falls the forge collapses: the magma follows you up the escape tunnel to the portal.
+- **Elites** are much tougher than normal enemies (about 12.6× HP and +1 armor), and each enemy type's elite has one special attack of its own, named in the floor brief and shouted when it is used: for example the Revenant's Grave Slam (a leap onto you), the Siren's Siren Song (drags you in), the Sapper's Bundle Charge (lobbed dynamite) and the Kobold Miner's Foreman's Call (calls more kobolds). Every special shows a warning first. The data is `ELITE_SP`.
 - Elites and bosses drop **relics**, locked items that match their family.
 - Coins and relics you pick up are only kept when you step into the exit portal after the boss. If you die you go back to base and lose only what you had not secured.
 - Each portal you reach lets you start from the next floor later (fast travel).
@@ -51,6 +53,7 @@ Seen from behind and above, in the style of Minecraft Dungeons. It follows the d
 - The static level is split into chunks of 10×10 tiles (`d3Instanced`), so the camera and the shadow pass only draw what is near the view, and nothing past the fog is drawn.
 - Only five point lights exist: four for the torches nearest the camera (an open portal borrows one) and one on the player. The count never changes during play, so materials are never recompiled mid-run. Shadows use plain PCF filtering.
 - Phones skip MSAA.
+- The ground layer (warning circles, pools, rings) is a canvas re-uploaded every frame, so it is kept at 768 px (512 on phones). Magma slimes only leave trails near you, lava glows once per 2×2 block, and when Auto has already lowered the resolution, big glows shrink too.
 - Settings → Graphics: **Auto** (default) lowers the resolution step by step, down to 55%, while the game runs under about 48 fps, and raises it again once there is room (`d3AutoRes`). **Fast** always draws at 70% resolution without shadows.
 
 ## Sound
