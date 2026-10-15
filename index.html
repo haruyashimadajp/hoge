@@ -3127,7 +3127,7 @@ cv.addEventListener('pointermove', e => {
   if(!joy.active || e.pointerId !== joy.id) return;
   let dx = e.clientX - joy.ox, dy = e.clientY - joy.oy;
   const d = Math.hypot(dx, dy), max = 50;
-  if(d > max){ dx = dx / d * max; dy = dy / d * max; }
+  if(d > max){ joy.ox += dx / d * (d - max); joy.oy += dy / d * (d - max); dx = dx / d * max; dy = dy / d * max; }
   joy.dx = dx / max; joy.dy = dy / max;
 });
 const joyEnd = e => { if(e.pointerId === joy.id){ joy.active = false; joy.dx = joy.dy = 0; } };
