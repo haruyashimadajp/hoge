@@ -2811,7 +2811,7 @@ function renderHub(){
   if(B.stage !== dgStageOf(B.floor).id){ B.stage = dgStageOf(B.floor).id; applyStageRules(); }
   $('#topbar').innerHTML = `<button class="logo" data-act="title" aria-label="Back to title"><span class="l1">LOADOUT</span><span class="l2">SURVIVORS</span></button>
     <nav class="tabs">${[['dungeon','Dungeon'],['skills','Skills'],['forge','Forge'],['loadout','Loadout'],['gacha','Gacha'],['collection','Collection'],['guide','Guide']].map(([k, l]) =>
-      `<button data-act="tab" data-id="${k}" class="${tab === k ? 'on' : ''}">${l}${k === 'skills' && skFree() > 0 ? `<i class="tbadge">${skFree()}</i>` : ''}</button>`).join('')}</nav>
+      `<button data-act="tab" data-id="${k}" class="${tab === k ? 'on' : ''}">${l}${k === 'skills' && skFree() > 0 ? `<i class="tbadge">${skFree()}</i>` : ''}${k === 'forge' ? (fgOpen() ? (FG().seen ? '' : '<i class="tbadge">NEW</i>') : ico('lock', 'tlock')) : ''}</button>`).join('')}</nav>
     <div class="wallet">${ico('coin')} ${save.coins}</div>
     <button class="iconbtn" data-act="settings" aria-label="Settings">${ico('gear')}</button>`;
   let h = tab === 'dungeon' ? renderDungeon() : tab === 'skills' ? renderSkills() : tab === 'forge' ? renderForge() : tab === 'loadout' ? renderLoadout() : tab === 'gacha' ? renderGacha() : tab === 'collection' ? renderCollection() : renderGuide();
@@ -15292,6 +15292,9 @@ const FG_LOWER_ID = {coldblood:{v:1}};
 const FG_COUNT = {n:1, jumps:1};                  // whole numbers: not scaled
 // numbers that must stay sensible however many stars
 const FG_CAP = {haste:{v:60}, bulwark:{v:60}, nimble:{v:75}, echo:{v:90}, scroll:{m:85}, executioner:{v:40}, secondwind:{v:100}, siphon:{v:100}, frostbite:{c:100}, lucky:{v:100}, midas:{c:50}};
+// the Forge opens once floor 10 has been cleared
+const FG_OPEN_FLOOR = 10;
+const fgOpen = () => !!save.dg.cleared[FG_OPEN_FLOOR];
 function FG(){ return save.forge || (save.forge = {items:{}, chars:{}}); }
 const fgStars = id => FG().items[id] || 0;
 const fgCharLv = id => FG().chars[id] || 0;
@@ -15317,6 +15320,7 @@ for(const id in ITEMS){
 
 function fgBuyStar(id){
   const s = fgStars(id);
+  if(!fgOpen()) return;
   if(!fgForgeable(id) || !isUnlocked(id) || s >= 5) return;
   const c = FG_STAR_COST[s];
   if(save.coins < c){ toast(`Needs ${c} coins`, 'bad'); sfx('untick'); return; }
@@ -15325,6 +15329,7 @@ function fgBuyStar(id){
 }
 function fgBuyChar(id){
   const k = fgCharLv(id);
+  if(!fgOpen()) return;
   if(!CHARACTERS[id] || !save.chars.includes(id) || k >= FG_CHAR_MAX) return;
   const c = fgCharCost(k + 1);
   if(save.coins < c){ toast(`Needs ${c} coins`, 'bad'); sfx('untick'); return; }
@@ -15341,6 +15346,11 @@ function fgPreview(id){
   return it.show.map(([k, label, f]) => { const fa = FMT[f](a[k]), fb = FMT[f](b[k]); return `<span>${esc(label)} <b>${fa}${fa !== fb ? ` → ${fb}` : ''}</b></span>`; }).join('');
 }
 function renderForge(){
+  if(!fgOpen()) return `<div class="pagehead"><div><h2>The Forge</h2><p>Permanent upgrades for your characters, abilities and traits, paid for in coins.</p></div></div>
+    <div class="fglock">${ico('lock')}<b>Clear floor ${FG_OPEN_FLOOR} to open the Forge</b>
+      <span>Beat the theme boss of the Flooded Aqueducts at the bottom of the Great Reservoir. ${save.dg.reached > FG_OPEN_FLOOR ? '' : `You have reached floor ${save.dg.reached} so far.`}</span>
+      <span class="fgsoon">Stars for abilities and positive traits (each +10%), and up to ${FG_CHAR_MAX} upgrades per character (each +5% max HP and damage).</span></div>`;
+  if(!FG().seen){ FG().seen = true; persist(); setTimeout(() => { const b = document.querySelector('.tabs [data-id="forge"] .tbadge'); if(b) b.remove(); }); }
   let h = `<div class="pagehead"><div><h2>The Forge</h2><p>Spend coins on upgrades that stay with you for good.</p></div>
     <div class="skpts"><b>${save.coins}</b><small>coins</small></div></div>
     <div class="skinfo">${ico('power')}<span><b>Stars</b> (abilities and positive traits): every star makes all of the item's numbers 10% stronger, what each level-up adds included.
@@ -15373,6 +15383,12 @@ function renderForge(){
   }
   return h;
 }
+// the first time the hub shows after floor 10 is cleared
+const _renderHubF0 = renderHub;
+renderHub = function(){
+  _renderHubF0();
+  if(fgOpen() && !FG().told){ FG().told = true; persist(); setTimeout(() => toast('The Forge is open: spend coins on permanent upgrades'), 400); }
+};
 hub.addEventListener('click', e => {
   const t = e.target.closest('[data-act]');
   if(!t || t.disabled) return;
@@ -15399,6 +15415,10 @@ hub.addEventListener('click', e => {
 .fgbtn{margin-top:auto;width:100%;border-radius:9px;border:1px solid var(--line2);background:rgba(255,255,255,.04);padding:7px 10px;font-family:var(--display);font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--mute)}
 .fgbtn.buy{border-color:var(--gold);color:var(--gold);background:rgba(255,216,74,.1)}
 .fgbtn.off{border-style:dashed}
+.fglock{margin:16px 0 20px;padding:28px 18px;border:1px dashed var(--line2);border-radius:14px;background:rgba(9,11,24,.55);display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.fglock>.ico{font-size:34px;color:var(--gold)} .fglock b{font-family:var(--display);font-size:19px} .fglock span{color:var(--mute);font-size:14px;max-width:520px}
+.fglock .fgsoon{font-size:13px;color:#c3c8ea}
+.tabs button .tlock{font-size:12px;margin-left:4px;opacity:.7;vertical-align:-1px}
 .lvstar{color:var(--gold);font-size:11px;letter-spacing:-1px;margin-left:4px}`;
   document.head.append(st);
 })();

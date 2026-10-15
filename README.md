@@ -63,7 +63,7 @@ Seen from behind and above, in the style of Minecraft Dungeons. It follows the d
 - The dodge roll (Space or the roll button) makes you untouchable for a moment and breaks webs.
 - On a touch screen, a long press selects no text, and swipes never reach the browser (some in-app browsers closed the page on a downward swipe), except where a list can still scroll.
 - Each theme has one point budget for the loadout: 5 points for Mossy Ruins, 3 for Flooded Aqueducts, 2 for the Ember Mines and the Sky Archipelago. A theme can also force or ban items (the Sky Archipelago forces Marked and bans Grounded and Heavy Feet).
-- **The Forge** (the Forge tab) turns coins into permanent upgrades (`part25_forge.js` in the build, saved as `save.forge`):
+- **The Forge** (the Forge tab) turns coins into permanent upgrades (`part25_forge.js` in the build, saved as `save.forge`). It opens once floor 10 is cleared; until then its tab shows a lock and what it will offer, and when it opens the tab says NEW:
   - Abilities and positive traits get stars, ★1 to ★5, for 200 / 400 / 800 / 1600 / 3200 coins (6200 for all five). Each star makes every number of the item 10% stronger, what each level-up adds included: damage, radius, chances and bonuses ×1.1 per star, cooldowns and other lower-is-better numbers ÷1.1. Counts (blades, fireballs, drones, chain jumps, barriers) stay whole and do not change, and a few numbers are capped so they stay sane (for example Haste and Bulwark at 60%, Second Wind at 100%). Forged items show their stars in the loadout.
   - Characters can be upgraded 30 times, each +5% max HP and +5% damage. Upgrade k costs 100 + 50·k·(k − 1): 100, 200, 400, 700, 1100, 1600, 2200 … 43,600 for the 30th (452,500 in all).
   - Negative traits cannot be forged.
