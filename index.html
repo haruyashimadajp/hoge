@@ -15129,6 +15129,20 @@ renderHub = function(){
   const cur = {char:B.char, items:B.items.slice(), floor:B.floor};
   if(JSON.stringify(cur) !== JSON.stringify(save.cur)){ save.cur = cur; persist(); }
 };
+
+// Floors cleared before their first-clear rewards existed (the Knight moved to floor 1 when the 2D stages
+// were dropped, and their items to the floors with the same number) never paid those rewards out, because a
+// first clear only happens once. Hand over whatever is missing from floors already cleared.
+(function(){
+  const got = [];
+  for(const k in save.dg.cleared){
+    const def = save.dg.cleared[k] && DG_FLOORS[+k - 1];   // floor n is DG_FLOORS[n - 1]
+    if(!def || !def.reward) continue;
+    for(const c of def.reward.chars || []) if(CHARACTERS[c] && !save.chars.includes(c)){ save.chars.push(c); got.push(CHARACTERS[c].name); }
+    for(const id of def.reward.items || []) if(ITEMS[id] && !isUnlocked(id)){ save.unlocked.push(id); got.push(ITEMS[id].name); }
+  }
+  if(got.length){ persist(); setTimeout(() => toast(`Unlocked from floors you had already cleared: ${got.join(', ')}`), 900); }
+})();
 /* ---------- level-up cards that would change nothing ----------
    A card is only offered when picking it does something on this floor. */
 const ROLL_ITEMS = ['nimble', 'powderkeg', 'riposte', 'timewarp', 'heavy'];

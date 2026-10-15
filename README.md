@@ -60,6 +60,7 @@ Seen from behind and above, in the style of Minecraft Dungeons. It follows the d
 - Elites and bosses drop **relics**, locked items that match their family.
 - Coins and relics you pick up are only kept when you step into the exit portal after the boss. If you die you go back to base and lose only what you had not secured.
 - Each portal you reach lets you start from the next floor later (fast travel).
+- First-clear rewards are also handed over when the game loads for floors a save had already cleared before the reward existed (for example the Knight on floor 1, which was a 2D-stage reward before the stages were removed).
 - The dodge roll (Space or the roll button) makes you untouchable for a moment and breaks webs.
 - On a touch screen, a long press selects no text, and swipes never reach the browser (some in-app browsers closed the page on a downward swipe), except where a list can still scroll.
 - Each theme has one point budget for the loadout: 5 points for Mossy Ruins, 3 for Flooded Aqueducts, 2 for the Ember Mines and the Sky Archipelago. A theme can also force or ban items (the Sky Archipelago forces Marked and bans Grounded and Heavy Feet).
