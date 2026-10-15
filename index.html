@@ -15178,7 +15178,10 @@ function d3Warm(){
   for(const lib of [D3.M, D3.MA, D3.MM, D3.MK]) if(lib) for(const k in lib) if(lib[k] && lib[k].isMaterial) mats.add(lib[k]);
   // every material, also the ones not on the map yet, on a stand-in shape in the lit scene
   const tmp = new T.Group(), geo = new T.PlaneGeometry(1, 1);
+  // pickup icons are sprites made the first time a drop of that kind shows up
+  for(const kind of [...Object.keys(PICKUPS), 'relic']){ const m = d3IconTex(kind); mats.delete(m); if(m.map) try{ R.initTexture(m.map); }catch(e){} tmp.add(new T.Sprite(m)); }
   for(const m of mats){
+    if(m.isSpriteMaterial) continue;
     for(const k of ['map', 'alphaMap', 'emissiveMap', 'normalMap']) if(m[k] && m[k].isTexture) try{ R.initTexture(m[k]); }catch(e){}
     tmp.add(new T.Mesh(geo, m));
   }
