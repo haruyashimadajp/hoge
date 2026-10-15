@@ -2640,7 +2640,7 @@ function itemCard(id, st, combos){
     else if(full) tag = '<span class="tag">Ability slots are full</span>';
   }
   return `<button class="it t-${it.type} ${sel ? 'sel' : ''} ${full ? 'dim' : ''}" data-act="item" data-id="${id}" ${banned ? 'disabled' : ''} ${forced ? 'aria-disabled="true"' : ''}>
-    <span class="ic">${ico(id)}</span><span><span class="nm">${it.name}</span><span class="ds">${it.desc}</span></span>
+    <span class="ic">${ico(id)}</span><span><span class="nm">${it.name}${fgStars(id) ? `<span class="lvstar">${'★'.repeat(fgStars(id))}</span>` : ''}</span><span class="ds">${it.desc}</span></span>
     <span class="pt"><small>${it.type === 'neg' ? 'GIVES' : 'COST'}</small><b>${ptxt}</b></span>${tag}</button>`;
 }
 
@@ -2810,11 +2810,11 @@ function renderHub(){
   if(!dgFloorUnlocked(B.floor)) B.floor = Math.min(save.dg.reached, DG_FLOORS.length);
   if(B.stage !== dgStageOf(B.floor).id){ B.stage = dgStageOf(B.floor).id; applyStageRules(); }
   $('#topbar').innerHTML = `<button class="logo" data-act="title" aria-label="Back to title"><span class="l1">LOADOUT</span><span class="l2">SURVIVORS</span></button>
-    <nav class="tabs">${[['dungeon','Dungeon'],['skills','Skills'],['loadout','Loadout'],['gacha','Gacha'],['collection','Collection'],['guide','Guide']].map(([k, l]) =>
+    <nav class="tabs">${[['dungeon','Dungeon'],['skills','Skills'],['forge','Forge'],['loadout','Loadout'],['gacha','Gacha'],['collection','Collection'],['guide','Guide']].map(([k, l]) =>
       `<button data-act="tab" data-id="${k}" class="${tab === k ? 'on' : ''}">${l}${k === 'skills' && skFree() > 0 ? `<i class="tbadge">${skFree()}</i>` : ''}</button>`).join('')}</nav>
     <div class="wallet">${ico('coin')} ${save.coins}</div>
     <button class="iconbtn" data-act="settings" aria-label="Settings">${ico('gear')}</button>`;
-  let h = tab === 'dungeon' ? renderDungeon() : tab === 'skills' ? renderSkills() : tab === 'loadout' ? renderLoadout() : tab === 'gacha' ? renderGacha() : tab === 'collection' ? renderCollection() : renderGuide();
+  let h = tab === 'dungeon' ? renderDungeon() : tab === 'skills' ? renderSkills() : tab === 'forge' ? renderForge() : tab === 'loadout' ? renderLoadout() : tab === 'gacha' ? renderGacha() : tab === 'collection' ? renderCollection() : renderGuide();
   h += `<footer><span class="note">Progress is saved in this browser.</span>
     <button class="btn sm ghost" data-act="reset">${resetArmed ? 'Click again to erase ALL progress' : 'Reset save'}</button></footer>`;
   $('#main').innerHTML = h;
@@ -3203,10 +3203,10 @@ function startRun(stage, charId, items){
 function recalcStats(){
   const p = G.p, ch = CHARACTERS[G.char], s = G.s;
   const oldMax = p.maxHp;
-  p.maxHp = Math.max(10, Math.round(ch.hp * (1 + posV('tough') - 0.5 * negF('fragile') + skV('vit'))));
+  p.maxHp = Math.max(10, Math.round(ch.hp * fgCharMul(G.char) * (1 + posV('tough') - 0.5 * negF('fragile') + skV('vit'))));
   if(oldMax) p.hp = Math.min(p.maxHp, p.hp + Math.max(0, p.maxHp - oldMax));
   p.speed = ch.speed * (1 + posV('swift') - 0.25 * negF('sluggish') + skV('fleet'));
-  s.dmgMul = 1 + posV('power') + skV('sharp');
+  s.dmgMul = (1 + posV('power') + skV('sharp')) * fgCharMul(G.char);
   s.cdMul = (1 - posV('haste')) * (1 + 0.25 * negF('slowhands')) * (1 - skV('quick'));
   s.pickup = 70 * (1 + posV('magnet') + skV('magnet')) * (1 - 0.5 * negF('clumsy'));
   s.crit = (0.05 + posV('lucky') + skV('keen')) * (1 - negF('unlucky'));
@@ -3232,7 +3232,7 @@ function recalcStats(){
   s.still = posV('stillness') * (G.combos.has('turret') ? 2 : 1);
   s.exec = G.pos.executioner ? posV('executioner') + (G.combos.has('overkill') ? .1 : 0) : 0;
   s.frenzyMax = G.pos.frenzy ? ITEMS.frenzy.lv(G.pos.frenzy).v * (G.combos.has('feeding') ? 2 : 1) : 0;
-  s.revive = G.pos.phoenix ? 1 : G.pos.secondwind ? (G.combos.has('lastbreath') ? 1 : posV('secondwind')) : 0;
+  s.revive = G.pos.phoenix ? 1 : G.pos.secondwind ? (G.combos.has('lastbreath') ? 1 : Math.min(1, posV('secondwind'))) : 0;
   s.bleed = negF('bleeding');
   s.enemySpeed = 1 + 0.15 * negF('hunted');
   s.shotMul = 1 + 0.25 * negF('marked');
@@ -15212,7 +15212,7 @@ function d3Warm(){
   D3.scene.remove(tmp); geo.dispose();
 }
 const _d3BuildLevelW0 = d3BuildLevel;
-d3BuildLevel = function(){ _d3BuildLevelW0(); d3Warm(); };
+d3BuildLevel = function(){ _d3BuildLevelW0(); d3ResUp(); d3Warm(); };
 
 // drops the items that fail keep() without making a new array (the old per-frame filter() calls
 // made several new arrays every frame, and the garbage collector paused the game to clear them)
@@ -15235,28 +15235,173 @@ frame = function(now){
   FPACE.ran = now;
   _frameP0(now);
 };
-/* Auto resolution: each change resizes the drawing buffer, which costs a hitch of its own. A step up
-   that has to be taken back within a few seconds is not tried again for a minute and a half, so the
-   resolution no longer bounces between two levels. */
+/* Auto resolution. Each change resizes the drawing buffer, which freezes the game for a moment (on phones, and
+   badly in boss fights, it used to step down several times in a row). So:
+   - too slow: one jump straight to a resolution that should fit, and nothing more for 6 s;
+   - room to spare: the resolution only goes back up while the game is paused (level-up cards, pause menu) or a
+     floor loads, where the freeze cannot be felt. A step up that does not hold is not tried again for 90 s. */
 d3AutoRes = function(dt){
-  const Q = D3.q || (D3.q = {ft:1 / 60, t:0, hold:2, good:0, now:0, upAt:-99, ceil:1, ceilT:0});
+  const Q = D3.q || (D3.q = {ft:1 / 60, hold:2, good:0, now:0, ceil:1, ceilT:0, from:1, upAt:-99});
   if(!(dt > 0)) return;
   if(save.gfx === 'fast'){ D3.lite = true; return; }
-  Q.now += dt; Q.ft += (dt - Q.ft) * .05; Q.t += dt; Q.hold -= dt;
-  if(Q.hold > 0 || Q.t < 1) return;
-  Q.t = 0;
   D3.lite = D3.res < .7;
-  if(Q.ceilT && Q.now > Q.ceilT){ Q.ceil = 1; Q.ceilT = 0; }
-  if(Q.ft > 1 / 48 && D3.res > .55){
-    // a step up that did not hold goes straight back to the last good resolution and stays there
-    if(Q.now - Q.upAt < 12){ D3.res = Q.from; Q.ceil = Q.from; Q.ceilT = Q.now + 90; Q.upAt = -99; }
-    else D3.res = Math.max(.55, D3.res * .85);
-    Q.hold = 1.5; Q.good = 0; d3Resize();
-  } else if(Q.ft < 1 / 56){
-    const next = Math.min(1, Q.ceil, D3.res * 1.1);
-    if(++Q.good >= 8 && next > D3.res + .01){ Q.from = D3.res; D3.res = next; Q.hold = 2; Q.good = 0; Q.upAt = Q.now; d3Resize(); }
-  } else Q.good = 0;
+  const play = G && G.state === 'play';
+  if(play){
+    Q.now += dt; Q.ft += (Math.min(dt, .1) - Q.ft) * .05; Q.hold -= dt;
+    Q.good = Q.ft < 1 / 57 ? Q.good + dt : 0;
+    if(Q.ceilT && Q.now > Q.ceilT){ Q.ceil = 1; Q.ceilT = 0; }
+    Q.slow = Q.ft > 1 / 48 ? (Q.slow || 0) + dt : 0;
+    // slow for 1.5 s (so the frame time has settled): pixels cost about res squared, so aim for a little under 1/58 s
+    if(Q.hold <= 0 && Q.slow > 1.5 && D3.res > .55){
+      let next = D3.res * Math.max(.6, Math.min(.9, Math.sqrt((1 / 58) / Q.ft)));
+      if(Q.now - Q.upAt < 12){ next = Math.min(next, Q.from); Q.ceil = Q.from; Q.ceilT = Q.now + 90; Q.upAt = -99; }
+      D3.res = Math.max(.55, next); Q.hold = 6; Q.good = 0; Q.slow = 0; d3Resize();
+    }
+  } else d3ResUp();
 };
+// raise the resolution one step while nothing moves (called when the game is paused and when a floor loads)
+function d3ResUp(){
+  const Q = D3.q;
+  if(!Q || save.gfx === 'fast' || Q.good < 8) return;
+  const next = Math.min(1, Q.ceil, D3.res * 1.15);
+  if(next <= D3.res + .01) return;
+  Q.from = D3.res; D3.res = next; Q.good = 0; Q.upAt = Q.now; Q.hold = 3; d3Resize();
+}
+
+/* The 3D view keeps drawing while the game is paused (level-up cards, pause menu), and some of its scenery
+   (furnace sparks, steam, lantern motes, shimmer) adds particles as it draws. Those piled up, frozen, and
+   all flew off at once when play resumed. While paused, nothing drawn is allowed to add effects. */
+const _dgRenderP0 = dgRender;
+dgRender = function(now){
+  if(!G || G.state === 'play') return _dgRenderP0(now);
+  const np = G.parts.length, nf = G.fx.length, nt = G.texts.length;
+  _dgRenderP0(now);
+  G.parts.length = np; G.fx.length = nf; G.texts.length = nt;
+};
+/* ---------- the Forge: spend coins on permanent upgrades ----------
+   Abilities and positive traits: stars 1-5 (200 / 400 / 800 / 1600 / 3200 coins). Every star makes all of the
+   item's numbers 10% stronger, the ones each level-up adds included. Counts (blades, fireballs, jumps, barriers)
+   stay whole and are not changed; cooldowns and other lower-is-better numbers get 10% shorter (divided by 1.1).
+   Characters: up to 30 upgrades, each +5% max HP and +5% damage. Upgrade k costs 100 + 50 k (k - 1):
+   100, 200, 400, 700, 1100, 1600, 2200 ... (the step grows by 100 each time). */
+const FG_STAR_COST = [200, 400, 800, 1600, 3200];
+const FG_CHAR_MAX = 30;
+const fgCharCost = k => 100 + 50 * k * (k - 1);   // the price of upgrade number k (1-based)
+const FG_LOWER = {cd:1, t:1};                     // lower is better on every item
+const FG_LOWER_ID = {coldblood:{v:1}};
+const FG_COUNT = {n:1, jumps:1};                  // whole numbers: not scaled
+// numbers that must stay sensible however many stars
+const FG_CAP = {haste:{v:60}, bulwark:{v:60}, nimble:{v:75}, echo:{v:90}, scroll:{m:85}, executioner:{v:40}, secondwind:{v:100}, siphon:{v:100}, frostbite:{c:100}, lucky:{v:100}, midas:{c:50}};
+function FG(){ return save.forge || (save.forge = {items:{}, chars:{}}); }
+const fgStars = id => FG().items[id] || 0;
+const fgCharLv = id => FG().chars[id] || 0;
+const fgMul = id => 1 + .1 * fgStars(id);
+const fgCharMul = id => 1 + .05 * fgCharLv(id);
+const fgForgeable = id => ITEMS[id] && (ITEMS[id].type === 'pos' || ITEMS[id].type === 'ability');
+for(const id in ITEMS){
+  if(!fgForgeable(id)) continue;
+  const it = ITEMS[id], base = it.lv;
+  it.lv = L => {
+    const o = base(L), s = fgStars(id);
+    if(!s) return o;
+    const m = 1 + .1 * s, out = {}, cap = FG_CAP[id], low = FG_LOWER_ID[id];
+    for(const k in o){
+      const v = o[k];
+      if(typeof v !== 'number' || FG_COUNT[k]) out[k] = v;
+      else if(FG_LOWER[k] || (low && low[k])) out[k] = v / m;
+      else out[k] = cap && cap[k] !== undefined ? Math.min(cap[k], v * m) : v * m;
+    }
+    return out;
+  };
+}
+
+function fgBuyStar(id){
+  const s = fgStars(id);
+  if(!fgForgeable(id) || !isUnlocked(id) || s >= 5) return;
+  const c = FG_STAR_COST[s];
+  if(save.coins < c){ toast(`Needs ${c} coins`, 'bad'); sfx('untick'); return; }
+  save.coins -= c; FG().items[id] = s + 1; persist();
+  toast(`${ITEMS[id].name} is now ${'★'.repeat(s + 1)}`); sfx('levelup');
+}
+function fgBuyChar(id){
+  const k = fgCharLv(id);
+  if(!CHARACTERS[id] || !save.chars.includes(id) || k >= FG_CHAR_MAX) return;
+  const c = fgCharCost(k + 1);
+  if(save.coins < c){ toast(`Needs ${c} coins`, 'bad'); sfx('untick'); return; }
+  save.coins -= c; FG().chars[id] = k + 1; persist();
+  toast(`${CHARACTERS[id].name} upgraded to +${k + 1}`); sfx('levelup');
+}
+
+const fgStarsHtml = s => `<span class="fgstars">${[0, 1, 2, 3, 4].map(i => `<i class="${i < s ? 'on' : ''}">★</i>`).join('')}</span>`;
+// the item's numbers at level 1 now, and after the next star
+function fgPreview(id){
+  const it = ITEMS[id], s = fgStars(id), a = it.lv(1);
+  if(s >= 5) return it.show.map(([k, label, f]) => `<span>${esc(label)} <b>${FMT[f](a[k])}</b></span>`).join('');
+  FG().items[id] = s + 1; const b = it.lv(1); FG().items[id] = s; if(!s) delete FG().items[id];
+  return it.show.map(([k, label, f]) => { const fa = FMT[f](a[k]), fb = FMT[f](b[k]); return `<span>${esc(label)} <b>${fa}${fa !== fb ? ` → ${fb}` : ''}</b></span>`; }).join('');
+}
+function renderForge(){
+  let h = `<div class="pagehead"><div><h2>The Forge</h2><p>Spend coins on upgrades that stay with you for good.</p></div>
+    <div class="skpts"><b>${save.coins}</b><small>coins</small></div></div>
+    <div class="skinfo">${ico('power')}<span><b>Stars</b> (abilities and positive traits): every star makes all of the item's numbers 10% stronger, what each level-up adds included.
+      Counts such as blades or fireballs stay as they are. Stars cost ${FG_STAR_COST.join(' / ')} coins.
+      <b>Characters</b>: up to ${FG_CHAR_MAX} upgrades, each +5% max HP and +5% damage.</span></div>
+    <h3 class="fgh">Characters</h3><div class="fggrid">`;
+  for(const id in CHARACTERS){
+    const ch = CHARACTERS[id], own = save.chars.includes(id), k = fgCharLv(id), max = k >= FG_CHAR_MAX, c = max ? 0 : fgCharCost(k + 1);
+    h += `<div class="fgc ${own ? '' : 'locked'}" style="--fc:${ch.color}">
+      <div class="fgtop">${ico(ch.weapon)}<b>${ch.name}</b><span class="fglv">+${k}<small> / ${FG_CHAR_MAX}</small></span></div>
+      <div class="fgbar"><i style="width:${k / FG_CHAR_MAX * 100}%"></i></div>
+      <div class="fgnums"><span>Max HP <b>${Math.round(ch.hp * fgCharMul(id))}</b>${max ? '' : ` → ${Math.round(ch.hp * (1 + .05 * (k + 1)))}`}</span><span>Damage <b>+${5 * k}%</b>${max ? '' : ` → +${5 * (k + 1)}%`}</span></div>
+      ${!own ? `<div class="fgbtn off">${ico('lock')} Not unlocked</div>` : max ? `<div class="fgbtn off">MAX</div>` :
+        `<button class="fgbtn ${save.coins >= c ? 'buy' : ''}" data-act="fgChar" data-id="${id}">${ico('coin')} ${c}</button>`}</div>`;
+  }
+  h += `</div>`;
+  for(const [type, title] of [['ability', 'Abilities'], ['pos', 'Positive traits']]){
+    const ids = Object.keys(ITEMS).filter(id => ITEMS[id].type === type && isUnlocked(id));
+    const locked = Object.keys(ITEMS).filter(id => ITEMS[id].type === type).length - ids.length;
+    ids.sort((a, b) => fgStars(b) - fgStars(a) || ITEMS[a].name.localeCompare(ITEMS[b].name));
+    h += `<h3 class="fgh">${title} <small>${ids.length} unlocked${locked ? ` · ${locked} still locked` : ''}</small></h3><div class="fggrid">`;
+    for(const id of ids){
+      const it = ITEMS[id], s = fgStars(id), c = FG_STAR_COST[s];
+      h += `<div class="fgc ${type}">
+        <div class="fgtop">${ico(id)}<b>${esc(it.name)}</b>${fgStarsHtml(s)}</div>
+        <div class="fgnums">${fgPreview(id)}</div>
+        ${s >= 5 ? `<div class="fgbtn off">MAX</div>` : `<button class="fgbtn ${save.coins >= c ? 'buy' : ''}" data-act="fgItem" data-id="${id}">${ico('coin')} ${c}</button>`}</div>`;
+    }
+    h += `</div>`;
+  }
+  return h;
+}
+hub.addEventListener('click', e => {
+  const t = e.target.closest('[data-act]');
+  if(!t || t.disabled) return;
+  if(t.dataset.act === 'fgItem'){ fgBuyStar(t.dataset.id); renderHub(); }
+  else if(t.dataset.act === 'fgChar'){ fgBuyChar(t.dataset.id); renderHub(); }
+});
+(function(){
+  const st = document.createElement('style');
+  st.textContent = `
+.fgh{font-family:var(--display);font-size:17px;margin:20px 0 8px;display:flex;align-items:baseline;gap:10px}
+.fgh small{font-family:var(--body);font-size:12px;color:var(--mute);font-weight:400}
+.fggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+@media (max-width:560px){.fggrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.fgc{padding:9px}}
+.fgc{border:1px solid var(--line);border-radius:12px;padding:10px 11px;background:rgba(9,11,24,.55);display:flex;flex-direction:column;gap:7px}
+.fgc.locked{opacity:.55}
+.fgc.ability .fgtop>.ico{color:var(--abil)} .fgc.pos .fgtop>.ico{color:var(--pos)}
+.fgtop{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;min-width:0}
+.fgtop>.ico{font-size:20px;color:var(--fc,var(--text))}
+.fgtop b{font-family:var(--display);font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fglv{font-family:var(--display);font-size:20px;color:var(--fc)} .fglv small{font-size:12px;color:var(--mute)}
+.fgbar{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden} .fgbar i{display:block;height:100%;background:var(--fc)}
+.fgstars{display:flex;gap:1px;font-size:14px;color:rgba(255,255,255,.18);width:100%} .fgstars i{font-style:normal} .fgstars i.on{color:var(--gold)}
+.fgnums{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--mute)} .fgnums b{color:var(--text);font-weight:600}
+.fgbtn{margin-top:auto;width:100%;border-radius:9px;border:1px solid var(--line2);background:rgba(255,255,255,.04);padding:7px 10px;font-family:var(--display);font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--mute)}
+.fgbtn.buy{border-color:var(--gold);color:var(--gold);background:rgba(255,216,74,.1)}
+.fgbtn.off{border-style:dashed}
+.lvstar{color:var(--gold);font-size:11px;letter-spacing:-1px;margin-left:4px}`;
+  document.head.append(st);
+})();
 /* ---------- title screen: a live dungeon floor plays behind the menu ----------
    A hero walks a real floor on its own: it picks a far-off spot, follows a path there and fights
    whatever comes. It cannot die, nothing is saved and it makes no sound. Every 40 s it fades to
