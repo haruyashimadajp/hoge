@@ -20,7 +20,10 @@
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html,body{margin:0;height:100%;background:var(--ink);color:var(--text);font-family:var(--body);overflow:hidden;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--ink);color:var(--text);font-family:var(--body);overflow:hidden;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+*{overscroll-behavior:none}
 button{font:inherit;color:inherit;cursor:pointer}
 button:disabled{cursor:not-allowed}
 :focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
@@ -3124,7 +3127,7 @@ cv.addEventListener('pointermove', e => {
   if(!joy.active || e.pointerId !== joy.id) return;
   let dx = e.clientX - joy.ox, dy = e.clientY - joy.oy;
   const d = Math.hypot(dx, dy), max = 50;
-  if(d > max){ joy.ox += dx / d * (d - max); joy.oy += dy / d * (d - max); dx = dx / d * max; dy = dy / d * max; }
+  if(d > max){ dx = dx / d * max; dy = dy / d * max; }
   joy.dx = dx / max; joy.dy = dy / max;
 });
 const joyEnd = e => { if(e.pointerId === joy.id){ joy.active = false; joy.dx = joy.dy = 0; } };
@@ -15136,6 +15139,62 @@ ITEMS.plating.show = [['v', 'Armor', '1']];
 FMT.pct1 = v => '+' + (Math.round(v * 10) / 10) + '%';
 ITEMS.vampire.show = [['v', 'Life steal', 'pct1']];
 ITEMS.secondwind.desc = 'Once per floor, survive a killing blow with 30% HP.';
+/* ---------- phones: no page gestures, no text selection ----------
+   Some in-app browsers close (or reload) the page when a downward swipe reaches the top of the
+   page. A swipe is only let through when something under the finger can still scroll that way. */
+(function(){
+  let lx = 0, ly = 0;
+  const canScroll = (el, dy) => {
+    for(; el && el !== document.documentElement; el = el.parentElement){
+      if(el.scrollHeight <= el.clientHeight + 1) continue;
+      const oy = getComputedStyle(el).overflowY;
+      if(oy !== 'auto' && oy !== 'scroll') continue;
+      if(dy > 0 ? el.scrollTop > 0 : el.scrollTop + el.clientHeight < el.scrollHeight - 1) return true;
+    }
+    return false;
+  };
+  addEventListener('touchstart', e => { if(e.touches.length === 1){ lx = e.touches[0].clientX; ly = e.touches[0].clientY; } }, {passive:true});
+  addEventListener('touchmove', e => {
+    if(!e.cancelable) return;
+    if(e.touches.length !== 1){ e.preventDefault(); return; }   // no pinch zoom
+    const t = e.touches[0], dx = t.clientX - lx, dy = t.clientY - ly;
+    lx = t.clientX; ly = t.clientY;
+    if(Math.abs(dx) > Math.abs(dy)) return;   // sideways: sliders and the tab strip
+    if(!dy || !canScroll(e.target, dy)) e.preventDefault();
+  }, {passive:false});
+  // a long press opens no menu (text fields keep theirs)
+  addEventListener('contextmenu', e => { if(!(e.target.closest && e.target.closest('input,textarea'))) e.preventDefault(); });
+})();
+
+/* ---------- no shader stalls in the middle of a floor ----------
+   The GPU builds a material's shader and uploads its texture the first time it is drawn. Lava,
+   water and pooled effects first come into view well into a floor, and on a phone that build
+   froze the game for a moment (and starved the music). Do all of it while the floor loads. */
+function d3Warm(){
+  const R = D3.R, T = D3.T;
+  if(!R || !D3.scene || !D3.cam) return;
+  const mats = new Set();
+  D3.scene.traverse(o => { if(o.material) for(const m of [].concat(o.material)) mats.add(m); });
+  for(const lib of [D3.M, D3.MA, D3.MM, D3.MK]) if(lib) for(const k in lib) if(lib[k] && lib[k].isMaterial) mats.add(lib[k]);
+  // every material, also the ones not on the map yet, on a stand-in shape in the lit scene
+  const tmp = new T.Group(), geo = new T.PlaneGeometry(1, 1);
+  for(const m of mats){
+    for(const k of ['map', 'alphaMap', 'emissiveMap', 'normalMap']) if(m[k] && m[k].isTexture) try{ R.initTexture(m[k]); }catch(e){}
+    tmp.add(new T.Mesh(geo, m));
+  }
+  D3.scene.add(tmp);
+  try{ R.compile(D3.scene, D3.cam); }catch(e){}
+  // one render with nothing culled builds the shadow-pass variants as well (drawn into a tiny target)
+  const off = [];
+  D3.scene.traverse(o => { if(o.frustumCulled){ o.frustumCulled = false; off.push(o); } });
+  const rt = new T.WebGLRenderTarget(4, 4), prev = R.getRenderTarget();
+  try{ R.setRenderTarget(rt); R.render(D3.scene, D3.cam); }catch(e){}
+  R.setRenderTarget(prev); rt.dispose();
+  for(const o of off) o.frustumCulled = true;
+  D3.scene.remove(tmp); geo.dispose();
+}
+const _d3BuildLevelW0 = d3BuildLevel;
+d3BuildLevel = function(){ _d3BuildLevelW0(); d3Warm(); };
 /* ---------- title screen: a live dungeon floor plays behind the menu ----------
    A hero walks a real floor on its own: it picks a far-off spot, follows a path there and fights
    whatever comes. It cannot die, nothing is saved and it makes no sound. Every 40 s it fades to

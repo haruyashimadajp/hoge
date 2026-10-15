@@ -61,6 +61,7 @@ Seen from behind and above, in the style of Minecraft Dungeons. It follows the d
 - Coins and relics you pick up are only kept when you step into the exit portal after the boss. If you die you go back to base and lose only what you had not secured.
 - Each portal you reach lets you start from the next floor later (fast travel).
 - The dodge roll (Space or the roll button) makes you untouchable for a moment and breaks webs.
+- On a touch screen, the move stick stays where your finger first touched; dragging past its edge pushes at full speed without moving it. A long press selects no text, and swipes never reach the browser (some in-app browsers closed the page on a downward swipe), except where a list can still scroll.
 - Each theme has one point budget for the loadout: 5 points for Mossy Ruins, 3 for Flooded Aqueducts, 2 for the Ember Mines and the Sky Archipelago. A theme can also force or ban items (the Sky Archipelago forces Marked and bans Grounded and Heavy Feet).
 - **Skill tree** (the Skills tab): the first clear of a floor gives 1 skill point, and every fifth floor gives 2. Each rank of a skill costs one point more than the rank before it (1, then 2, then 3 …); the three capstones cost a flat 3. Three branches: Agility (roll cooldown, roll distance, move speed, longer i-frames, Tailwind, Water Strider, and Double Roll at the end), Might (damage, cooldowns, crits, Giant Slayer, Head Start, XP, and Overkill) and Survival (max HP, armor, pickup range, a Healing Flask, coins, Lantern Bearer, and Last Stand). A branch's middle row opens after 4 points in its first row, its last row after 10. You can take points back out at any time. Skills only work in the dungeon; the data is `DG_SKILLS`.
 
@@ -69,6 +70,7 @@ Seen from behind and above, in the style of Minecraft Dungeons. It follows the d
 - The static level is split into chunks of 10×10 tiles (`d3Instanced`), so the camera and the shadow pass only draw what is near the view, and nothing past the fog is drawn.
 - Only five point lights exist: four for the torches nearest the camera (an open portal borrows one) and one on the player. The count never changes during play, so materials are never recompiled mid-run. Shadows use plain PCF filtering.
 - Phones skip MSAA.
+- Every material's shader (shadow pass included) is built, and its texture uploaded, while a floor loads (`d3Warm`). Before, lava and water built theirs the first time they came into view, which froze phones for a moment and made the music skip (most noticeable on floor 13).
 - The ground layer (warning circles, pools, rings) is a canvas re-uploaded every frame, so it is kept at 768 px (512 on phones). Magma slimes only leave trails near you, lava glows once per 2×2 block, and when Auto has already lowered the resolution, big glows shrink too.
 - Settings → Graphics: **Auto** (default) lowers the resolution step by step, down to 55%, while the game runs under about 48 fps, and raises it again once there is room (`d3AutoRes`). **Fast** always draws at 70% resolution without shadows.
 
