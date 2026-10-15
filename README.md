@@ -17,7 +17,8 @@ A browser survivor-like dungeon crawler with a deckbuilding twist. Open `index.h
 - The total must fit the **budget** of the theme you are diving into.
 - The loadout you are building (character, items and starting floor) is saved, so it is still there when you reopen the game.
 - Some pairs form **combos** (set bonuses) that change costs or effects, for example Perfect Edge (Damocles + Perfectionist), Bullet Dance (Bullet Time + Riposte) and Cheat Death (Phoenix + Doomed).
-- In a run, each level-up is a small upgrade: weapon and abilities go to Lv 10, positive traits to Lv 8, and a negative trait can be **overcome** in 10 steps. Cards show the exact before → after numbers.
+- In a run, each level-up is a small upgrade: weapon and abilities go to Lv 10, positive traits to Lv 8, and a negative trait can be **overcome** in 10 steps (Rigid and Grounded, which are either on or off, in one). Cards show the exact before → after numbers.
+- A card is only offered when picking it changes something on this floor (`upgUseless`). For example, Second Wind is not offered once you have revived, when Last Breath already brings you back at full HP, or when Phoenix revives you instead; roll upgrades wait until Grounded is overcome; Heal is not offered at full HP.
 - Runs have elites, treasure chests, drops (heal, magnet, bomb) and a kill chain that boosts XP.
 - New items come from first clears, relic drops and the **gacha**. The first clear of floor 1 also unlocks the Knight.
 - Loadouts can be saved to 6 slots.
