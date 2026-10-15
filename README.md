@@ -15,6 +15,7 @@ A browser survivor-like dungeon crawler with a deckbuilding twist. Open `index.h
   - The big, expensive ones: Overdrive (+6, every 18 s all cooldowns run 2.5× faster for 6 s), Titan (+6, barge through enemies), Phoenix (+5), Echo (+7, abilities fire twice), Midas Touch (+4, kills turn to gold) and Bullet Time (+6, rolls slow time).
   - Negative traits work the same way. Doomed (−6) sends an unkillable Death after you 75 s into each floor. Others are Lingering Wounds (hits shrink your max HP), Volatile Foes (enemies burst on death), Restless Dead (kills rise again) and Withered (healing −70%).
 - The total must fit the **budget** of the theme you are diving into.
+- The loadout you are building (character, items and starting floor) is saved, so it is still there when you reopen the game.
 - Some pairs form **combos** (set bonuses) that change costs or effects, for example Perfect Edge (Damocles + Perfectionist), Bullet Dance (Bullet Time + Riposte) and Cheat Death (Phoenix + Doomed).
 - In a run, each level-up is a small upgrade: weapon and abilities go to Lv 10, positive traits to Lv 8, and a negative trait can be **overcome** in 10 steps. Cards show the exact before → after numbers.
 - Runs have elites, treasure chests, drops (heal, magnet, bomb) and a kill chain that boosts XP.

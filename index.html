@@ -15092,6 +15092,24 @@ dgOverlaySky = function(){
     Object.keys(e.ht).forEach((k, i) => { const t = HTRAITS[k]; ctx.fillStyle = t.color; ctx.strokeText(t.name, s[0], s[1] - i * 11); ctx.fillText(t.name, s[0], s[1] - i * 11); });
   }
 };
+/* ---------- the loadout you were building comes back when you reopen the game ----------
+   save.cur holds the character, items and starting floor. It is written whenever the hub redraws (every change
+   goes through renderHub) and read once here, after every item exists (newer items are added late in the file). */
+(function(){
+  const c = save.cur;
+  if(!c || !Array.isArray(c.items)) return;
+  const MAP = {glassbones:'wounds', avatar:'echo', bloodlust:'glutton'};   // items replaced in the trait rework
+  if(save.chars.includes(c.char)) B.char = c.char;
+  B.items = [...new Set(c.items.map(id => MAP[id] || id).filter(id => ITEMS[id] && isUnlocked(id)))];
+  if(dgFloorUnlocked(+c.floor)) B.floor = +c.floor;
+  B.stage = dgStageOf(B.floor || 1).id; applyStageRules();   // the floor's theme: its forced and banned items
+})();
+const _renderHubK0 = renderHub;
+renderHub = function(){
+  _renderHubK0();
+  const cur = {char:B.char, items:B.items.slice(), floor:B.floor};
+  if(JSON.stringify(cur) !== JSON.stringify(save.cur)){ save.cur = cur; persist(); }
+};
 /* ---------- title screen: a live dungeon floor plays behind the menu ----------
    A hero walks a real floor on its own: it picks a far-off spot, follows a path there and fights
    whatever comes. It cannot die, nothing is saved and it makes no sound. Every 40 s it fades to
