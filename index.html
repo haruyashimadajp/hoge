@@ -4916,7 +4916,7 @@ function update(dt){
     if(g.dg && dgBullet(b, dt)) continue;           // walls, bounces, homing; rolling makes shots pass through you
     if(Math.hypot(b.x - p.x, b.y - p.y) < b.r + p.r){ b.life = 0; if(b.slow) p.slowT = Math.max(p.slowT, b.slow); if(b.root) p.rootT = Math.max(p.rootT || 0, b.root); if(g.dg) dgBulletHit(b); hurtPlayer(b.dmg); }
   }
-  g.ebullets = g.ebullets.filter(b => b.life > 0);
+  compact(g.ebullets, b => b.life > 0);
   updateHazards(dt);
   if(g.state !== 'play') return;
 
@@ -4973,7 +4973,7 @@ function update(dt){
       for(const e of tmpA) if(Math.hypot(e.x - pd.x, e.y - pd.y) < pd.r + e.r){ HITFROM = e; hitEnemy(e, pd.dps * 0.25, 'poison'); HITFROM = null; }
     }
   }
-  g.puddles = g.puddles.filter(pd => pd.life > 0);
+  compact(g.puddles, pd => pd.life > 0);
 
   for(const pr of g.projs){
     pr.px = pr.x; pr.py = pr.y; pr.life -= dt; pr.age += dt;
@@ -5010,8 +5010,8 @@ function update(dt){
     if(pr.kind === 'fire' && pr.life <= 0) explode(pr);
   }
   HITFROM = null;
-  g.projs = g.projs.filter(pr => pr.life > 0);
-  g.enemies = g.enemies.filter(e => !e.dead);
+  compact(g.projs, pr => pr.life > 0);
+  compact(g.enemies, e => !e.dead);
 
   for(const gm of g.gems){
     const dx = p.x - gm.x, dy = p.y - gm.y, d = Math.hypot(dx, dy) || 1;
@@ -5027,20 +5027,20 @@ function update(dt){
       }
     }
   }
-  g.gems = g.gems.filter(gm => !gm.taken);
+  compact(g.gems, gm => !gm.taken);
   for(const pk of g.pickups){
     pk.t += dt;
     if(!pk.taken && Math.hypot(pk.x - p.x, pk.y - p.y) < p.r + 16){ pk.taken = true; collectPickup(pk); }
   }
-  g.pickups = g.pickups.filter(pk => !pk.taken);
+  compact(g.pickups, pk => !pk.taken);
 
   const fr = Math.exp(-4 * dt);
   for(const q of g.parts){ q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= fr; q.vy *= fr; q.life -= dt; }
-  g.parts = g.parts.filter(q => q.life > 0);
+  compact(g.parts, q => q.life > 0);
   for(const f of g.fx) f.life -= dt;
-  g.fx = g.fx.filter(f => f.life > 0);
+  compact(g.fx, f => f.life > 0);
   for(const t of g.texts){ t.life -= dt; t.y -= (t.kind === 2 ? 26 : 38) * dt; }
-  g.texts = g.texts.filter(t => t.life > 0);
+  compact(g.texts, t => t.life > 0);
 
   if(g.won){ g.endT -= dt; if(g.endT <= 0) endRun(true); }
 }
@@ -6923,23 +6923,25 @@ function dgCollide(o, r){
   return hit;
 }
 // breadth-first distance from the player's tile; enemies walk downhill on it
+// distance along the floor from the player, in tiles, out to DG_FLOW_R (-1 past it or where you cannot walk).
+// Recomputed when you step onto another tile, so it stays near you: chasing, packs and spawns only look 16 tiles out.
+const DG_FLOW_R = 48;
 function dgFlow(){
   const D = G.dg, L = D.L, p = G.p, tx = Math.floor(p.x / DT), ty = Math.floor(p.y / DT), key = ty * L.W + tx;
   if(key === D.flowKey && !D.flowDirty) return;
   D.flowKey = key; D.flowDirty = false;
-  const f = D.flow, q = D.q; f.fill(-1);
-  if(tx < 0 || ty < 0 || tx >= L.W || ty >= L.H) return;
+  const f = D.flow, q = D.q, W = L.W, H = L.H; f.fill(-1);
+  if(tx < 0 || ty < 0 || tx >= W || ty >= H) return;
   let h = 0, tl = 0;
   f[key] = 0; q[tl++] = key;
   while(h < tl){
-    const i = q[h++], x = i % L.W, y = (i - x) / L.W, d = f[i] + 1;
-    for(const [dx, dy] of N4){
-      const nx = x + dx, ny = y + dy;
-      if(dgWalkBlocked(L, nx, ny)) continue;
-      const j = ny * L.W + nx;
-      if(f[j] >= 0) continue;
-      f[j] = d; q[tl++] = j;
-    }
+    const i = q[h++], d = f[i] + 1;
+    if(d > DG_FLOW_R) continue;
+    const x = i % W, y = (i - x) / W;
+    if(x > 0 && f[i - 1] < 0 && !dgWalkBlocked(L, x - 1, y)){ f[i - 1] = d; q[tl++] = i - 1; }
+    if(x < W - 1 && f[i + 1] < 0 && !dgWalkBlocked(L, x + 1, y)){ f[i + 1] = d; q[tl++] = i + 1; }
+    if(y > 0 && f[i - W] < 0 && !dgWalkBlocked(L, x, y - 1)){ f[i - W] = d; q[tl++] = i - W; }
+    if(y < H - 1 && f[i + W] < 0 && !dgWalkBlocked(L, x, y + 1)){ f[i + W] = d; q[tl++] = i + W; }
   }
 }
 function dgChase(e, sp, dt, dx, dy, d){
@@ -6949,8 +6951,8 @@ function dgChase(e, sp, dt, dx, dy, d){
   const i = ty * L.W + tx, cd = (tx >= 0 && ty >= 0 && tx < L.W && ty < L.H) ? D.flow[i] : -1;
   if(cd > 1){
     let best = cd, bx = 0, by = 0;
-    for(const [ox, oy] of N8){
-      const nx = tx + ox, ny = ty + oy;
+    for(let k = 0; k < 8; k++){
+      const ox = N8[k][0], oy = N8[k][1], nx = tx + ox, ny = ty + oy;
       if(nx < 0 || ny < 0 || nx >= L.W || ny >= L.H) continue;
       const v = D.flow[ny * L.W + nx];
       if(v < 0 || v >= best) continue;
@@ -6996,7 +6998,7 @@ function dgEnter(n){
 function dgLoadFloor(n){
   const def = DG_FLOORS[n - 1], D = G.dg, L = dgParse(def), N = L.W * L.H;
   Object.assign(D, {floor:n, def, L, flow:new Int16Array(N), flowKey:-1, flowDirty:true, q:new Int32Array(N), seen:new Uint8Array(N), seenT:0,
-    mapDirty:true, crumble:new Map(), trickT:25, zones:{}, portal:null, bossQ:null, objective:'', safe:null, chainBoss:false});
+    mapDirty:true, mmQ:[], crumble:new Map(), trickT:25, zones:{}, portal:null, bossQ:null, objective:'', safe:null, chainBoss:false});
   for(const k of L.zoneIds){ const zd = def.zones && def.zones[k]; D.zones[k] = {id:k, state:'idle', boss:k === 10, boss2:!!(zd && zd.boss2), waves:k === 10 || !zd ? null : zd.waves || null, wi:0, wait:0, alive:0}; }
   for(const k of ['enemies','projs','ebullets','gems','pickups','puddles','fx','parts','texts','hazards']) G[k] = [];
   G.boss = null; $('#bossbar').hidden = true;
@@ -7103,7 +7105,7 @@ function dgTick(dt){
     for(let y = pty - 7; y <= pty + 7; y++) for(let x = ptx - 7; x <= ptx + 7; x++){
       if(x < 0 || y < 0 || x >= L.W || y >= L.H || (x - ptx) ** 2 + (y - pty) ** 2 > 50) continue;
       const i = y * L.W + x;
-      if(!D.seen[i]){ D.seen[i] = 1; D.mapDirty = true; }
+      if(!D.seen[i]){ D.seen[i] = 1; D.mmQ.push(i); }
     }
   }
   if(pt === TT.POOL){ p.poisonT = Math.max(p.poisonT, .6); p.poisonDps = Math.max(p.poisonDps, 3 + D.floor); }
@@ -9222,6 +9224,10 @@ function d3PartLocal(pt, st, out){
   return out.compose(R.v, R.q, R.sc);
 }
 const D3COL = new Map();
+function d3RigCols(R, skinId){ const skin = SKINS[skinId]; return R.cols[skinId] = R.pp.map(pt => d3PartColor(skin, skinId, pt)); }
+// a colour from a hex string, parsed once
+const D3HC = new Map();
+function d3HexCol(h){ let c = D3HC.get(h); if(!c){ c = new D3.T.Color(h); D3HC.set(h, c); } return c; }
 function d3PartColor(skin, skinId, pt){
   const key = skinId + '|' + pt.color;
   let c = D3COL.get(key);
@@ -9231,7 +9237,7 @@ function d3PartColor(skin, skinId, pt){
 function d3Entity(rigId, skinId, x, z, face, scale, st, flash, tint, yOff, roll){
   const R = d3Rig(rigId), RT = D3.RT;
   if(R.n >= R.cap) return;
-  const idx = R.n++, skin = SKINS[skinId];
+  const idx = R.n++, cols = (R.cols || (R.cols = {}))[skinId] || d3RigCols(R, skinId);
   RT.root.makeRotationY(Math.PI / 2 - face);
   RT.root.setPosition(x, yOff || 0, z);
   if(scale !== 1){ RT.s.makeScale(scale, scale, scale); RT.root.multiply(RT.s); }
@@ -9242,13 +9248,15 @@ function d3Entity(rigId, skinId, x, z, face, scale, st, flash, tint, yOff, roll)
     RT.m.multiplyMatrices(RT.root, RT.loc);
     mesh.setMatrixAt(idx, RT.m);
     if(flash || tint){
-      RT.col.copy(d3PartColor(skin, skinId, pt));
+      RT.col.copy(cols[k]);
       if(tint) RT.col.lerp(tint, .45);
       if(flash) RT.col.lerp(RT.white, flash);
       mesh.setColorAt(idx, RT.col);
-    } else mesh.setColorAt(idx, d3PartColor(skin, skinId, pt));
+    } else mesh.setColorAt(idx, cols[k]);
   }
 }
+const D3ST = {ph:0, mv:0, t:0, seed:0, pose:0, cast:0, swing:0};
+function d3St(ph, mv, t, seed, pose, cast, swing){ const s = D3ST; s.ph = ph; s.mv = mv; s.t = t; s.seed = seed; s.pose = pose; s.cast = cast; s.swing = swing; return s; }
 function lerpAngle(a, b, k){ let d = (b - a) % TAU; if(d > Math.PI) d -= TAU; if(d < -Math.PI) d += TAU; return a + d * k; }
 function d3Characters(dt){
   const g = G, p = g.p, D = g.dg, RT = D3.RT;
@@ -9268,7 +9276,7 @@ function d3Characters(dt){
   if(g.state !== 'over' && !blink){
     const face = Math.atan2(p.fy, p.fx), roll = rolling ? (1 - R.t / DG_ROLL.time) * TAU : 0;
     const tint = p.poisonT > 0 ? RT.green : null;
-    d3Entity(g.char, null, p.x, p.y, face, VIS, {ph:p._ph, mv:p._mv, t:g.t, seed:0, pose:0, cast:D3.castT / .22, swing}, false, tint, d3Wade(p.x, p.y), roll);
+    d3Entity(g.char, null, p.x, p.y, face, VIS, d3St(p._ph, p._mv, g.t, 0, 0, D3.castT / .22, swing), false, tint, d3Wade(p.x, p.y), roll);
   }
   // enemies
   const cx = D3.cx, cy = D3.cy, far = D3.dist * 1.6;
@@ -9291,12 +9299,12 @@ function d3Characters(dt){
     const scale = e.r / rig.r * VIS * (e.vis || 1) * (e.vis2 || 1);
     const yOff = (e.rise > 0 ? -(e.rise / e.riseMax) * rig.r * 4.4 * scale : 0) + (e.airH || 0)
       + (rig.float ? rig.float + Math.sin(g.t * 2 + (e.seed || 0)) * 3 + (D3.theme === 'sky' ? d3SkyAt(e) : 0) : d3Wade(e.x, e.y) * (e.boss ? .5 : 1));
-    d3Entity(sk.rig, e.skin, e.x, e.y, e._fa, scale, {ph:e._ph, mv:e._mv, t:g.t, seed:e.seed || 0, pose:e._pose, cast:0, swing:0},
+    d3Entity(sk.rig, e.skin, e.x, e.y, e._fa, scale, d3St(e._ph, e._mv, g.t, e.seed || 0, e._pose, 0, 0),
       e.flash > 0 ? (e.boss ? .35 : .75) : 0, e.elite ? RT.gold : null, yOff, 0);
   }
   // the Doomed trait's reaper: not an enemy, so it is drawn on its own
   const RP = g.reaper;
-  if(RP && !(RP.away > 0)) d3Entity('wraith', 'reaper', RP.x, RP.y, RP.fa || 0, 2.2 * VIS, {ph:g.t * 2, mv:.6, t:g.t, seed:1, pose:0, cast:0, swing:0},
+  if(RP && !(RP.away > 0)) d3Entity('wraith', 'reaper', RP.x, RP.y, RP.fa || 0, 2.2 * VIS, d3St(g.t * 2, .6, g.t, 1, 0, 0, 0),
     0, null, 14 + Math.sin(g.t * 1.6) * 5, 0);
   for(const id in D3.rigs){
     const R2 = D3.rigs[id];
@@ -9376,12 +9384,12 @@ function d3UpdateLevel(dt, ts){
     D3.lit = D3.torches.filter(o => !(D3.cut.get(o.i) < .7) && (!o.lan || o.lan.lit)).sort((a, b) => ((a.x - D3.cx) ** 2 + (a.z - D3.cy) ** 2) - ((b.x - D3.cx) ** 2 + (b.z - D3.cy) ** 2)).slice(0, D3.torchLights.length);
   }
   D3.torchLights.forEach((l, k) => {
-    if(portal && !k){ l.position.set(portal.x, 80, portal.z); l.color.set(portal.c); l.intensity = portal.i; l.distance = 440; return; }
+    if(portal && !k){ l.position.set(portal.x, 80, portal.z); l.color.copy(d3HexCol(portal.c)); l.intensity = portal.i; l.distance = 440; return; }
     const o = D3.lit && D3.lit[portal ? k - 1 : k];
     if(!o){ l.intensity = 0; return; }
     l.distance = 380;
     l.position.set(o.x, o.y + 6, o.z + 18);
-    l.color.set(o.lan ? '#ffcf6a' : D3.look.torch);
+    l.color.copy(d3HexCol(o.lan ? '#ffcf6a' : D3.look.torch));
     l.intensity = (o.lan ? 3.2 : 2.3) * (.85 + .15 * Math.sin(ts * 9 + o.f) * Math.sin(ts * 5.3 + o.f * 2));
   });
   for(const o of D3.torches){
@@ -9411,7 +9419,7 @@ function d3Things(dt, ts){
     const hy = 15 + Math.sin(ts * 3 + gm.x * .05) * 3;
     RT.e.set(0, ts * 2.5 + gm.y * .1, 0); RT.q.setFromEuler(RT.e); RT.v.set(gm.x, hy, gm.y); RT.sc.set(s, s * 1.35, s);
     RT.m.compose(RT.v, RT.q, RT.sc); D3.gems.setMatrixAt(n, RT.m);
-    RT.col.set(col); D3.gems.setColorAt(n, RT.col); n++;
+    D3.gems.setColorAt(n, d3HexCol(col)); n++;
     gp(gm.x, hy, gm.y, col, s * 5, .55, 0);
   }
   D3.gems.count = n; D3.gems.instanceMatrix.needsUpdate = true; if(D3.gems.instanceColor) D3.gems.instanceColor.needsUpdate = true;
@@ -9647,36 +9655,41 @@ function dgRender(now){
     dot(joy.ox + joy.dx * 50, joy.oy + joy.dy * 50, 18, 'rgba(255,255,255,.35)');
   }
 }
+// the colour of one minimap tile
+function dgMmCol(D, L, i){
+  const t = L.t[i];
+  let col = null;
+  if(t === TT.WALL) col = '#2c3a33';
+  else if(t === TT.PIT) col = '#06090a';
+  else if(t === TT.POOL) col = '#3f9a2a';
+  else if(t === TT.WEB) col = '#a8aeb6';
+  else if(t === TT.GATE) col = L.closed[i] ? '#ff6a3d' : '#c8b48a';
+  else if(t === TT.CRUMBLE) col = '#9a8a6a';
+  else if(t === TT.PROP) col = L.prop[i] === 76 ? (L.lanterns.find(o => o.i === i) || {}).lit ? '#ffcf6a' : '#5a6a78' : '#3c4a42';
+  else if(t === TT.DEEP) col = '#1f5a72';
+  else if(t === TT.CURRENT) col = '#2f84a4';
+  else if(t === TT.SLICK) col = '#3f9a7a';
+  else if(t === TT.LAVA) col = '#c8501a';
+  else if(t === TT.SEAM) col = '#7a5a3a';
+  else if(L.rail[i]) col = L.rail[i] === 1 ? '#b09860' : '#a85a4a';
+  else if(L.hot[i]) col = dgGrateCold(i) ? '#4a4a4a' : '#a8481a';
+  else if(L.low[i]) col = D.flood && D.flood.level > .5 ? '#1f5a72' : '#4f6670';
+  else col = L.z[i] === 10 ? '#8a5058' : L.z[i] ? '#7a7058' : '#5f7a63';
+  return col;
+}
 function dgMinimap(ts){
   const D = G.dg, L = D.L, ps = 3;
   if(!D3.mm || D3.mmFloor !== D.floor){ D3.mm = document.createElement('canvas'); D3.mm.width = L.W * ps; D3.mm.height = L.H * ps; D3.mmFloor = D.floor; D.mapDirty = true; }
+  const c = D3.mm.getContext('2d');
   if(D.mapDirty){
-    D.mapDirty = false;
-    const c = D3.mm.getContext('2d');
+    // the whole map: only when tiles change (gates, floods, bridges)
+    D.mapDirty = false; D.mmQ.length = 0;
     c.clearRect(0, 0, D3.mm.width, D3.mm.height);
-    for(let y = 0; y < L.H; y++) for(let x = 0; x < L.W; x++){
-      const i = y * L.W + x;
-      if(!D.seen[i]) continue;
-      const t = L.t[i];
-      let col = null;
-      if(t === TT.WALL) col = '#2c3a33';
-      else if(t === TT.PIT) col = '#06090a';
-      else if(t === TT.POOL) col = '#3f9a2a';
-      else if(t === TT.WEB) col = '#a8aeb6';
-      else if(t === TT.GATE) col = L.closed[i] ? '#ff6a3d' : '#c8b48a';
-      else if(t === TT.CRUMBLE) col = '#9a8a6a';
-      else if(t === TT.PROP) col = L.prop[i] === 76 ? (L.lanterns.find(o => o.i === i) || {}).lit ? '#ffcf6a' : '#5a6a78' : '#3c4a42';
-      else if(t === TT.DEEP) col = '#1f5a72';
-      else if(t === TT.CURRENT) col = '#2f84a4';
-      else if(t === TT.SLICK) col = '#3f9a7a';
-      else if(t === TT.LAVA) col = '#c8501a';
-      else if(t === TT.SEAM) col = '#7a5a3a';
-      else if(L.rail[i]) col = L.rail[i] === 1 ? '#b09860' : '#a85a4a';
-      else if(L.hot[i]) col = dgGrateCold(i) ? '#4a4a4a' : '#a8481a';
-      else if(L.low[i]) col = D.flood && D.flood.level > .5 ? '#1f5a72' : '#4f6670';
-      else col = L.z[i] === 10 ? '#8a5058' : L.z[i] ? '#7a7058' : '#5f7a63';
-      c.fillStyle = col; c.fillRect(x * ps, y * ps, ps, ps);
-    }
+    for(let i = 0, n = L.W * L.H; i < n; i++) if(D.seen[i]){ c.fillStyle = dgMmCol(D, L, i); c.fillRect(i % L.W * ps, Math.floor(i / L.W) * ps, ps, ps); }
+  } else if(D.mmQ.length){
+    // newly seen tiles only
+    for(const i of D.mmQ){ if(!D.seen[i]) continue; c.fillStyle = dgMmCol(D, L, i); c.fillRect(i % L.W * ps, Math.floor(i / L.W) * ps, ps, ps); }
+    D.mmQ.length = 0;
   }
   const box = W < 560 ? 104 : 150, s = Math.min(box / L.W, box / L.H), mw = L.W * s, mh = L.H * s;
   const mx = W - 12 - mw, my = W < 560 ? 124 : 64;
@@ -11222,7 +11235,7 @@ function dgGrateCold(i){
   for(const st of O.sites) if(st.state === 'done' && Math.abs(st.x - x) <= 6 && Math.abs(st.y - y) <= 6) return true;
   return false;
 }
-function dgNearTrough(x, y){ for(const [dx, dy] of N8) if(dgWaterAt(x + dx * 40, y + dy * 40)) return true; return false; }
+function dgNearTrough(x, y){ for(let k = 0; k < 8; k++) if(dgWaterAt(x + N8[k][0] * 40, y + N8[k][1] * 40)) return true; return false; }
 function dgFurnaceTick(dt){
   const D = G.dg, O = D.obj, od = O.O, p = G.p;
   let busy = false;
@@ -11296,7 +11309,8 @@ function dgBeamsTick(dt){
   B.tick -= dt;
   const hitP = B.tick <= 0;
   if(hitP) B.tick = .4;
-  for(const [x0, y0, x1, y1] of B.segs){
+  for(let k = 0; k < B.segs.length; k++){
+    const sg = B.segs[k], x0 = sg[0], y0 = sg[1], x1 = sg[2], y1 = sg[3];
     if(hitP && segDist(p.x, p.y, x0, y0, x1, y1) < 16 + p.r) hurtPlayer(od.dmg);
     for(const e of G.enemies){
       if(e.dead || e.boss || e.rise > 0 || e.type === 'prismpillar') continue;
@@ -11720,7 +11734,8 @@ function d3ThingsMN(dt, ts){
   // beams of light, emitters, mirrors and receivers
   const B = D.beams;
   if(B){
-    for(const [x0, y0, x1, y1] of B.segs){
+    for(let sk = 0; sk < B.segs.length; sk++){
+      const sg = B.segs[sk], x0 = sg[0], y0 = sg[1], x1 = sg[2], y1 = sg[3];
       const len = Math.hypot(x1 - x0, y1 - y0), n = Math.ceil(len / 40);
       for(let k = 0; k <= n; k++){
         const q = k / n, x = x0 + (x1 - x0) * q, z = y0 + (y1 - y0) * q;
@@ -13153,7 +13168,7 @@ const WIND_DIR = {N:[0, -1], S:[0, 1], E:[1, 0], W:[-1, 0]};
 const skyOn = () => !!(G && G.dg && G.dg.def && G.dg.def.sky);
 // flyers float over the void, an enemy caught in a gust can be pushed off the edge, and you can walk right off it
 function dgVoidFree(o){ return o === G.p || o.fly || o.gustT > 0 || o.airH > 0; }
-function dgNearVoid(L, tx, ty){ for(const [dx, dy] of N8) if(L.t[(ty + dy) * L.W + tx + dx] === TT.PIT) return true; return false; }
+function dgNearVoid(L, tx, ty){ for(let k = 0; k < 8; k++) if(L.t[(ty + N8[k][1]) * L.W + tx + N8[k][0]] === TT.PIT) return true; return false; }
 function dgSkyInit(){
   const D = G.dg, L = D.L, def = D.def;
   D.sky = null;
@@ -13202,8 +13217,8 @@ function dgSkyTick(dt){
     F.t -= dt;
     if(F.t > 0) continue;
     if(F.state === 'on'){ F.state = 'warn'; F.t = F.warn; }
-    else if(F.state === 'warn'){ F.state = 'off'; F.t = F.off; for(const i of F.tiles) L.t[i] = TT.PIT; D.flowDirty = true; D.mapDirty = true; }
-    else { F.state = 'on'; F.t = F.on; for(const i of F.tiles) L.t[i] = TT.FLOOR; D.flowDirty = true; D.mapDirty = true; }
+    else if(F.state === 'warn'){ F.state = 'off'; F.t = F.off; for(const i of F.tiles){ L.t[i] = TT.PIT; D.mmQ.push(i); } D.flowDirty = true; }
+    else { F.state = 'on'; F.t = F.on; for(const i of F.tiles){ L.t[i] = TT.FLOOR; D.mmQ.push(i); } D.flowDirty = true; }
   }
   // gusts (none while a floor boss is busy rising)
   S.gustT -= dt;
@@ -15198,6 +15213,50 @@ function d3Warm(){
 }
 const _d3BuildLevelW0 = d3BuildLevel;
 d3BuildLevel = function(){ _d3BuildLevelW0(); d3Warm(); };
+
+// drops the items that fail keep() without making a new array (the old per-frame filter() calls
+// made several new arrays every frame, and the garbage collector paused the game to clear them)
+function compact(a, keep){
+  let j = 0;
+  for(let i = 0; i < a.length; i++){ const v = a[i]; if(keep(v)) a[j++] = v; }
+  a.length = j;
+  return a;
+}
+
+/* ---------- steadier frame pacing ----------
+   120 Hz screens: the game ran and drew every frame at 120 fps, twice the work of 60, which made
+   phones stutter. On screens faster than about 100 Hz it now draws every other frame. */
+const FPACE = {iv:1000 / 60, prev:0, ran:0};
+const _frameP0 = frame;
+frame = function(now){
+  const raw = now - FPACE.prev; FPACE.prev = now;
+  if(raw > 0 && raw < 100) FPACE.iv += (raw - FPACE.iv) * .05;
+  if(FPACE.iv < 9.5 && now - FPACE.ran < 12.5){ requestAnimationFrame(frame); return; }
+  FPACE.ran = now;
+  _frameP0(now);
+};
+/* Auto resolution: each change resizes the drawing buffer, which costs a hitch of its own. A step up
+   that has to be taken back within a few seconds is not tried again for a minute and a half, so the
+   resolution no longer bounces between two levels. */
+d3AutoRes = function(dt){
+  const Q = D3.q || (D3.q = {ft:1 / 60, t:0, hold:2, good:0, now:0, upAt:-99, ceil:1, ceilT:0});
+  if(!(dt > 0)) return;
+  if(save.gfx === 'fast'){ D3.lite = true; return; }
+  Q.now += dt; Q.ft += (dt - Q.ft) * .05; Q.t += dt; Q.hold -= dt;
+  if(Q.hold > 0 || Q.t < 1) return;
+  Q.t = 0;
+  D3.lite = D3.res < .7;
+  if(Q.ceilT && Q.now > Q.ceilT){ Q.ceil = 1; Q.ceilT = 0; }
+  if(Q.ft > 1 / 48 && D3.res > .55){
+    // a step up that did not hold goes straight back to the last good resolution and stays there
+    if(Q.now - Q.upAt < 12){ D3.res = Q.from; Q.ceil = Q.from; Q.ceilT = Q.now + 90; Q.upAt = -99; }
+    else D3.res = Math.max(.55, D3.res * .85);
+    Q.hold = 1.5; Q.good = 0; d3Resize();
+  } else if(Q.ft < 1 / 56){
+    const next = Math.min(1, Q.ceil, D3.res * 1.1);
+    if(++Q.good >= 8 && next > D3.res + .01){ Q.from = D3.res; D3.res = next; Q.hold = 2; Q.good = 0; Q.upAt = Q.now; d3Resize(); }
+  } else Q.good = 0;
+};
 /* ---------- title screen: a live dungeon floor plays behind the menu ----------
    A hero walks a real floor on its own: it picks a far-off spot, follows a path there and fights
    whatever comes. It cannot die, nothing is saved and it makes no sound. Every 40 s it fades to

@@ -70,9 +70,12 @@ Seen from behind and above, in the style of Minecraft Dungeons. It follows the d
 - The static level is split into chunks of 10×10 tiles (`d3Instanced`), so the camera and the shadow pass only draw what is near the view, and nothing past the fog is drawn.
 - Only five point lights exist: four for the torches nearest the camera (an open portal borrows one) and one on the player. The count never changes during play, so materials are never recompiled mid-run. Shadows use plain PCF filtering.
 - Phones skip MSAA.
+- Screens faster than about 100 Hz (120 Hz phones) are drawn at 60 fps, every other refresh, instead of doing all the work twice as often.
+- Less garbage per frame, so fewer garbage-collection pauses: the per-frame lists are cleaned in place (`compact`), character colours are kept per rig and skin, and one animation-state object is reused.
+- The minimap only paints newly seen tiles; the whole map is repainted only when tiles change. The enemies' path map (`dgFlow`) reaches 48 tiles around you instead of the whole floor.
 - Every material's shader (shadow pass included) is built, and its texture uploaded, while a floor loads (`d3Warm`). Before, lava and water built theirs the first time they came into view, which froze phones for a moment and made the music skip (most noticeable on floor 13).
 - The ground layer (warning circles, pools, rings) is a canvas re-uploaded every frame, so it is kept at 768 px (512 on phones). Magma slimes only leave trails near you, lava glows once per 2×2 block, and when Auto has already lowered the resolution, big glows shrink too.
-- Settings → Graphics: **Auto** (default) lowers the resolution step by step, down to 55%, while the game runs under about 48 fps, and raises it again once there is room (`d3AutoRes`). **Fast** always draws at 70% resolution without shadows.
+- Settings → Graphics: **Auto** (default) lowers the resolution step by step, down to 55%, while the game runs under about 48 fps, and raises it again once there is room (`d3AutoRes`). A step up that has to be taken back within 12 s goes straight back to the last good resolution, which is kept for 90 s, so the resolution (and the hitch each change causes) does not bounce. **Fast** always draws at 70% resolution without shadows.
 
 ## Sound
 
