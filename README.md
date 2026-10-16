@@ -22,6 +22,7 @@ A browser survivor-like dungeon crawler with a deckbuilding twist. Open `index.h
 - Runs have elites, treasure chests, drops (heal, magnet, bomb) and a kill chain that boosts XP.
 - New items come from first clears, relic drops and the **gacha**. The first clear of floor 1 also unlocks the Knight.
 - Loadouts can be saved to 6 slots.
+- **Language**: English or Japanese (Settings → Language). The first time, the game follows the browser's language. The choice is kept apart from the save (`ls-lang` in local storage), so Reset save keeps it; changing it reloads the page, or applies the next time the game opens if a floor is in progress.
 - Behind the title menu a real dungeon floor plays itself: a hero walks the map, fights whatever comes and moves on to another floor every 40 seconds (`tdemoFrame`). It cannot die, saves nothing and makes no sound. Without WebGL the old 2D demo shows instead.
 
 The game used to have a second, 2D mode of ten timed survival stages. It was removed so everything happens in the dungeon; its last version is kept for reference in `reference/stages-2d.html` (it still plays on its own). The stages' first-clear items moved to the dungeon floors with the same number, and the 2D engine underneath (movement, weapons, enemies, level-ups) is what the dungeon runs on.
@@ -86,6 +87,15 @@ Seen from behind and above, in the style of Minecraft Dungeons. It follows the d
 ## Sound
 
 All sound effects and music are synthesized in the browser with the Web Audio API (no audio files). The music is hand-written: each song in `SONGS` lists its chords bar by bar, its melodies as note:length pairs and its drum grooves, and plays an intro and then a form like A A+ B B+ A~ A+ (`+` adds an arpeggio, a harmony line and busier drums, `~` is a breather). Everything runs through a small mixer with reverb and a tempo-synced echo. There are songs for the title, the base, each theme, the floor bosses of each theme, and a finale for the theme bosses on floors 5, 10, 15 and 20. The Sky Archipelago's song runs at 120 bpm, so floor 19's lightning lands on its beat. Pausing or a level-up muffles the music. Volumes for master, music and sound effects are in Settings (title screen, the gear button, or the pause menu) and are saved in the browser.
+
+## Translation
+
+The game is written in English and translated where text reaches the screen (`part26_i18n.js` in the build), so the game code itself never changes with the language:
+
+- DOM text, tooltips, labels and placeholders go through a MutationObserver; canvas text (banners, floating text, names over heads, boss attack names) through `fillText` / `strokeText`.
+- `tr()` looks a string up in `I18N_JA`: first exactly, then with its numbers replaced by `{0}`, `{1}` … (so "Max HP −25%" and "Max HP −40%" share one entry), then as an ALL-CAPS version of an entry, then through the patterns in `I18N_JA_RX` for text with a name inside ("Overcome Fragile", "Moss Sentinel awakens"), then part by part around " · ". Text that is already Japanese is left alone. Results are cached.
+- The dictionary (about 1,550 entries) was built by running the game with an empty dictionary in a collector mode (`I18N_COLLECT`, which records every string that reaches the screen) through every hub screen, all 20 floors, their bosses, elites, level-ups, pauses, deaths and clears, plus a sweep of every banner, toast and floating text in the code. Proper names come from one glossary so they read the same everywhere.
+- New text needs a Japanese entry, or it shows in English. Run the collector to find what is missing.
 
 ## Adding content
 
