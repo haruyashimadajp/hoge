@@ -15226,7 +15226,11 @@ function d3Warm(){
   D3.scene.remove(tmp); geo.dispose();
 }
 const _d3BuildLevelW0 = d3BuildLevel;
-d3BuildLevel = function(){ _d3BuildLevelW0(); d3ResUp(); d3Warm(); };
+d3BuildLevel = function(){
+  _d3BuildLevelW0(); d3ResUp(); d3Warm();
+  // the first frames of a new floor are slow while it settles: do not count them against the frame rate
+  if(D3.q){ D3.q.slow = 0; D3.q.bad = 0; D3.q.ft = 1 / 60; D3.q.ceil = 1; }
+};
 
 // drops the items that fail keep() without making a new array (the old per-frame filter() calls
 // made several new arrays every frame, and the garbage collector paused the game to clear them)
@@ -15249,42 +15253,103 @@ frame = function(now){
   FPACE.ran = now;
   _frameP0(now);
 };
-/* Auto resolution. Each change resizes the drawing buffer, which freezes the game for a moment (on phones, and
-   badly in boss fights, it used to step down several times in a row). So:
-   - too slow: one jump straight to a resolution that should fit, and nothing more for 6 s;
-   - room to spare: the resolution only goes back up while the game is paused (level-up cards, pause menu) or a
-     floor loads, where the freeze cannot be felt. A step up that does not hold is not tried again for 45 s. */
+/* Auto resolution. Each change resizes the drawing buffer, which freezes the game for 50-100 ms, so it is never
+   changed in the middle of play:
+   - too slow for 1.5 s: the lower resolution is decided, and applied at the next pause (level-up cards, pause
+     menu) or floor load, where the freeze cannot be felt. It changes on the spot only when no pause comes: after
+     5 s below 40 fps, or 30 s below 48 fps;
+   - room to spare (6 s at 54 fps): one step up, also only at a pause or floor load. A step up that turns out too
+     slow goes back down and is not tried again on that floor. */
 d3AutoRes = function(dt){
-  const Q = D3.q || (D3.q = {ft:1 / 60, hold:2, good:0, now:0, ceil:1, ceilT:0, from:1, upAt:-99});
+  const Q = D3.q || (D3.q = {ft:1 / 60, good:0, slow:0, bad:0, now:0, ceil:1, from:1, wasUp:false, want:0});
   if(!(dt > 0)) return;
   if(save.gfx === 'fast'){ D3.lite = true; return; }
   // Sharp: always full resolution, never lowered
   if(save.gfx === 'sharp'){ D3.lite = false; if(D3.res !== 1){ D3.res = 1; d3Resize(); } return; }
   D3.lite = D3.res < .7;
-  const play = G && G.state === 'play';
-  if(play){
-    Q.now += dt; Q.ft += (Math.min(dt, .1) - Q.ft) * .05; Q.hold -= dt;
+  if(G && G.state === 'play'){
+    Q.now += dt; Q.ft += (Math.min(dt, .1) - Q.ft) * .05;
     // room to spare: 54 fps or better (phones often sit in the 50s, so 57 was rarely reached)
     Q.good = Q.ft < 1 / 54 ? Q.good + dt : 0;
-    if(Q.ceilT && Q.now > Q.ceilT){ Q.ceil = 1; Q.ceilT = 0; }
-    Q.slow = Q.ft > 1 / 48 ? (Q.slow || 0) + dt : 0;
+    Q.slow = Q.ft > 1 / 48 ? Q.slow + dt : 0;
+    Q.bad = Q.ft > 1 / 40 ? Q.bad + dt : 0;
     // slow for 1.5 s (so the frame time has settled): pixels cost about res squared, so aim for a little under 1/58 s
-    if(Q.hold <= 0 && Q.slow > 1.5 && D3.res > .6){
+    if(Q.slow > 1.5 && D3.res > .6 && !Q.want){
       // a gentle step (8-20% fewer pixels per side), never below 60%
-      let next = D3.res * Math.max(.8, Math.min(.92, Math.sqrt((1 / 58) / Q.ft)));
-      if(Q.now - Q.upAt < 12){ next = Math.min(next, Q.from); Q.ceil = Q.from; Q.ceilT = Q.now + 45; Q.upAt = -99; }
-      D3.res = Math.max(.6, next); Q.hold = 6; Q.good = 0; Q.slow = 0; d3Resize();
+      Q.want = Math.max(.6, D3.res * Math.max(.8, Math.min(.92, Math.sqrt((1 / 58) / Q.ft))));
+      // the last change was a step up that did not hold: back to where it was, and stay there for a while
+      if(Q.wasUp){ Q.want = Math.min(Q.want, Q.from); Q.ceil = Q.from; }
     }
+    if(Q.want && (Q.bad > 5 || Q.slow > 30)) d3ResApply();
   } else d3ResUp();
 };
-// raise the resolution one step while nothing moves (called when the game is paused and when a floor loads)
+function d3ResApply(){
+  const Q = D3.q;
+  D3.res = Q.want; Q.want = 0; Q.wasUp = false; Q.good = 0; Q.slow = 0; Q.bad = 0; d3Resize();
+}
+// called while nothing moves (the game is paused, a floor loads): apply a pending step down, or try one step up
 function d3ResUp(){
   const Q = D3.q;
-  if(!Q || save.gfx !== 'auto' || Q.good < 6) return;
+  if(!Q || save.gfx !== 'auto') return;
+  if(Q.want){ d3ResApply(); return; }
+  if(Q.good < 6) return;
   const next = Math.min(1, Q.ceil, D3.res * 1.15);
   if(next <= D3.res + .01) return;
-  Q.from = D3.res; D3.res = next; Q.good = 0; Q.upAt = Q.now; Q.hold = 3; d3Resize();
+  Q.from = D3.res; D3.res = next; Q.good = 0; Q.wasUp = true; d3Resize();
 }
+
+/* The HUD was rewritten every 80 ms (text, icons, bar widths) even when nothing had changed, and every write made
+   the browser lay out the whole page again: a few ms each time, much more with Japanese text, and a skipped frame
+   on phones. Now each piece is written only when it changes. */
+function hudTx(el, s){ if(el._tx !== s){ el._tx = s; el.textContent = s; } }
+function hudHt(el, s){ if(el._ht !== s){ el._ht = s; el.innerHTML = s; } }
+function hudW(el, pct){ const v = (Math.round(pct * 4) / 4) + '%'; if(el._w !== v){ el._w = v; el.style.width = v; } }
+function hudCls(el, s){ if(el.className !== s) el.className = s; }
+function hudHide(el, h){ if(el.hidden !== h) el.hidden = h; }
+updateHud = function(){
+  const p = G.p;
+  hudW($('#hpFill'), p.hp / p.maxHp * 100);
+  hudTx($('#hpT'), `${Math.ceil(p.hp)} / ${p.maxHp} HP`);
+  hudW($('#xpFill'), Math.min(100, G.xp / G.xpNeed * 100));
+  hudTx($('#lvN'), String(G.level));
+  hudHt($('#killN'), `${ico('skull')} ${G.kills}`);
+  const clock = $('#clock');
+  if(G.dg){ hudTx(clock, dgClockText()); hudCls(clock, 'clock dgclock'); dgHud(); }
+  else {
+    hudTx(clock, G.boss ? (G.won ? 'CLEAR' : 'BOSS') : fmtTime(G.stage.dur - G.t));
+    hudCls(clock, 'clock' + (G.boss && !G.won ? ' boss' : ''));
+  }
+  const ch = $('#chain');
+  if(G.chain >= 5){
+    hudHide(ch, false);
+    hudTx($('#chainN'), String(G.chain));
+    const bonus = Math.min(50, Math.floor(G.chain / 10));
+    hudTx($('#chainS'), bonus ? `CHAIN · XP +${bonus}%` : 'CHAIN');
+    if(Math.floor(G.chain / 10) !== Math.floor(lastChain / 10)){ ch.classList.remove('pop'); void ch.offsetWidth; ch.classList.add('pop'); }
+  } else hudHide(ch, true);
+  lastChain = G.chain;
+  if(G.boss && !G.boss.dead) hudW($('#bossFill'), Math.max(0, G.boss.hp / G.boss.maxHp * 100));
+};
+dgHud = function(){
+  const D = G.dg, o = $('#dgobj');
+  hudTx(o, D.objective || ''); hudHide(o, !D.objective);
+  const c = D.carried;
+  hudHt($('#dgcarry'), `${ico('coin')} <b>${Math.floor(c.coins)}</b>${c.items.length ? ` ${ico('gem')} <b>${c.items.length}</b>` : ''}<small>not yet secured</small>`);
+  dgSkillHud();
+};
+dgSkillHud = function(){
+  const D = G.dg, R = D.roll, rb = $('#rollBtn');
+  const cd = R.n < R.max && R.cd > 0 ? Math.round(R.cd / D.rollCd * 100) + '%' : '0%';
+  if(rb._cd !== cd){ rb._cd = cd; rb.style.setProperty('--cd', cd); }
+  if(rb.classList.contains('ready') !== R.n > 0) rb.classList.toggle('ready', R.n > 0);
+  const n = String(R.max > 1 ? R.n : '');
+  if(rb.dataset.n !== n) rb.dataset.n = n;
+  const fb = $('#flaskBtn');
+  if(D.flask && D.flask.max){
+    if(fb.dataset.n !== String(D.flask.n)) fb.dataset.n = D.flask.n;
+    if(fb.classList.contains('ready') !== D.flask.n > 0) fb.classList.toggle('ready', D.flask.n > 0);
+  }
+};
 
 /* The 3D view keeps drawing while the game is paused (level-up cards, pause menu), and some of its scenery
    (furnace sparks, steam, lantern motes, shimmer) adds particles as it draws. Those piled up, frozen, and
