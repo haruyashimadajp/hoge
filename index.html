@@ -15388,7 +15388,7 @@ function renderForge(){
   for(const [type, title] of [['ability', 'Abilities'], ['pos', 'Positive traits']]){
     const ids = Object.keys(ITEMS).filter(id => ITEMS[id].type === type && isUnlocked(id));
     const locked = Object.keys(ITEMS).filter(id => ITEMS[id].type === type).length - ids.length;
-    ids.sort((a, b) => fgStars(b) - fgStars(a) || ITEMS[a].name.localeCompare(ITEMS[b].name));
+    // a fixed order (the same as the loadout list), so a card never moves when you forge it
     h += `<h3 class="fgh">${title} <small>${ids.length} unlocked${locked ? ` · ${locked} still locked` : ''}</small></h3><div class="fggrid">`;
     for(const id of ids){
       const it = ITEMS[id], s = fgStars(id), c = FG_STAR_COST[s];
