@@ -7511,10 +7511,33 @@ function dgCollapse(i){
   if(tileAt(L, p.x, p.y) === i) dgFall();
   for(const e of G.enemies) if(!e.dead && !e.boss && tileAt(L, e.x, e.y) === i){ e.hp = 0; killEnemy(e); }
 }
+// the last safe spot can vanish (a collapsed tile, an airship that cast off): move it to the nearest tile that still stands
+function dgSafeOk(L, D, tx, ty, edge){
+  if(dgWalkBlocked(L, tx, ty)) return false;
+  const i = ty * L.W + tx;
+  if(L.t[i] === TT.CRUMBLE || L.fade[i]) return false;
+  // first choice keeps 2 tiles from the void, so a gust can't blow you straight back off
+  if(!edge && D.sky) for(let y = ty - 2; y <= ty + 2; y++) for(let x = tx - 2; x <= tx + 2; x++) if(L.t[y * L.W + x] === TT.PIT) return false;
+  return true;
+}
+function dgSafeCheck(){
+  const D = G.dg, L = D.L, sx = Math.floor(D.safe.x / DT), sy = Math.floor(D.safe.y / DT);
+  if(dgSafeOk(L, D, sx, sy, true)) return;
+  for(const edge of [false, true]) for(let r = 1, R = Math.max(L.W, L.H); r < R; r++){
+    let best = -1, bd = Infinity;
+    for(let y = sy - r; y <= sy + r; y++) for(let x = sx - r; x <= sx + r; x++){
+      if(Math.max(Math.abs(x - sx), Math.abs(y - sy)) !== r || !dgSafeOk(L, D, x, y, edge)) continue;
+      const d = (x - sx) ** 2 + (y - sy) ** 2;
+      if(d < bd){ bd = d; best = y * L.W + x; }
+    }
+    if(best >= 0){ D.safe = {x:(best % L.W + .5) * DT, y:(Math.floor(best / L.W) + .5) * DT}; return; }
+  }
+}
 // falling into a pit costs HP but never kills; you climb back out where you last stood safely
 function dgFall(){
   const D = G.dg, p = G.p, dmg = Math.round(p.maxHp * .12);
   p.hp = Math.max(1, p.hp - dmg);
+  dgSafeCheck();
   p.x = D.safe.x; p.y = D.safe.y; p.inv = Math.max(p.inv, 1.2);
   D.roll.t = 0;
   G.flash = .25; G.shake = .35; sfx('hurt');
@@ -13448,8 +13471,9 @@ function dgSkyTick(dt){
   } else if(S.steady && Math.random() < .25) G.parts.push({x:p.x - S.dir[0] * 460 + rand(-460, 460) * Math.abs(S.dir[1]), y:p.y - S.dir[1] * 460 + rand(-320, 320) * Math.abs(S.dir[0]), vx:S.dir[0] * 420, vy:S.dir[1] * 420, life:1.1, max:1.1, c:'#eaf6ff', s:1.6});
   S.wx = wx; S.wy = wy;
   const rolling = D.roll.t > 0;
-  // the wind pushes you (less while you roll low)
-  if(wx || wy){
+  // the wind pushes you (less while you roll low; not while you climb back up after a fall)
+  if(S.calmT > 0) S.calmT -= dt;
+  else if(wx || wy){
     const k = (rolling ? .35 : 1) * (1 - skV('strider') * .5);
     p.x += wx * k * dt; p.y += wy * k * dt; dgCollide(p, p.r);
   }
@@ -13481,6 +13505,7 @@ function dgSkyFall(){
   const p = G.p;
   burst(p.x, p.y, '#eaf6ff', 20, 220); sfx('whoosh');
   dgFall();
+  if(G.dg.sky) G.dg.sky.calmT = 1.2;
   addText(p.x, p.y - 56, 'YOU FELL', 2);
 }
 
