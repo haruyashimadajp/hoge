@@ -22,7 +22,8 @@ A browser survivor-like dungeon crawler with a deckbuilding twist. Open `index.h
 - Runs have elites, treasure chests, drops (heal, magnet, bomb) and a kill chain that boosts XP.
 - New items come from first clears, relic drops and the **gacha**. The first clear of floor 1 also unlocks the Knight.
 - Loadouts can be saved to 6 slots.
-- **Language**: English or Japanese (Settings → Language). The first time, the game follows the browser's language. The choice is kept apart from the save (`ls-lang` in local storage), so Reset save keeps it; changing it reloads the page, or applies the next time the game opens if a floor is in progress.
+- **Language**: English or Japanese (Settings → Language). The first time, the game follows the browser's language. The choice is kept apart from the save (`ls-lang` in local storage), so erasing progress keeps it; changing it reloads the page, or applies the next time the game opens if a floor is in progress.
+- **Erasing progress**: only from Settings → Danger zone, and only after typing RESET (there is no reset button under the hub any more, where a quick double tap could erase a save). The erased save is kept in local storage (`loadout-survivors-v1-backup`), and Settings offers to restore it; restoring swaps the two, so it can be undone too.
 - Behind the title menu a real dungeon floor plays itself: a hero walks the map, fights whatever comes and moves on to another floor every 40 seconds (`tdemoFrame`). It cannot die, saves nothing and makes no sound. Without WebGL the old 2D demo shows instead.
 
 The game used to have a second, 2D mode of ten timed survival stages. It was removed so everything happens in the dungeon; its last version is kept for reference in `reference/stages-2d.html` (it still plays on its own). The stages' first-clear items moved to the dungeon floors with the same number, and the 2D engine underneath (movement, weapons, enemies, level-ups) is what the dungeon runs on.
