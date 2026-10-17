@@ -15189,6 +15189,13 @@ for(const d of DG_FLOORS){
   d.bossHp = Math.round(d.bossHp * k / 100) * 100;
   if(d.boss2Hp) d.boss2Hp = Math.round(d.boss2Hp * k / 100) * 100;
 }
+// bosses from floor 11 on (the Ember Mines and beyond) have 2.5x that HP, the Forge King's arms included
+const DG_BOSS_HP_DEEP = 2.5;
+for(const d of DG_FLOORS) if(d.n >= 11){
+  d.bossHp = Math.round(d.bossHp * DG_BOSS_HP_DEEP / 100) * 100;
+  if(d.boss2Hp) d.boss2Hp = Math.round(d.boss2Hp * DG_BOSS_HP_DEEP / 100) * 100;
+  if(d.arms) d.arms = Object.assign({}, d.arms, {hp:Math.round(d.arms.hp * DG_BOSS_HP_DEEP / 100) * 100});
+}
 /* ---------- phones: no page gestures, no text selection ----------
    Some in-app browsers close (or reload) the page when a downward swipe reaches the top of the
    page. A swipe is only let through when something under the finger can still scroll that way. */
