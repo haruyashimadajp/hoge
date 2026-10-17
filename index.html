@@ -2101,9 +2101,11 @@ function tone(f, dur, o){
   osc.frequency.setValueAtTime(f, t);
   if(o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + dur);
   const g = envGain(t, o.attack || .005, o.vol || .1, dur, o.dest || AUDIO.sfx);
-  if(o.lp){ const fl = a.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = o.lp; osc.connect(fl); fl.connect(g); }
+  let fl = null;
+  if(o.lp){ fl = a.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = o.lp; osc.connect(fl); fl.connect(g); }
   else osc.connect(g);
   osc.start(t); osc.stop(t + (o.attack || .005) + dur + .05);
+  audFree([osc], fl ? [fl, g] : [g]);
 }
 // o: filter, f, fto, q, vol, at, dest, attack, t
 function noise(dur, o){
@@ -2116,6 +2118,7 @@ function noise(dur, o){
   const g = envGain(t, o.attack || .003, o.vol || .1, dur, o.dest || AUDIO.sfx);
   src.connect(fl); fl.connect(g);
   src.start(t, Math.random() * .5); src.stop(t + dur + .05);
+  audFree([src], [fl, g]);
 }
 const arp = (notes, step, o) => notes.forEach((f, i) => tone(f, o.len || .14, Object.assign({}, o, {at:i * step})));
 
@@ -2426,25 +2429,27 @@ function mVoice(ch, f, t, dur, o){
   g.gain.setTargetAtTime(0, t + hold, R / 4);
   g.connect(out);
   let dest = g;
+  const srcs = [], nodes = [g];
   if(o.lp){
     const fl = a.createBiquadFilter(); fl.type = 'lowpass'; fl.Q.value = o.q || .8;
     fl.frequency.setValueAtTime(o.env || o.lp, t); if(o.env) fl.frequency.setTargetAtTime(o.lp, t, o.et || .08);
-    fl.connect(g); dest = fl;
+    fl.connect(g); dest = fl; nodes.push(fl);
   }
   let lfo = null;
   if(o.vib){
     lfo = a.createOscillator(); lfo.frequency.value = 5.4;
     const lg = a.createGain(); lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(o.vib, t + .3);
-    lfo.connect(lg); lfo.start(t); lfo.stop(end); lfo = lg;
+    lfo.connect(lg); lfo.start(t); lfo.stop(end); srcs.push(lfo); nodes.push(lg); lfo = lg;
   }
   const osc = (w, fr, det, vol) => {
     const s = a.createOscillator(); s.type = w; s.frequency.value = fr; s.detune.value = det;
     if(lfo) lfo.connect(s.detune);
-    if(vol !== 1){ const k = a.createGain(); k.gain.value = vol; s.connect(k); k.connect(dest); } else s.connect(dest);
-    s.start(t); s.stop(end);
+    if(vol !== 1){ const k = a.createGain(); k.gain.value = vol; s.connect(k); k.connect(dest); nodes.push(k); } else s.connect(dest);
+    s.start(t); s.stop(end); srcs.push(s);
   };
   if(o.det){ osc(o.w, f, -o.det / 2, .62); osc(o.w, f, o.det / 2, .62); } else osc(o.w, f, 0, 1);
   if(o.part) for(const [ratio, vol, w] of o.part) osc(w || o.w, f * ratio, 0, vol);
+  audFree(srcs, nodes);
 }
 function mNoise(ch, t, dur, v, type, f, q, fto){
   const a = AUDIO.ctx, src = a.createBufferSource(); src.buffer = AUDIO.noise; src.loop = true;
@@ -2453,13 +2458,14 @@ function mNoise(ch, t, dur, v, type, f, q, fto){
   const g = a.createGain(); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0005, t + dur);
   src.connect(fl); fl.connect(g); g.connect(MIX.ch[ch]);
   src.start(t, Math.random() * .5); src.stop(t + dur + .02);
+  audFree([src], [fl, g]);
 }
 const DRUM = {
   k(t, v){
     const a = AUDIO.ctx, o = a.createOscillator(), g = a.createGain();
     o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(44, t + .12);
     g.gain.setValueAtTime(v * .9, t); g.gain.exponentialRampToValueAtTime(.001, t + .38);
-    o.connect(g); g.connect(MIX.ch.kick); o.start(t); o.stop(t + .4);
+    o.connect(g); g.connect(MIX.ch.kick); o.start(t); o.stop(t + .4); audFree([o], [g]);
     mNoise('kick', t, .015, v * .2, 'highpass', 2500);
   },
   s(t, v){ mNoise('snare', t, .18, v * .5, 'highpass', 1400); mNoise('snare', t, .08, v * .35, 'bandpass', 900, 1.2); mVoice('snare', 160, t, .01, {w:'triangle', v:v * .3, r:.1}); },
@@ -2471,7 +2477,7 @@ const DRUM = {
     const a = AUDIO.ctx, o = a.createOscillator(), g = a.createGain(), f = 190 - s * 6;
     o.frequency.setValueAtTime(f * 1.5, t); o.frequency.exponentialRampToValueAtTime(f, t + .08);
     g.gain.setValueAtTime(v * .55, t); g.gain.exponentialRampToValueAtTime(.001, t + .3);
-    o.connect(g); g.connect(MIX.ch.perc); o.start(t); o.stop(t + .32);
+    o.connect(g); g.connect(MIX.ch.perc); o.start(t); o.stop(t + .32); audFree([o], [g]);
   },
   c(t, v){ mNoise('hat', t, 1.6, v * .2, 'highpass', 4200); },
 };
@@ -7331,7 +7337,10 @@ function dgMovePlayer(dt){
     dgWaterMove(dt);
   }
   dgPullMove(dt);
-  p.x += p.vx * dt; p.y += p.vy * dt;
+  // move in steps of at most 8 px, colliding after each: a roll covers up to 35 px in one frame, and could land
+  // past the middle of a wall or gate tile and be pushed out on the far side
+  const n = Math.min(16, Math.ceil(Math.hypot(p.vx, p.vy) * dt / 8));
+  for(let k = 0; k < n; k++){ p.x += p.vx * dt / n; p.y += p.vy * dt / n; dgCollide(p, p.r); }
   dgCurrentPush(p, dt);
   dgCollide(p, p.r);
 }
@@ -15168,6 +15177,18 @@ ITEMS.plating.show = [['v', 'Armor', '1']];
 FMT.pct1 = v => '+' + (Math.round(v * 10) / 10) + '%';
 ITEMS.vampire.show = [['v', 'Life steal', 'pct1']];
 ITEMS.secondwind.desc = 'Once per floor, survive a killing blow with 30% HP.';
+
+/* ---------- enemies toughen faster from floor to floor ----------
+   The Forge, the skill tree and coins make you much stronger over time, so the HP enemies gain per floor (over
+   floor 1) is doubled: floor 5 x2.4 instead of x1.7, floor 10 x3.5 instead of x2.25, floor 20 x5.6 instead of x3.3.
+   Bosses grow by the same factor. */
+const DG_HP_GROW = 2;
+for(const d of DG_FLOORS){
+  const k = (1 + (d.hpMul - 1) * DG_HP_GROW) / d.hpMul;
+  d.hpMul = Math.round(d.hpMul * k * 100) / 100;
+  d.bossHp = Math.round(d.bossHp * k / 100) * 100;
+  if(d.boss2Hp) d.boss2Hp = Math.round(d.boss2Hp * k / 100) * 100;
+}
 /* ---------- phones: no page gestures, no text selection ----------
    Some in-app browsers close (or reload) the page when a downward swipe reaches the top of the
    page. A swipe is only let through when something under the finger can still scroll that way. */
@@ -15227,7 +15248,12 @@ function d3Warm(){
 }
 const _d3BuildLevelW0 = d3BuildLevel;
 d3BuildLevel = function(){
-  _d3BuildLevelW0(); d3ResUp(); d3Warm();
+  // the level is also rebuilt in the middle of a floor (drained canals, blasted seams): the materials are already
+  // compiled then, and the resolution must not change during play
+  const fresh = D3.builtFor !== G.dg.L; D3.builtFor = G.dg.L;
+  _d3BuildLevelW0();
+  if(!fresh) return;
+  d3ResUp(); d3Warm();
   // the first frames of a new floor are slow while it settles: do not count them against the frame rate
   if(D3.q){ D3.q.slow = 0; D3.q.bad = 0; D3.q.ft = 1 / 60; D3.q.ceil = 1; }
 };
@@ -15256,8 +15282,8 @@ frame = function(now){
 /* Auto resolution. Each change resizes the drawing buffer, which freezes the game for 50-100 ms, so it is never
    changed in the middle of play:
    - too slow for 1.5 s: the lower resolution is decided, and applied at the next pause (level-up cards, pause
-     menu) or floor load, where the freeze cannot be felt. It changes on the spot only when no pause comes: after
-     5 s below 40 fps, or 30 s below 48 fps;
+     menu) or floor load, where the freeze cannot be felt. It changes on the spot only when the game is really
+     struggling (6 s below 30 fps with no pause), and then in one bigger step so it happens once;
    - room to spare (6 s at 54 fps): one step up, also only at a pause or floor load. A step up that turns out too
      slow goes back down and is not tried again on that floor. */
 d3AutoRes = function(dt){
@@ -15272,7 +15298,7 @@ d3AutoRes = function(dt){
     // room to spare: 54 fps or better (phones often sit in the 50s, so 57 was rarely reached)
     Q.good = Q.ft < 1 / 54 ? Q.good + dt : 0;
     Q.slow = Q.ft > 1 / 48 ? Q.slow + dt : 0;
-    Q.bad = Q.ft > 1 / 40 ? Q.bad + dt : 0;
+    Q.bad = Q.ft > 1 / 30 ? Q.bad + dt : 0;
     // slow for 1.5 s (so the frame time has settled): pixels cost about res squared, so aim for a little under 1/58 s
     if(Q.slow > 1.5 && D3.res > .6 && !Q.want){
       // a gentle step (8-20% fewer pixels per side), never below 60%
@@ -15280,8 +15306,21 @@ d3AutoRes = function(dt){
       // the last change was a step up that did not hold: back to where it was, and stay there for a while
       if(Q.wasUp){ Q.want = Math.min(Q.want, Q.from); Q.ceil = Q.from; }
     }
-    if(Q.want && (Q.bad > 5 || Q.slow > 30)) d3ResApply();
+    if(Q.want && Q.bad > 6){ Q.want = Math.max(.6, Math.min(Q.want, D3.res * Math.max(.7, Math.sqrt((1 / 58) / Q.ft)))); d3ResApply(); }
   } else d3ResUp();
+};
+/* Resizing the drawing buffer is what freezes: setPixelRatio() and setSize() each reallocated it, so every change
+   did it twice, and phones fire resize events whenever the browser bars slide. Now it is reallocated once, and
+   not at all when the size has not changed. */
+d3Resize = function(){
+  if(!D3.R) return;
+  const R = D3.R, pr = Math.min(window.devicePixelRatio || 1, innerWidth < 800 ? 1.25 : 1.5) * (save.gfx === 'fast' ? .7 : D3.res);
+  const w = innerWidth, h = innerHeight, c = R.domElement;
+  if(c.width !== Math.floor(w * pr) || c.height !== Math.floor(h * pr) || R.getPixelRatio() !== pr) R.setDrawingBufferSize(w, h, pr);
+  else R.setViewport(0, 0, w, h);
+  D3.cam.aspect = w / Math.max(1, h);
+  D3.cam.updateProjectionMatrix();
+  if(D3.gpMat) D3.gpMat.uniforms.uScale.value = R.getDrawingBufferSize(D3.RT.v).y / (2 * Math.tan(D3.cam.fov * Math.PI / 360));
 };
 function d3ResApply(){
   const Q = D3.q;
@@ -15361,6 +15400,21 @@ dgRender = function(now){
   _dgRenderP0(now);
   G.parts.length = np; G.fx.length = nf; G.texts.length = nt;
 };
+
+/* ---------- sounds let go of their nodes ----------
+   Every sound effect and music note is a small chain of audio nodes (source -> filter -> volume -> mixer).
+   The sources stop on their own, but the filters and volumes after them stayed plugged into the mixer.
+   Chrome tidies those up, Safari keeps them in the audio graph, so a long session got slower and slower
+   until a reload. When the last source of a sound ends, its whole chain is unplugged. */
+function audFree(srcs, nodes){
+  let left = srcs.length;
+  const done = () => {
+    if(--left > 0) return;
+    for(const s of srcs){ s.onended = null; try{ s.disconnect(); }catch(e){} }
+    for(const n of nodes){ try{ n.disconnect(); }catch(e){} }
+  };
+  for(const s of srcs) s.onended = done;
+}
 /* ---------- the Forge: spend coins on permanent upgrades ----------
    Abilities and positive traits: stars 1-5 (200 / 400 / 800 / 1600 / 3200 coins). Every star makes all of the
    item's numbers 10% stronger, the ones each level-up adds included. Counts (blades, fireballs, jumps, barriers)
