@@ -6,9 +6,10 @@ A browser survivor-like dungeon crawler with a deckbuilding twist. Open `index.h
 
 - Before each dive, build a **loadout** of abilities and traits.
 - Pick one of ten **classes** (`part36_classes.js`), each with its own weapon and 3D model. Mage and Knight are there from the start (the Knight from floor 1); the others come with a first clear:
+  - Knight: Cleave's reach grows 15% a level, so it is 2.5× as long at Lv 10 (95 → 237.5).
   - Ranger (floor 3): Longbow, piercing arrows at long range.
-  - Rogue (floor 5): Throwing Daggers in a fan, +20% crit chance on them, the fastest class.
-  - Gunner (floor 7): Scattergun, short-range pellets that each go through one enemy, one knockback per blast.
+  - Rogue (floor 5): Throwing Daggers in a fan, +20% crit chance on them, the fastest class; at Lv 10 each dagger pierces one enemy.
+  - Gunner (floor 7): Scattergun, 12 damage per pellet at Lv 1, short-range pellets that each go through one enemy, one knockback per blast.
   - Lancer (floor 9): Spear Thrust, hits a whole line, 2 armor.
   - Priest (floor 12): Holy Aura, burns everything around you and heals a little with every pulse that hits.
   - Berserker (floor 14): Whirling Axe all around; damage up to ×2 as your HP runs out.

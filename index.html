@@ -17411,10 +17411,11 @@ Object.assign(WEAPONS, {
     lv:L => ({dmg:20 * (1 + 0.13 * (L - 1)), count:1 + (L >= 5) + (L >= 9), pierce:2 + (L >= 3) + (L >= 7), cd:0.75 * (1 - 0.035 * (L - 1))}),
     show:[['dmg','Damage','1'],['count','Arrows','int'],['pierce','Pierce','int'],['cd','Cooldown','s']]},
   daggers: {name:'Throwing Daggers',
-    lv:L => ({dmg:8 * (1 + 0.12 * (L - 1)), count:3 + (L >= 4) + (L >= 8), cd:0.5 * (1 - 0.04 * (L - 1))}),
-    show:[['dmg','Damage','1'],['count','Daggers','int'],['cd','Cooldown','s']]},
+    // pierce .5 at Lv 10: the doubled top step (lvTopDouble) makes it 1
+    lv:L => ({dmg:8 * (1 + 0.12 * (L - 1)), count:3 + (L >= 4) + (L >= 8), pierce:L >= 10 ? .5 : 0, cd:0.5 * (1 - 0.04 * (L - 1))}),
+    show:[['dmg','Damage','1'],['count','Daggers','int'],['pierce','Pierce','int'],['cd','Cooldown','s']]},
   scatter: {name:'Scattergun',
-    lv:L => ({dmg:8 * (1 + 0.13 * (L - 1)), count:5 + (L >= 4) + (L >= 7) + (L >= 10), kb:30 + 3 * (L - 1), cd:0.95 * (1 - 0.04 * (L - 1))}),
+    lv:L => ({dmg:12 * (1 + 0.13 * (L - 1)), count:5 + (L >= 4) + (L >= 7) + (L >= 10), kb:30 + 3 * (L - 1), cd:0.95 * (1 - 0.04 * (L - 1))}),
     show:[['dmg','Damage','1'],['count','Pellets','int'],['kb','Knockback','int'],['cd','Cooldown','s']]},
   spear:   {name:'Spear Thrust',
     lv:L => ({dmg:26 * (1 + 0.14 * (L - 1)), range:150 * (1 + 0.04 * (L - 1)), count:1 + (L >= 6), cd:0.85 * (1 - 0.04 * (L - 1))}),
@@ -17432,6 +17433,8 @@ Object.assign(WEAPONS, {
     lv:L => ({dmg:12 * (1 + 0.13 * (L - 1)), count:1 + (L >= 6) + (L >= 10), n:2 + (L >= 3) + (L >= 6) + (L >= 9), sdmg:10 * (1 + 0.15 * (L - 1)), cd:0.7 * (1 - 0.035 * (L - 1))}),
     show:[['dmg','Damage','1'],['count','Bolts','int'],['n','Skeletons','int'],['sdmg','Skeleton damage','1'],['cd','Cooldown','s']]},
 });
+// the Knight's Cleave reaches 2.5x as far at Lv 10 (+15% a level, the top step doubled)
+WEAPONS.cleave.lv = L => ({dmg:26 * (1 + 0.14 * (L - 1)), range:95 * (1 + 0.15 * (L - 1)), back:L >= 6 ? 1 : 0, cd:0.9 * (1 - 0.04 * (L - 1))});
 for(const id of ['longbow', 'daggers', 'scatter', 'spear', 'elembolt', 'soulbolt']) msWrap(WEAPONS[id], 'count');
 msWrap(WEAPONS.soulbolt, 'n');
 ITEMS.multishot.desc = '+1 projectile for your weapon and abilities: arrows, daggers, pellets, spear thrusts, bolts and skeletons, Orbit Blades, Fireball, Drone, Lightning, Boomerang, Chain Lightning jumps, Meteor, Piercing Lance, Blade Storm.';
@@ -17599,7 +17602,7 @@ fireWeapon = function(){
       const t = nearestEnemy(p.x, p.y, 300);
       if(!t) return 0.12;
       const a0 = Math.atan2(t.y - p.y, t.x - p.x), sp = .8 / Math.max(1, st.count - 1);
-      for(let i = 0; i < st.count; i++) clShoot(p.x, p.y, a0 + (i - (st.count - 1) / 2) * sp, 600, {dmg:st.dmg, color:'#e8d8ff', r:5, life:.48});
+      for(let i = 0; i < st.count; i++) clShoot(p.x, p.y, a0 + (i - (st.count - 1) / 2) * sp, 600, {dmg:st.dmg, pierce:Math.round(st.pierce), color:'#e8d8ff', r:5, life:.48});
       sfx('shoot');
       return st.cd * cdm();
     }
