@@ -5,6 +5,16 @@ A browser survivor-like dungeon crawler with a deckbuilding twist. Open `index.h
 ## Core idea
 
 - Before each dive, build a **loadout** of abilities and traits.
+- Pick one of ten **classes** (`part36_classes.js`), each with its own weapon and 3D model. Mage and Knight are there from the start (the Knight from floor 1); the others come with a first clear:
+  - Ranger (floor 3): Longbow, piercing arrows at long range.
+  - Rogue (floor 5): Throwing Daggers in a fan, +20% crit chance on them, the fastest class.
+  - Gunner (floor 7): Scattergun, short-range pellets that each go through one enemy, one knockback per blast.
+  - Lancer (floor 9): Spear Thrust, hits a whole line, 2 armor.
+  - Priest (floor 12): Holy Aura, burns everything around you and heals a little with every pulse that hits.
+  - Berserker (floor 14): Whirling Axe all around; damage up to ×2 as your HP runs out.
+  - Elementalist (floor 17): bolts that cycle fire (splash), ice (slow) and storm (chains to 2 more).
+  - Necromancer (floor 21): Soul Bolts; kills may rise as skeletons that fight for 10 s (up to 2–5 at once, by weapon level).
+  A save that already cleared those floors gets the classes when it loads. Multishot adds arrows, daggers, pellets, thrusts, bolts and skeletons.
 - Abilities and positive traits **cost** points, shown as +n. Negative traits **give points back**, shown as −n.
 - There are 15 abilities, 46 positive traits and 27 negative traits. The newer traits change how you play instead of adding to a stat, and several are modelled on the set effects of the L2 Artifacts Minecraft mod. For example:
   - **Sword of Damocles** (+3): damage +100% at full HP, but you die if your HP drops below 40%.
