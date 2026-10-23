@@ -9450,6 +9450,15 @@ function d3Rig(id){
   });
   return R;
 }
+// an instanced mesh drawn with its first n instances this frame: only those are sent to the GPU, and a mesh
+// with none in use is skipped. (Every rig ever met keeps 220 slots per body part; sending them all every frame
+// grew the per-frame upload with each new floor's enemies.)
+function d3Used(m, n){
+  m.count = n; m.visible = n > 0;
+  if(!n) return;
+  const a = m.instanceMatrix; a.clearUpdateRanges(); a.addUpdateRange(0, n * 16); a.needsUpdate = true;
+  const c = m.instanceColor; if(c){ c.clearUpdateRanges(); c.addUpdateRange(0, n * 3); c.needsUpdate = true; }
+}
 function d3PartSpec(pt){
   const x = pt[6] || {};
   return {px:pt[2][0], py:pt[2][1], pz:pt[2][2], rx:x.rx || 0, ry:x.ry || 0, rz:x.rz || 0, a:pt[5], k:x.k || 0, R:x.R || 0, color:pt[4], g:!!x.g};
@@ -9579,7 +9588,7 @@ function d3Characters(dt){
     0, null, m.rise > 0 ? -m.rise / .6 * 40 : 0, 0);
   for(const id in D3.rigs){
     const R2 = D3.rigs[id];
-    for(const m of R2.meshes){ m.count = R2.n; m.instanceMatrix.needsUpdate = true; if(m.instanceColor) m.instanceColor.needsUpdate = true; }
+    for(const m of R2.meshes) d3Used(m, R2.n);
   }
 }
 
@@ -9693,7 +9702,7 @@ function d3Things(dt, ts){
     D3.gems.setColorAt(n, d3HexCol(col)); n++;
     gp(gm.x, hy, gm.y, col, s * 5, .55, 0);
   }
-  D3.gems.count = n; D3.gems.instanceMatrix.needsUpdate = true; if(D3.gems.instanceColor) D3.gems.instanceColor.needsUpdate = true;
+  d3Used(D3.gems, n);
   // pickups (sprites) and their glow
   let si = 0;
   for(const pk of g.pickups){
@@ -9725,7 +9734,7 @@ function d3Things(dt, ts){
       gp(pr.x - pr.vx * .05, 24, pr.y - pr.vy * .05, pr.color, 18, .3, 0);
     }
   }
-  D3.boomers.count = nb; D3.boomers.instanceMatrix.needsUpdate = true;
+  d3Used(D3.boomers, nb);
   // enemy bullets: arrows are real arrows, everything else glows
   for(const b of g.ebullets){
     if(!vis(b.x, b.y)) continue;
@@ -9738,7 +9747,7 @@ function d3Things(dt, ts){
     else if(b.bubble){ gp(b.x, 24, b.y, b.color, b.r * 5.5, .7, .25); gp(b.x - b.r * .3, 27, b.y - b.r * .3, '#ffffff', b.r * 1.6, .9, 1); }
     else { gp(b.x, 24, b.y, b.color, b.r * 5, .95, .9); }
   }
-  D3.arrows.count = na; D3.arrows.instanceMatrix.needsUpdate = true;
+  d3Used(D3.arrows, na);
   // orbit blades and drones
   let nbl = 0, ndr = 0;
   if(g.ab.orbit){
@@ -9759,8 +9768,8 @@ function d3Things(dt, ts){
       gp(dx, hy, dy, '#6dffc4', 34, .7, .5);
     }
   }
-  D3.blades.count = nbl; D3.blades.instanceMatrix.needsUpdate = true;
-  D3.drones.count = ndr; D3.drones.instanceMatrix.needsUpdate = true;
+  d3Used(D3.blades, nbl);
+  d3Used(D3.drones, ndr);
   // effects that live in the air: lobbed shots and lightning
   for(const f of g.fx){
     const k = Math.max(0, f.life / f.max);
@@ -10312,7 +10321,7 @@ function d3ThingsAQ(dt, ts){
   }
   if(lk.glowMotes && Math.random() < .4) G.parts.push({x:cx + rand(-500, 500), y:cy + rand(-400, 300), vx:rand(-6, 6), vy:rand(-10, -2), life:2.5, max:2.5, c:Math.random() < .5 ? '#8ff8ff' : '#c89bff', s:2.4});
   if(lk.drips && Math.random() < .5) G.parts.push({x:cx + rand(-600, 600), y:cy + rand(-500, 300), vx:0, vy:0, life:.5, max:.5, c:'#d0ffc0', s:1.6});
-  for(const k in M){ M[k].m.count = M[k].n; M[k].m.instanceMatrix.needsUpdate = true; }
+  for(const k in M) d3Used(M[k].m, M[k].n);
 }
 // 2D, drawn over the darkness: lights you can see from afar, objective rings and a pointer to the next objective
 function dgOverlayAQ(visR){
@@ -12048,7 +12057,7 @@ function d3ThingsMN(dt, ts){
 function d3RigCounts(){
   for(const id in D3.rigs){
     const R2 = D3.rigs[id];
-    for(const m of R2.meshes){ m.count = R2.n; m.instanceMatrix.needsUpdate = true; if(m.instanceColor) m.instanceColor.needsUpdate = true; }
+    for(const m of R2.meshes) d3Used(m, R2.n);
   }
 }
 // 2D: the heat gauge, the fuse countdown, the cart's progress
@@ -19116,6 +19125,23 @@ modal.addEventListener('click', e => {
 .dz-go:disabled{opacity:.4}`;
   document.head.append(st);
 })();
+
+/* ---------- the menus: a still background ----------
+   The hub's backdrop used to be redrawn every frame. Under the blurred header and footer that made the browser
+   re-blur the screen every frame too: heavy on phones while the game itself did almost nothing. It is now drawn
+   once and only again when the screen size or the stage behind it changes. */
+let BD_KEY = '';
+const _renderBackdropP0 = renderBackdrop;
+renderBackdrop = function(now){
+  const k = `${W}x${H}x${DPR}|${B.stage}`;
+  if(k === BD_KEY) return;
+  BD_KEY = k;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  _renderBackdropP0(now);
+};
+// anything else drawn on the canvas (a run, the title) means the backdrop must be drawn again
+const _renderP0 = render;
+render = function(now){ if(G || !titleEl.hidden) BD_KEY = ''; return _renderP0(now); };
 /* ---------- title screen: a live dungeon floor plays behind the menu ----------
    A hero walks a real floor on its own: it picks a far-off spot, follows a path there and fights
    whatever comes. It cannot die, nothing is saved and it makes no sound. Every 40 s it fades to
@@ -19291,13 +19317,26 @@ try{ PM.on = localStorage.getItem('ls-perf') === '1'; }catch(e){}
   window.clearTimeout = id => { live.delete(id); return ct(id); };
   PM.liveTimers = live;
 })();
+// data sent to the GPU (buffers and textures), per frame
+PM.up = 0; PM.upN = 0; PM.upF = 0;
+for(const C of [window.WebGLRenderingContext, window.WebGL2RenderingContext]){
+  if(!C) continue;
+  for(const fn of ['bufferSubData', 'bufferData', 'texSubImage2D', 'texImage2D']){
+    const o = C.prototype[fn];
+    if(!o) continue;
+    C.prototype[fn] = function(...a){
+      if(PM.on){ PM.upN++; const d = a.find(x => x && (x.byteLength !== undefined || x.width)); PM.up += d ? (d.byteLength !== undefined ? d.byteLength : d.width * d.height * 4) : 0; }
+      return o.apply(this, a);
+    };
+  }
+}
 const _framePM0 = frame;
 frame = function(now){
   const t = performance.now();
   _framePM0(now);
   if(!PM.on) return;
   const d = performance.now() - t;
-  PM.frames.push([now, d]);
+  PM.frames.push([now, d]); PM.upF++;
   while(PM.frames.length && now - PM.frames[0][0] > 2000) PM.frames.shift();
 };
 const _dgEnterPM0 = dgEnter;
@@ -19313,10 +19352,11 @@ function pmTick(){
   let gap = 0; for(let i = 1; i < n; i++) gap = Math.max(gap, F[i][0] - F[i - 1][0]);
   const fps = n > 1 ? (n - 1) / ((F[n - 1][0] - F[0][0]) / 1000) : 0;
   const mem = performance.memory ? (performance.memory.usedJSHeapSize / 1e6).toFixed(0) + ' MB' : 'n/a';
-  const R = D3.R, g = G || TDEMO.g;
+  const R = D3.R, g = G || TDEMO.g, uf = Math.max(1, PM.upF), upKB = (PM.up / uf / 1024).toFixed(0), upN = (PM.upN / uf).toFixed(0);
+  PM.up = 0; PM.upN = 0; PM.upF = 0;
   const lines = [
     `fps ${fps.toFixed(0)} · frame ${(n ? cost / n : 0).toFixed(1)} ms (worst ${worst.toFixed(0)}) · longest gap ${gap.toFixed(0)} ms`,
-    `JS memory ${mem} · timers ${PM.liveTimers.size} · audio nodes ${PERF_AUDIO}`,
+    `JS memory ${mem} · timers ${PM.liveTimers.size} · audio nodes ${PERF_AUDIO} · GPU upload ${upKB} KB/frame (${upN}) · rigs ${D3.rigs ? Object.keys(D3.rigs).length : 0}`,
     R ? `GPU geo ${R.info.memory.geometries} tex ${R.info.memory.textures} shaders ${R.info.programs ? R.info.programs.length : '?'} · draws ${R.info.render.calls} tris ${(R.info.render.triangles / 1000).toFixed(0)}k · scale ${(R.getPixelRatio()).toFixed(2)}` : 'GPU: not started',
     g ? `floor ${g.dg ? g.dg.floor : '-'} · enemies ${g.enemies.length} shots ${g.ebullets.length} mine ${g.projs.length} hazards ${g.hazards.length} fx ${g.fx.length} parts ${g.parts.length} gems ${g.gems.length} texts ${g.texts.length}` : 'in the menus',
     `session ${((performance.now() - PM.t0) / 60000).toFixed(0)} min · runs ${PM.runs} · floors ${PM.floors} · DOM ${document.getElementsByTagName('*').length}`];

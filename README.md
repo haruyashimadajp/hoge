@@ -109,6 +109,8 @@ Seen from behind and above, in the style of Minecraft Dungeons. It follows the d
 - The static level is split into chunks of 10×10 tiles (`d3Instanced`), so the camera and the shadow pass only draw what is near the view, and nothing past the fog is drawn.
 - Only five point lights exist: four for the torches nearest the camera (an open portal borrows one) and one on the player. The count never changes during play, so materials are never recompiled mid-run. Shadows use plain PCF filtering.
 - Phones skip MSAA.
+- Instanced meshes send only the instances in use to the GPU each frame, and a mesh with none in use is skipped (`d3Used`). Every enemy model ever met keeps 220 slots per body part, and all of them used to be re-sent every frame, so the per-frame upload grew with each new floor's enemies (242 KB → 831 KB after nine floors in a test; now 3 KB either way). This was the slowdown that built up over long sessions.
+- The menus' backdrop is drawn once and only again when the screen size or the stage behind it changes (`part37_perf.js`). Redrawn every frame under the blurred header and footer, it made phones re-blur the screen every frame (about 12 fps headless before, 60 after).
 - Screens faster than about 100 Hz (120 Hz phones) are drawn at 60 fps, every other refresh, instead of doing all the work twice as often.
 - Less garbage per frame, so fewer garbage-collection pauses: the per-frame lists are cleaned in place (`compact`), character colours are kept per rig and skin, and one animation-state object is reused.
 - The minimap only paints newly seen tiles; the whole map is repainted only when tiles change. The enemies' path map (`dgFlow`) reaches 48 tiles around you instead of the whole floor.
