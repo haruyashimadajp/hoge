@@ -19325,7 +19325,10 @@ for(const C of [window.WebGLRenderingContext, window.WebGL2RenderingContext]){
     const o = C.prototype[fn];
     if(!o) continue;
     C.prototype[fn] = function(...a){
-      if(PM.on){ PM.upN++; const d = a.find(x => x && (x.byteLength !== undefined || x.width)); PM.up += d ? (d.byteLength !== undefined ? d.byteLength : d.width * d.height * 4) : 0; }
+      if(PM.on){   // a partial buffer upload (offset + length) counts only that part
+        PM.upN++; const d = a.find(x => x && (x.byteLength !== undefined || x.width));
+        PM.up += fn === 'bufferSubData' && a.length >= 5 ? a[4] * a[2].BYTES_PER_ELEMENT : d ? (d.byteLength !== undefined ? d.byteLength : d.width * d.height * 4) : 0;
+      }
       return o.apply(this, a);
     };
   }
